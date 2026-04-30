@@ -1,0 +1,1140 @@
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/App.axaml
+// ==========================================
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MojaPrvaAvalonia.App"
+             xmlns:local="using:MojaPrvaAvalonia"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/App.axaml.cs
+// ==========================================
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data.Core;
+using Avalonia.Data.Core.Plugins;
+using System.Linq;
+using Avalonia.Markup.Xaml;
+using MojaPrvaAvalonia.Models;      // Pridané: aby sme videli triedu CMainProgram
+using MojaPrvaAvalonia.ViewModels;
+using MojaPrvaAvalonia.Views;
+
+namespace MojaPrvaAvalonia;
+
+public partial class App : Application
+{
+    // 1. Vytvoríme našu hlavnú logiku programu, ktorá žije na úrovni celej App
+    private readonly CMainProgram _mainProgram = new CMainProgram();
+
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            // 2. Odovzdáme (vložíme) náš _mainProgram priamo do ViewModelu pre hlavné okno
+            desktop.MainWindow = new MainWindow
+            {
+                DataContext = new MainWindowViewModel(_mainProgram),
+            };
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/app.manifest
+// ==========================================
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <!-- This manifest is used on Windows only.
+       Don't remove it as it might cause problems with window transparency and embedded controls.
+       For more details visit https://learn.microsoft.com/en-us/windows/win32/sbscs/application-manifests -->
+  <assemblyIdentity version="1.0.0.0" name="MojaPrvaAvalonia.Desktop"/>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- A list of the Windows versions that this application has been tested on
+           and is designed to work with. Uncomment the appropriate elements
+           and Windows will automatically select the most compatible environment. -->
+
+      <!-- Windows 10 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+</assembly>
+
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Program.cs
+// ==========================================
+using System;
+using Avalonia;
+using Serilog;
+using Serilog.Core;
+using MojaPrvaAvalonia.Logging; // Nezabudni pridať cestu k nášmu novému Sinku
+
+namespace MojaPrvaAvalonia;
+
+class Program
+{
+    // 1. Vytvoríme statickú premennú pre náš Sink. 
+    // Vďaka tomu si náš ViewModel bude vedieť neskôr vytiahnuť tie "LogEvents" a zobraziť ich.
+    public static ObservableCollectionSink UiSink { get; private set; }
+
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        // Tvoja pôvodná šablóna z WinForms
+        string outputTemplate = "[{Timestamp:HH:mm:ss.fff}][{Level:u3}][{Name}][{Message}][{Measure}]{NewLine}";
+        
+        // Inicializácia nášho UI Sinku pre zoznam v aplikácii
+        UiSink = new ObservableCollectionSink(outputTemplate);
+        
+        var levelSwitch = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Verbose);
+        Serilog.Debugging.SelfLog.Enable(Console.Error);
+
+        // 2. Samotné nastavenie loggera (presne ako si mal ty, plus Console)
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.ControlledBy(levelSwitch)
+            .WriteTo.Console(outputTemplate: outputTemplate) // Pre vývoj v Rideri
+            // Pozor na zmenu lomítka: v Linuxe sa používajú dopredné lomítka "/"
+            .WriteTo.File("logs/myapp.txt", outputTemplate: outputTemplate, rollingInterval: RollingInterval.Day) 
+            .WriteTo.Sink(UiSink) // Prepojenie na našu UI kolekciu
+            .CreateLogger();
+
+        try
+        {
+            Log.Information("Systém logovania úspešne naštartovaný.");
+            
+            // Toto je pôvodný kód Avalonie, ktorý spúšťa okno
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Kritická chyba: Aplikácia nečakane spadla!");
+        }
+        finally
+        {
+            // Dôležité: Zabezpečí, že pred vypnutím sa dopíšu všetky logy do súboru
+            Log.CloseAndFlush();
+        }
+    }
+
+    // Nemeň metódu BuildAvaloniaApp(), nechaj ju tak, ako je
+    public static AppBuilder BuildAvaloniaApp()
+        => AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace();
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/ViewLocator.cs
+// ==========================================
+using System;
+using System.Diagnostics.CodeAnalysis;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using MojaPrvaAvalonia.ViewModels;
+
+namespace MojaPrvaAvalonia;
+
+/// <summary>
+/// Given a view model, returns the corresponding view if possible.
+/// </summary>
+[RequiresUnreferencedCode(
+    "Default implementation of ViewLocator involves reflection which may be trimmed away.",
+    Url = "https://docs.avaloniaui.net/docs/concepts/view-locator")]
+public class ViewLocator : IDataTemplate
+{
+    public Control? Build(object? param)
+    {
+        if (param is null)
+            return null;
+
+        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
+        var type = Type.GetType(name);
+
+        if (type != null)
+        {
+            return (Control)Activator.CreateInstance(type)!;
+        }
+
+        return new TextBlock { Text = "Not Found: " + name };
+    }
+
+    public bool Match(object? data)
+    {
+        return data is ViewModelBase;
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Converters/LogColorConverter.cs
+// ==========================================
+using System;
+using System.Globalization;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
+
+namespace MojaPrvaAvalonia.Converters;
+
+public class LogColorConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is string logText)
+        {
+            if (logText.Contains("[WRN]")) return Brushes.Yellow;
+            if (logText.Contains("[ERR]") || logText.Contains("[FTL]")) return Brushes.Red;
+            if (logText.Contains("[INF]")) return Brushes.LimeGreen;
+        }
+        // Predvolená farba pre ostatné správy
+        return Brushes.LightGray; 
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) 
+        => throw new NotImplementedException();
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Logging/ObservableCollectionSink.cs
+// ==========================================
+using System;
+using System.Collections.ObjectModel;
+using Avalonia.Threading;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Formatting;
+using Serilog.Formatting.Display;
+using System.IO;
+
+namespace MojaPrvaAvalonia.Logging;
+
+public class ObservableCollectionSink : ILogEventSink
+{
+    private readonly ITextFormatter _textFormatter;
+    public ObservableCollection<string> LogEvents { get; }
+
+    // Konštruktor, kde si nastavíme formát výpisu
+    public ObservableCollectionSink(string outputTemplate)
+    {
+        _textFormatter = new MessageTemplateTextFormatter(outputTemplate, null);
+        LogEvents = new ObservableCollection<string>();
+    }
+
+    // Táto metóda sa zavolá zakaždým, keď urobíš Log.Information() atď.
+    public void Emit(LogEvent logEvent)
+    {
+        using var renderSpace = new StringWriter();
+        _textFormatter.Format(logEvent, renderSpace);
+        var message = renderSpace.ToString().TrimEnd();
+
+        // Avalonia UI beží vo vlastnom vlákne. Keďže PLC a Serilog bežia na pozadí,
+        // musíme aktualizáciu kolekcie poslať (Dispatch) do hlavného UI vlákna.
+        Dispatcher.UIThread.Post(() =>
+        {
+            LogEvents.Add(message);
+
+            // Voliteľné: Ak chceš udržať napr. len posledných 100 logov v pamäti (ako si mal 1000 vo WinForms)
+            if (LogEvents.Count > 1000)
+            {
+                LogEvents.RemoveAt(0);
+            }
+        });
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Models/CMainProgram.cs
+// ==========================================
+using System.Collections.ObjectModel;
+
+namespace MojaPrvaAvalonia.Models;
+
+public class CMainProgram
+{
+    // Kolekcia teraz môže obsahovať akékoľvek CPlc (teda aj CManipulator)
+    public ObservableCollection<CPlc> ZoznamPlc { get; } = new ObservableCollection<CPlc>();
+
+    public CMainProgram()
+    {
+        // Vytvárame inštancie nášho nového potomka
+        ZoznamPlc.Add(new CManipulator("Linka 1"));
+        ZoznamPlc.Add(new CManipulator("Linka 2"));
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Models/CManipulator.cs
+// ==========================================
+using System.Collections.ObjectModel;
+using Serilog;
+
+namespace MojaPrvaAvalonia.Models;
+
+public partial class CManipulator : CPlc
+{
+    public ObservableCollection<CMotorData> Motory { get; } = new ObservableCollection<CMotorData>();
+
+    public CManipulator(string name) : base(name)
+    {
+        Motory.Add(new CMotorData { Name = "Zdvih" });
+        Motory.Add(new CMotorData { Name = "Axis X" });
+        Motory.Add(new CMotorData { Name = "Axis Y" });
+    }
+
+    public override int RunStep(int step)
+    {
+        switch (step)
+        {
+            // ==========================================
+            // INIT SEKVENCIA (Kroky 1 - 99)
+            // ==========================================
+            case 1: return InitStep1(step);
+            case 10: return InitStep10(step);
+            case 20: return InitStep20(step);
+            case 30: return InitStep30(step);
+            case 40: return InitStep40(step);
+
+            // ==========================================
+            // MAIN SEKVENCIA (Kroky 100+)
+            // ==========================================
+            case 100: return MainStep100(step);
+            case 110: return MainStep110(step);
+            case 120: return MainStep120(step);
+            case 130: return MainStep130(step);
+            case 140: return MainStep140(step);
+            case 150: return MainStep150(step);
+            case 160: return MainStep160(step);
+            case 170: return MainStep170(step);
+
+            default: return base.RunStep(step);
+        }
+    }
+
+    // ==========================================
+    // METÓDY PRE INIT
+    // ==========================================
+    private int InitStep1(int step)
+    {
+        Message = "Init 1: Štart inicializácie";
+        StatusCycle = EnStatusCycle.Moving;
+        return 10;
+    }
+
+    private int InitStep10(int step)
+    {
+        Message = "Init 10: Resetovanie pohonov";
+        foreach (var motor in Motory)
+        {
+            motor.Speed = 0;
+            motor.Position = 0;
+            motor.Current = 0;
+        }
+        return 20;
+    }
+
+    private int InitStep20(int step)
+    {
+        Message = "Init 20: Kontrola senzorov a kamier";
+        return 30;
+    }
+
+    private int InitStep30(int step)
+    {
+        Message = "Init 30: Presun do Home pozície";
+        foreach (var motor in Motory)
+        {
+            motor.Speed = 500;
+            motor.Position = 10;
+        }
+        return 40;
+    }
+
+    private int InitStep40(int step)
+    {
+        Message = "Init 40: Inicializácia dokončená";
+        foreach (var motor in Motory)
+        {
+            motor.Speed = 0;
+        }
+        // Vraciame 99 -> Slučka to zachytí a nastaví stav na Ready
+        return 99; 
+    }
+
+    // ==========================================
+    // METÓDY PRE MAIN PROGRAM
+    // ==========================================
+    private int MainStep100(int step)
+    {
+        Message = "Main 100: Kontrola parkovania";
+        StatusCycle = EnStatusCycle.Moving;
+
+        // Ak bolo stlačené tlačidlo "Parkovať", ukončíme slučku
+        if (RequestToEnd)
+        {
+            Log.Logger.ForContext("Name", Name).Information("Zachytená požiadavka na parkovanie, ukončujem program.");
+            return 0; // Vraciame 0 -> Slučka to zachytí a nastaví stav na NotInit
+        }
+
+        return 110;
+    }
+
+    private int MainStep110(int step)
+    {
+        Message = "Main 110: Zdvih dole";
+        Motory[0].Speed = 1000;
+        Motory[0].Position = 150;
+        return 120;
+    }
+
+    private int MainStep120(int step)
+    {
+        Message = "Main 120: Presun X a Y nad diel";
+        Motory[1].Speed = 2000; Motory[1].Position = 300;
+        Motory[2].Speed = 2000; Motory[2].Position = 450;
+        return 130;
+    }
+
+    private int MainStep130(int step)
+    {
+        Message = "Main 130: Inšpekcia dielu";
+        StatusCycle = EnStatusCycle.Inspecting;
+        return 140;
+    }
+
+    private int MainStep140(int step)
+    {
+        Message = "Main 140: Spracovanie dielu";
+        StatusCycle = EnStatusCycle.Moving;
+        return 150;
+    }
+
+    private int MainStep150(int step)
+    {
+        Message = "Main 150: Zdvih hore";
+        Motory[0].Speed = 1000;
+        Motory[0].Position = 10;
+        return 160;
+    }
+
+    private int MainStep160(int step)
+    {
+        Message = "Main 160: Návrat X a Y";
+        Motory[1].Speed = 2000; Motory[1].Position = 10;
+        Motory[2].Speed = 2000; Motory[2].Position = 10;
+        return 170;
+    }
+
+    private int MainStep170(int step)
+    {
+        Message = "Main 170: Koniec cyklu";
+        foreach (var motor in Motory)
+        {
+            motor.Speed = 0;
+        }
+        
+        // Návrat na začiatok hlavného cyklu
+        return 100; 
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Models/CMotorData.cs
+// ==========================================
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace MojaPrvaAvalonia.Models;
+
+public partial class CMotorData : ObservableObject
+{
+    // Nová property pre názov motora
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private int _speed;
+
+    [ObservableProperty]
+    private int _position;
+
+    [ObservableProperty]
+    private int _current;
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Models/CPlc.cs
+// ==========================================
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Serilog;
+
+namespace MojaPrvaAvalonia.Models;
+
+public partial class CPlc : ObservableObject
+{
+    [ObservableProperty] private string _name = string.Empty;
+    
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InitCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StartProgramCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextStepProgramCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopProgramOnEndCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopProgramImmediatelyCommand))]
+    private EnStatusPlc _statusPlc = EnStatusPlc.NotInit; 
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InitCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StartProgramCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextStepProgramCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopProgramOnEndCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopProgramImmediatelyCommand))]
+    private EnStatusConnection _connection = EnStatusConnection.Disconnect; 
+
+    [ObservableProperty] private EnStatusCycle _statusCycle = EnStatusCycle.WaitForInit;
+    [ObservableProperty] private EnModePlc _modeMachine = EnModePlc.Auto;
+    
+    [ObservableProperty] private string _message = "Stroj vypnutý";
+    
+    // OPRAVA: Odstránený NotifyCanExecuteChangedFor. Zabraňuje to pádu na background vlákne.
+    [ObservableProperty] 
+    private int _step;
+    
+    [ObservableProperty] private bool _requestToNextStep;
+    [ObservableProperty] private bool _requestToEnd;
+    [ObservableProperty] private bool _stopImmediately;
+
+    [ObservableProperty] private bool _isStepMode;
+    
+    public string ModeText => IsStepMode ? "Režim: KROK" : "Režim: AUTO";
+
+    protected CancellationTokenSource? _cancellationTokenSource;
+
+    public CPlc(string name)
+    {
+        Name = name;
+    }
+
+    // ==========================================
+    // AUTOMATICKÉ LOGOVANIE ZMIEN
+    // ==========================================
+    
+    partial void OnStatusPlcChanged(EnStatusPlc oldValue, EnStatusPlc newValue)
+    {
+        Log.Logger.ForContext("Name", Name).Debug($"[STAV ZMENENÝ] StatusPlc: {oldValue} -> {newValue}");
+    }
+
+    partial void OnConnectionChanged(EnStatusConnection oldValue, EnStatusConnection newValue)
+    {
+        Log.Logger.ForContext("Name", Name).Debug($"[STAV ZMENENÝ] Connection: {oldValue} -> {newValue}");
+    }
+
+    partial void OnStepChanged(int oldValue, int newValue)
+    {
+        Log.Logger.ForContext("Name", Name).Debug($"[KROK ZMENENÝ] Step: {oldValue} -> {newValue}");
+    }
+
+    // ==========================================
+    // LOGIKA KROKOV
+    // ==========================================
+
+    public virtual int RunStep(int step)
+    {
+        Log.Logger.ForContext("Name", Name).Fatal($"Neznámy krok ({step}) => program zastavený!");
+        return 0;
+    }
+
+    // ==========================================
+    // PRÍKAZY A ICH PODMIENKY
+    // ==========================================
+
+    [RelayCommand]
+    public void ToggleMode()
+    {
+        IsStepMode = !IsStepMode;
+        OnPropertyChanged(nameof(ModeText)); 
+        Log.Logger.ForContext("Name", Name).Information($"Volič režimu prepnutý na: {(IsStepMode ? "KROK" : "AUTO")}");
+
+        if (StatusPlc == EnStatusPlc.Running && IsStepMode)
+        {
+            Log.Logger.ForContext("Name", Name).Information("Stroj pozastavený (Prepnuté do krokového režimu).");
+            StatusPlc = EnStatusPlc.StepMode;
+        }
+        else if (StatusPlc == EnStatusPlc.StepMode && !IsStepMode)
+        {
+            Log.Logger.ForContext("Name", Name).Information("Stroj pokračuje plynule (Prepnuté do AUTO).");
+            StatusPlc = EnStatusPlc.Running;
+        }
+        
+        NextStepProgramCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanConnect() => 
+        (Connection == EnStatusConnection.Disconnect && StatusPlc == EnStatusPlc.NotInit) ||
+        (Connection == EnStatusConnection.Connected && (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready));
+    
+    [RelayCommand(CanExecute = nameof(CanConnect))]
+    public async Task ConnectAsync()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Connect");
+        
+        if (StatusPlc == EnStatusPlc.Ready)
+        {
+            StatusPlc = EnStatusPlc.NotInit;
+            Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
+        }
+
+        Connection = EnStatusConnection.WaitToConnect;
+        Message = "Pripájam zariadenia...";
+        
+        await Task.Delay(3000); 
+        
+        Connection = EnStatusConnection.Connected;
+        Message = "Pripojené. Čaká na Init.";
+    }
+
+    private bool CanInit() => Connection == EnStatusConnection.Connected && 
+                              (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error);
+    
+    [RelayCommand(CanExecute = nameof(CanInit))]
+    public virtual void Init()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Init");
+        
+        // OPRAVA: Najprv nastavíme krok, až potom StatusPlc, aby UI prepočítalo tlačidlá so správnym krokom
+        Step = 1; 
+        StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Initializing;
+        
+        _cancellationTokenSource = new CancellationTokenSource();
+        Task.Run(() => ProgramLoopAsync(_cancellationTokenSource.Token));
+    }
+
+    private bool CanStartProgram() => Connection == EnStatusConnection.Connected && StatusPlc == EnStatusPlc.Ready;
+    
+    [RelayCommand(CanExecute = nameof(CanStartProgram))]
+    public virtual void StartProgram()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Start");
+        
+        // OPRAVA: Najprv nastavíme krok, až potom StatusPlc
+        Step = 100; 
+        StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Running;
+        
+        _cancellationTokenSource = new CancellationTokenSource();
+        Task.Run(() => ProgramLoopAsync(_cancellationTokenSource.Token));
+    }
+
+    private bool CanNextStepProgram() => Connection == EnStatusConnection.Connected && 
+                                         (StatusPlc == EnStatusPlc.StepMode || 
+                                         (StatusPlc == EnStatusPlc.WaitingToFinish && IsStepMode));
+
+    [RelayCommand(CanExecute = nameof(CanNextStepProgram))]
+    public virtual void NextStepProgram()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: NextStep");
+        RequestToNextStep = true;
+    }
+
+    private bool CanStopProgramOnEnd() => Connection == EnStatusConnection.Connected && 
+                                          (StatusPlc == EnStatusPlc.Running || StatusPlc == EnStatusPlc.StepMode) &&
+                                          Step >= 100;
+
+    [RelayCommand(CanExecute = nameof(CanStopProgramOnEnd))]
+    public virtual void StopProgramOnEnd()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Parkovať (StopOnEnd)");
+        RequestToEnd = true;
+        StatusPlc = EnStatusPlc.WaitingToFinish;
+        NextStepProgramCommand.NotifyCanExecuteChanged(); 
+    }
+
+    private bool CanStopProgramImmediately() => Connection == EnStatusConnection.Connected && 
+                                                (StatusPlc == EnStatusPlc.Running || StatusPlc == EnStatusPlc.Initializing || 
+                                                 StatusPlc == EnStatusPlc.StepMode || StatusPlc == EnStatusPlc.WaitingToFinish);
+
+    [RelayCommand(CanExecute = nameof(CanStopProgramImmediately))]
+    public virtual void StopProgramImmediately()
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Stop Immediately");
+        StopImmediately = true;
+        StatusPlc = EnStatusPlc.WaitForStoping;
+        _cancellationTokenSource?.Cancel();
+    }
+
+    // ==========================================
+    // HLAVNÁ SLUČKA
+    // ==========================================
+
+    protected async Task ProgramLoopAsync(CancellationToken token)
+    {
+        Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka ProgramLoopAsync odštartovaná.");
+        
+        Dispatcher.UIThread.Post(() =>
+        {
+            StopImmediately = false;
+            RequestToEnd = false;
+            Message = Step < 100 ? "Prebieha inicializácia..." : "Program beží";
+        });
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (Step == 99)
+                {
+                    Log.Logger.ForContext("Name", Name).Information("[LOOP] Krok 99: Inicializácia úspešná. Pripravené na Štart.");
+                    Dispatcher.UIThread.Post(() => 
+                    { 
+                        StatusPlc = EnStatusPlc.Ready; 
+                        Message = "Pripravené na štart."; 
+                    });
+                    break;
+                }
+                
+                if (Step == 0) 
+                {
+                    Log.Logger.ForContext("Name", Name).Information("[LOOP] Krok 0: Program ukončený/zaparkovaný.");
+                    Dispatcher.UIThread.Post(() => 
+                    { 
+                        StatusPlc = EnStatusPlc.NotInit; 
+                        Message = "Program ukončený. Vyžaduje sa Init."; 
+                    });
+                    break;
+                }
+                
+                if (StopImmediately) 
+                {
+                    Log.Logger.ForContext("Name", Name).Warning("[LOOP] Zachytený StopImmediately, ukončujem slučku.");
+                    Dispatcher.UIThread.Post(() => 
+                    { 
+                        StatusPlc = EnStatusPlc.NotInit; 
+                        Message = "Zastavené (Stop). Vyžaduje sa Init."; 
+                    });
+                    break;
+                }
+
+                bool shouldWait = StatusPlc == EnStatusPlc.StepMode || 
+                                  (StatusPlc == EnStatusPlc.WaitingToFinish && IsStepMode);
+
+                if (!shouldWait || RequestToNextStep)
+                {
+                    Log.Logger.ForContext("Name", Name).Debug($"[LOOP] Vykonávam RunStep({Step})");
+                    Step = RunStep(Step);
+                    RequestToNextStep = false;
+                    await Task.Delay(500, token); 
+                }
+                else
+                {
+                    StatusCycle = EnStatusCycle.WaitForStep;
+                    await Task.Delay(100, token); 
+                }
+            }
+        }
+        catch (TaskCanceledException) 
+        { 
+            Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka bola zrušená cez CancellationToken.");
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                Log.Logger.ForContext("Name", Name).Fatal(ex, "Kritická chyba v slučke!");
+                StatusPlc = EnStatusPlc.Error;
+            });
+        }
+        finally
+        {
+            Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka vstupuje do bloku finally (Ukončovanie).");
+            
+            Dispatcher.UIThread.Post(() =>
+            {
+                RequestToEnd = false;
+                StopImmediately = false;
+                StatusCycle = EnStatusCycle.WaitForInit;
+                
+                if (StatusPlc != EnStatusPlc.Ready)
+                {
+                    StatusPlc = EnStatusPlc.NotInit;
+                    if (Step != 0 && Step != 99) 
+                    {
+                        Message = "Slučka prerušená. Vyžaduje sa Init.";
+                    }
+                }
+                
+                Step = 0;
+                Log.Logger.ForContext("Name", Name).Information("Slučka úspešne skončila.");
+            });
+        }
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Models/EnumerataPLC.cs
+// ==========================================
+namespace MojaPrvaAvalonia.Models;
+
+public enum EnStatusPlc { Ready, Running, StepMode, Pause, NotInit, WaitingToFinish, Error, Initializing, WaitForStoping }
+public enum EnStatusConnection { WaitToConnect, Connected, Disconnect }
+public enum EnStatusCycle { WaitForStart, WaitForInit, Moving, Inspecting, WaitingForLock, WaitForStep, WaitForPause, Error }
+public enum EnModePlc { Auto, Manual }
+public enum EnThreeState { EnTrue, EnFalse, EnNone }
+public enum EnJawsHolding { Empty, HoldType1, HoldType2, HoldType3 }
+public enum EnGlydCheckStatus { Present, Missing, Wrong }
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/ViewModels/MainWindowViewModel.cs
+// ==========================================
+using System.Collections.ObjectModel;
+using MojaPrvaAvalonia.Models; // Tvoj pôvodný using
+
+namespace MojaPrvaAvalonia.ViewModels;
+
+public partial class MainWindowViewModel : ViewModelBase
+{
+    // Tu pridáme náš "most" pre Serilog
+    public ObservableCollection<string> VypisLogov => Program.UiSink.LogEvents;
+
+    public CMainProgram MainProgram { get; }
+
+    // Konštruktor necháme presne tak, ako si ho mal ty!
+    public MainWindowViewModel(CMainProgram mainProgram)
+    {
+        MainProgram = mainProgram;
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/ViewModels/ViewModelBase.cs
+// ==========================================
+using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace MojaPrvaAvalonia.ViewModels;
+
+public abstract class ViewModelBase : ObservableObject
+{
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/MainWindow.axaml
+// ==========================================
+
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+        xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
+        xmlns:conv="using:MojaPrvaAvalonia.Converters"
+        x:Class="MojaPrvaAvalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Multi-PLC Ovládanie"
+        Width="1400" Height="800"> <!-- Zväčšil som predvolené okno -->
+    
+    <Window.Resources>
+        <conv:LogColorConverter x:Key="LogColorConv"/>
+    </Window.Resources>
+    
+    <!-- ZMENA: Ľavý stĺpec sa prispôsobí obsahu (Auto), pravý zaberie zvyšok (*) -->
+    <Grid ColumnDefinitions="Auto, *">
+
+        <!-- ZMENA: Pridaná MinWidth="750", aby sa PLC panel nikdy nezmenšil pod túto hodnotu -->
+        <ScrollViewer Grid.Column="0" MinWidth="750" Margin="0,0,10,0">
+            <StackPanel Margin="20">
+                <TextBlock Text="Systém Riadenia Liniek" 
+                           FontSize="24" 
+                           FontWeight="ExtraBold" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,0,0,20"/>
+
+                <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <uc:UcStatusPlc />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <ListBox x:Name="LogListBox"
+                 Grid.Column="1"
+                 ItemsSource="{Binding VypisLogov}" 
+                 Background="#1E1E1E" 
+                 FontFamily="Consolas"
+                 Margin="10"
+                 CornerRadius="5">
+
+            <ListBox.Styles>
+                <Style Selector="ListBox">
+                    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+                    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+                </Style>
+        
+                <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="5,0"/> 
+                    <Setter Property="MinHeight" Value="0"/> 
+                </Style>
+            </ListBox.Styles>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" 
+                               Foreground="{Binding Converter={StaticResource LogColorConv}}" 
+                               TextWrapping="Wrap"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Window>
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/MainWindow.axaml.cs
+// ==========================================
+using Avalonia.Controls;
+using System;
+using System.Collections.Specialized;
+using MojaPrvaAvalonia.ViewModels;
+
+namespace MojaPrvaAvalonia.Views;
+
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+    }
+
+    // Táto metóda sa zavolá, keď sa okno prepojí s ViewModelom
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+            
+        if (DataContext is MainWindowViewModel vm)
+        {
+            // Prihlásime sa na odber udalostí "kolekcia logov sa zmenila"
+            vm.VypisLogov.CollectionChanged += (sender, args) =>
+            {
+                if (args.NewItems != null && args.NewItems.Count > 0)
+                {
+                    // Posunie ListBox na najnovšie pridaný riadok
+                    LogListBox.ScrollIntoView(args.NewItems[0]); 
+                }
+            };
+        }
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/UserControls/UcStatusMotor.axaml
+// ==========================================
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:MojaPrvaAvalonia.Models"
+             mc:Ignorable="d" d:DesignWidth="150" d:DesignHeight="120"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcStatusMotor"
+             x:DataType="models:CMotorData">
+
+    <Border BorderBrush="#444444" 
+            BorderThickness="2" 
+            CornerRadius="6" 
+            Padding="10" 
+            Margin="5" 
+            Background="#E8E8E8" 
+            Width="140"
+            TextElement.Foreground="Black">
+            
+        <StackPanel Spacing="3">
+            <TextBlock Text="{Binding Name}" 
+                       FontWeight="ExtraBold" 
+                       FontSize="15" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,8" />
+            
+            <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto, Auto">
+                
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="S:" FontWeight="Bold" Foreground="#004488" Margin="0,0,5,2"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Speed, StringFormat={}{0} rpm}" FontWeight="SemiBold"/>
+                
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="P:" FontWeight="Bold" Foreground="#004488" Margin="0,0,5,2"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Position, StringFormat={}{0}°}" FontWeight="SemiBold"/>
+                
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="I:" FontWeight="Bold" Foreground="#004488" Margin="0,0,5,2"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Current, StringFormat={}{0} A}" FontWeight="SemiBold"/>
+                
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/UserControls/UcStatusMotor.axaml.cs
+// ==========================================
+using Avalonia.Controls;
+
+namespace MojaPrvaAvalonia.Views.UserControls;
+
+public partial class UcStatusMotor : UserControl
+{
+    public UcStatusMotor()
+    {
+        InitializeComponent();
+    }
+}
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/UserControls/UcStatusPlc.axaml
+// ==========================================
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:MojaPrvaAvalonia.Models"
+             xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="250"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcStatusPlc"
+             x:DataType="models:CManipulator">
+
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="85"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10" Background="#DCDCDC">
+        <StackPanel Spacing="15">
+            
+            <!-- Horný riadok: Farebné bloky -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Border Background="#424242" Width="100" Height="35" CornerRadius="5">
+                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <Border Background="#5C2D91" Width="120" Height="35" CornerRadius="5">
+                    <TextBlock Text="{Binding Connection}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <Border Background="#005A9E" Width="140" Height="35" CornerRadius="5">
+                    <TextBlock Text="{Binding StatusPlc}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <Border Background="#D83B01" Width="50" Height="35" CornerRadius="5">
+                    <TextBlock Text="{Binding Step}" Foreground="White" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <Border Background="#107C10" Width="220" Height="35" CornerRadius="5">
+                    <TextBlock Text="{Binding Message}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </Border>
+            </StackPanel>
+
+            <!-- Tlačidlá -->
+            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                
+                <!-- 1. Skupina: Pripojenie a Inicializácia -->
+                <Button Content="Pripojiť" Command="{Binding ConnectCommand}" Background="LightBlue" />
+                <Button Content="Init" Command="{Binding InitCommand}" Background="Plum" />
+
+                <Border Width="2" Background="DarkGray" Margin="5,0"/>
+
+                <!-- 2. Skupina: Hlavné ovládanie behu -->
+                <Button Content="Štart" Command="{Binding StartProgramCommand}" Background="LightGreen" />
+                <Button Content="Parkovať" Command="{Binding StopProgramOnEndCommand}" Background="Orange" />
+                <Button Content="Stop" Command="{Binding StopProgramImmediatelyCommand}" Background="Salmon" />
+
+                <Border Width="2" Background="DarkGray" Margin="5,0"/>
+
+                <!-- 3. Skupina: Krokovanie -->
+                <Button Content="{Binding ModeText}" 
+                        Command="{Binding ToggleModeCommand}" 
+                        Background="#E0E0E0" 
+                        Width="110" />
+                
+                <Button Content="Krok" Command="{Binding NextStepProgramCommand}" Background="LightSkyBlue" />
+                
+            </StackPanel>
+
+            <Separator Height="1" Background="Gray" Margin="0,5"/>
+
+            <!-- Motory -->
+            <ItemsControl ItemsSource="{Binding Motory}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <uc:UcStatusMotor />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+        </StackPanel>
+    </Border>
+</UserControl>
+
+
+// ==========================================
+// SÚBOR: MojaPrvaAvalonia/Views/UserControls/UcStatusPlc.axaml.cs
+// ==========================================
+using Avalonia.Controls;
+
+namespace MojaPrvaAvalonia.Views.UserControls;
+
+public partial class UcStatusPlc : UserControl
+{
+    public UcStatusPlc()
+    {
+        InitializeComponent();
+    }
+}
+
+
