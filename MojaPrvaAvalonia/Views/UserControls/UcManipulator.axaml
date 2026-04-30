@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:MojaPrvaAvalonia.Models"
+             xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcManipulator"
+             x:DataType="models:CManipulator">
+
+    <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10" Background="#DCDCDC">
+        <StackPanel Spacing="15">
+            
+            <!-- Base PLC Ovládanie -->
+            <uc:UcStatusPlc />
+
+            <Separator Height="1" Background="Gray" Margin="0,5"/>
+
+            <!-- Motory špecifické pre Manipulátor -->
+            <ItemsControl ItemsSource="{Binding Motory}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <uc:UcStatusMotor />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+        </StackPanel>
+    </Border>
+</UserControl>

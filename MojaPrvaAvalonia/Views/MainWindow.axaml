@@ -29,7 +29,7 @@
                 <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <uc:UcStatusPlc />
+                            <uc:UcManipulator />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
