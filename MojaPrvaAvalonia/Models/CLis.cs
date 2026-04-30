@@ -1,18 +1,17 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CManipulator : CPlc
+public partial class CLis : CPlc
 {
     public ObservableCollection<CMotorData> Motory { get; } = new ObservableCollection<CMotorData>();
 
-    public CManipulator(string name) : base(name)
+    public CLis(string name) : base(name)
     {
-        Motory.Add(new CMotorData { Name = "Zdvih" });
-        Motory.Add(new CMotorData { Name = "Axis X" });
-        Motory.Add(new CMotorData { Name = "Axis Y" });
-        Motory.Add(new CMotorData { Name = "Jaws" });
+        Motory.Add(new CMotorData { Name = "Hlavný piest" });
+        Motory.Add(new CMotorData { Name = "Podávač" });
+        Motory.Add(new CMotorData { Name = "Vyhadzovač" });
     }
 
     public override int RunStep(int step)
@@ -37,8 +36,6 @@ public partial class CManipulator : CPlc
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
-            case 160: return MainStep160(step);
-            case 170: return MainStep170(step);
 
             default: return base.RunStep(step);
         }
@@ -49,14 +46,14 @@ public partial class CManipulator : CPlc
     // ==========================================
     private int InitStep1(int step)
     {
-        Message = "Init 1: Štart inicializácie";
+        Message = "Lis: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
         return 10;
     }
 
     private int InitStep10(int step)
     {
-        Message = "Init 10: Resetovanie pohonov";
+        Message = "Lis: Kontrola hydrauliky";
         foreach (var motor in Motory)
         {
             motor.Speed = 0;
@@ -68,29 +65,19 @@ public partial class CManipulator : CPlc
 
     private int InitStep20(int step)
     {
-        Message = "Init 20: Kontrola senzorov a kamier";
+        Message = "Lis: Kontrola bezpečnostných bariér";
         return 30;
     }
 
     private int InitStep30(int step)
     {
-        Message = "Init 30: Presun do Home pozície";
-        foreach (var motor in Motory)
-        {
-            motor.Speed = 500;
-            motor.Position = 10;
-        }
+        Message = "Lis: Nastavenie lisovacej sily";
         return 40;
     }
 
     private int InitStep40(int step)
     {
-        Message = "Init 40: Inicializácia dokončená";
-        foreach (var motor in Motory)
-        {
-            motor.Speed = 0;
-        }
-        // Vraciame 99 -> Slučka to zachytí a nastaví stav na Ready
+        Message = "Lis: Pripravený";
         return 99; 
     }
 
@@ -99,14 +86,13 @@ public partial class CManipulator : CPlc
     // ==========================================
     private int MainStep100(int step)
     {
-        Message = "Main 100: Kontrola parkovania";
+        Message = "Lis: Čakám na diel";
         StatusCycle = EnStatusCycle.Moving;
 
-        // Ak bolo stlačené tlačidlo "Parkovať", ukončíme slučku
         if (RequestToEnd)
         {
-            Log.Logger.ForContext("Name", Name).Information("Zachytená požiadavka na parkovanie, ukončujem program.");
-            return 0; // Vraciame 0 -> Slučka to zachytí a nastaví stav na NotInit
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
         }
 
         return 110;
@@ -114,59 +100,40 @@ public partial class CManipulator : CPlc
 
     private int MainStep110(int step)
     {
-        Message = "Main 110: Zdvih dole";
-        Motory[0].Speed = 1000;
-        Motory[0].Position = 150;
+        Message = "Lis: Lisovanie v procese";
+        Motory[0].Speed = 500;
+        Motory[0].Current = 150; // Vysoký prúd pri lisovaní
         return 120;
     }
 
     private int MainStep120(int step)
     {
-        Message = "Main 120: Presun X a Y nad diel";
-        Motory[1].Speed = 2000; Motory[1].Position = 300;
-        Motory[2].Speed = 2000; Motory[2].Position = 450;
+        Message = "Lis: Chladenie";
+        Motory[0].Speed = 0;
+        StatusCycle = EnStatusCycle.Inspecting;
         return 130;
     }
 
     private int MainStep130(int step)
     {
-        Message = "Main 130: Inšpekcia dielu";
-        StatusCycle = EnStatusCycle.Inspecting;
+        Message = "Lis: Vyťahovanie piesta";
+        Motory[0].Speed = 1000;
+        Motory[0].Position = 0;
         return 140;
     }
 
     private int MainStep140(int step)
     {
-        Message = "Main 140: Spracovanie dielu";
-        StatusCycle = EnStatusCycle.Moving;
+        Message = "Lis: Vyhadzovanie hotového dielu";
+        Motory[2].Speed = 2000;
+        Motory[2].Position = 100;
         return 150;
     }
 
     private int MainStep150(int step)
     {
-        Message = "Main 150: Zdvih hore";
-        Motory[0].Speed = 1000;
-        Motory[0].Position = 10;
-        return 160;
-    }
-
-    private int MainStep160(int step)
-    {
-        Message = "Main 160: Návrat X a Y";
-        Motory[1].Speed = 2000; Motory[1].Position = 10;
-        Motory[2].Speed = 2000; Motory[2].Position = 10;
-        return 170;
-    }
-
-    private int MainStep170(int step)
-    {
-        Message = "Main 170: Koniec cyklu";
-        foreach (var motor in Motory)
-        {
-            motor.Speed = 0;
-        }
-        
-        // Návrat na začiatok hlavného cyklu
+        Message = "Lis: Cyklus dokončený";
+        Motory[2].Position = 0;
         return 100; 
     }
 }

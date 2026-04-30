@@ -11,6 +11,6 @@ public class CMainProgram
     {
         // Vytvárame inštancie nášho nového potomka
         ZoznamPlc.Add(new CManipulator("Linka 1"));
-        ZoznamPlc.Add(new CManipulator("Linka 2"));
+        ZoznamPlc.Add(new CLis("Linka 2"));
     }
 }
