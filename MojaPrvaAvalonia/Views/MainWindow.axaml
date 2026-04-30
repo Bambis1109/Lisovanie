@@ -4,6 +4,7 @@
         xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
         xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
         xmlns:models="using:MojaPrvaAvalonia.Models"
+        xmlns:sys="using:System"
         xmlns:conv="using:MojaPrvaAvalonia.Converters"
         x:Class="MojaPrvaAvalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -61,7 +62,7 @@
             </ListBox.Styles>
 
             <ListBox.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="sys:String">
                     <TextBlock Text="{Binding}" 
                                Foreground="{Binding Converter={StaticResource LogColorConv}}" 
                                TextWrapping="Wrap"/>
