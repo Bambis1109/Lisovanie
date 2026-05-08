@@ -22,11 +22,22 @@
         <!-- ZMENA: Pridaná MinWidth="750", aby sa PLC panel nikdy nezmenšil pod túto hodnotu -->
         <ScrollViewer Grid.Column="0" MinWidth="750" Margin="0,0,10,0">
             <StackPanel Margin="20">
-                <TextBlock Text="Systém Riadenia Liniek" 
-                           FontSize="24" 
-                           FontWeight="ExtraBold" 
-                           HorizontalAlignment="Center" 
-                           Margin="0,0,0,20"/>
+                <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,20">
+                    <TextBlock Grid.Column="0" 
+                               Text="Systém Riadenia Liniek" 
+                               FontSize="24" 
+                               FontWeight="ExtraBold" 
+                               HorizontalAlignment="Center" />
+                    
+                    <Button Grid.Column="1" 
+                            Content="Exit" 
+                            Command="{Binding ExitApplicationCommand}"
+                            Background="#B22222"
+                            Foreground="White"
+                            Padding="20,10"
+                            FontWeight="Bold"
+                            CornerRadius="5"/>
+                </Grid>
 
                 <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
                     <ItemsControl.DataTemplates>

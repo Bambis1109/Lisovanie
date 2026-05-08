@@ -13,4 +13,12 @@ public class CMainProgram
         ZoznamPlc.Add(new CManipulator("Linka 1"));
         ZoznamPlc.Add(new CLis("Linka 2"));
     }
+
+    public void Shutdown()
+    {
+        foreach (var plc in ZoznamPlc)
+        {
+            plc.StopProgramImmediately();
+        }
+    }
 }
