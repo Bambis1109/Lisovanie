@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="280"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotor"
+             x:DataType="vm:UcMotorViewModel">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
+        <StackPanel Spacing="5">
+            <TextBlock Text="{Binding MotorData.MotorName}" FontWeight="Bold" HorizontalAlignment="Center"/>
+            
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Node: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MotorData.NodeId}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Pos Gear: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MotorData.ActualGearPosition, StringFormat={}{0:F2}}"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Pos SSI: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MotorData.ActualPositionSensor2Float, StringFormat={}{0:F3}}"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Velocity: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding MotorData.ActualVelocity}"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Current: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding MotorData.ActualCurrent, StringFormat={}{0:F1}}"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Analog 1: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding MotorData.ActualAnalog1}"/>
+            </Grid>
+
+            <!-- Status and Mode Indicators -->
+            <UniformGrid Columns="2" Margin="0,5">
+                <Border Background="{Binding ModeColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding ModeShorthand}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+                <Border Background="{Binding StatusColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding StatusText}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+                <Border Background="{Binding RemoteColor}" CornerRadius="3" Margin="2" Padding="3" Grid.ColumnSpan="2">
+                    <TextBlock Text="REMOTE" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+            </UniformGrid>
+
+            <Border BorderBrush="LightGray" BorderThickness="1" Background="#F9F9F9" Width="180" Height="50" HorizontalAlignment="Center" Margin="0,5,0,0" ClipToBounds="True">
+                <Grid>
+                    <!-- +100% line -->
+                    <Line StartPoint="0,10" EndPoint="180,10" Stroke="Silver" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    <!-- Zero axis line -->
+                    <Line StartPoint="0,25" EndPoint="180,25" Stroke="LightCoral" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    <!-- -100% line -->
+                    <Line StartPoint="0,40" EndPoint="180,40" Stroke="Silver" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    
+                    <!-- Data line -->
+                    <Polyline Points="{Binding MotorData.CurrentGraphPoints}" Stroke="Blue" StrokeThickness="1.5" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

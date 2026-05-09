@@ -25,16 +25,16 @@
 
             <Separator Height="1" Background="Gray" Margin="0,5"/>
 
-            <!-- Motory špecifické pre Manipulátor -->
-            <ItemsControl ItemsSource="{Binding Motory}">
+            <!-- Reálne motory pre Manipulátor -->
+            <ItemsControl ItemsSource="{Binding MotorViewModels}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <uc:UcStatusMotor />
+                        <uc:UcMotor />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
