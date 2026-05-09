@@ -45,7 +45,7 @@ public partial class CPlc : ObservableObject
 
     [ObservableProperty] private bool _isStepMode;
     
-    public string ModeText => IsStepMode ? "Režim: KROK" : "Režim: AUTO";
+    public string ModeText => IsStepMode ? "KROK" : "AUTO";
 
     protected CancellationTokenSource? _cancellationTokenSource;
 

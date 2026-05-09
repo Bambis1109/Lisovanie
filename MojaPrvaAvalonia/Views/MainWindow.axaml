@@ -10,41 +10,40 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Multi-PLC Ovládanie"
-        Width="1400" Height="800"> <!-- Zväčšil som predvolené okno -->
+        Width="760" Height="900">
     
     <Window.Resources>
         <conv:LogColorConverter x:Key="LogColorConv"/>
     </Window.Resources>
     
-    <!-- ZMENA: Ľavý stĺpec sa prispôsobí obsahu (Auto), pravý zaberie zvyšok (*) -->
-    <Grid ColumnDefinitions="Auto, *">
+    <Grid RowDefinitions="*, 250">
 
-        <!-- ZMENA: Pridaná MinWidth="750", aby sa PLC panel nikdy nezmenšil pod túto hodnotu -->
-        <ScrollViewer Grid.Column="0" MinWidth="750" Margin="0,0,10,0">
-            <StackPanel Margin="20">
-                <Grid ColumnDefinitions="*, Auto, Auto" Margin="0,0,0,20">
+        <!-- Horná časť: PLC panely -->
+        <ScrollViewer Grid.Row="0">
+            <StackPanel Margin="10">
+                <Grid ColumnDefinitions="*, Auto, Auto" Margin="0,0,0,10">
                     <TextBlock Grid.Column="0" 
                                Text="Systém Riadenia Liniek" 
-                               FontSize="24" 
+                               FontSize="20" 
                                FontWeight="ExtraBold" 
-                               HorizontalAlignment="Center" />
+                               VerticalAlignment="Center"/>
                     
                     <Button Grid.Column="1" 
                             Content="Connect" 
                             Command="{Binding ConnectCommand}"
                             Background="ForestGreen"
                             Foreground="White"
-                            Padding="20,10"
+                            Padding="10,5"
                             FontWeight="Bold"
                             CornerRadius="5"
-                            Margin="0,0,10,0"/>
+                            Margin="0,0,5,0"/>
 
                     <Button Grid.Column="2" 
                             Content="Exit" 
                             Command="{Binding ExitApplicationCommand}"
                             Background="#B22222"
                             Foreground="White"
-                            Padding="20,10"
+                            Padding="10,5"
                             FontWeight="Bold"
                             CornerRadius="5"/>
                 </Grid>
@@ -62,12 +61,13 @@
             </StackPanel>
         </ScrollViewer>
 
+        <!-- Dolná časť: Logy -->
         <ListBox x:Name="LogListBox"
-                 Grid.Column="1"
+                 Grid.Row="1"
                  ItemsSource="{Binding VypisLogov}" 
                  Background="#1E1E1E" 
                  FontFamily="Consolas"
-                 Margin="10"
+                 Margin="5"
                  CornerRadius="5">
 
             <ListBox.Styles>
@@ -86,6 +86,7 @@
                 <DataTemplate x:DataType="sys:String">
                     <TextBlock Text="{Binding}" 
                                Foreground="{Binding Converter={StaticResource LogColorConv}}" 
+                               FontSize="11"
                                TextWrapping="Wrap"/>
                 </DataTemplate>
             </ListBox.ItemTemplate>

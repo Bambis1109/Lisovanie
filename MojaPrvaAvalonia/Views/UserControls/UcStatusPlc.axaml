@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:MojaPrvaAvalonia.Models"
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
-             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="150"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="70"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcStatusPlc"
              x:DataType="models:CPlc">
 
@@ -15,64 +15,63 @@
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Width" Value="85"/>
+            <Setter Property="Width" Value="82"/>
             <Setter Property="CornerRadius" Value="3"/>
         </Style>
     </UserControl.Styles>
 
-    <StackPanel Spacing="15">
+    <StackPanel Spacing="5">
         
         <!-- Horný riadok: Farebné bloky (ZMENENÉ NA GRID) -->
-        <Grid ColumnSpacing="10" ColumnDefinitions="Auto, Auto, Auto, Auto, *">
+        <Grid ColumnSpacing="5" ColumnDefinitions="Auto, Auto, Auto, Auto, *">
             
-            <Border Grid.Column="0" Background="#424242" Width="100" Height="35" CornerRadius="5">
+            <Border Grid.Column="0" Background="#424242" Width="100" CornerRadius="5" Padding="5">
                 <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
-            <Border Grid.Column="1" Background="#5C2D91" Width="120" Height="35" CornerRadius="5">
+            <Border Grid.Column="1" Background="#5C2D91" Width="120" CornerRadius="5" Padding="5">
                 <TextBlock Text="{Binding Connection}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
-            <Border Grid.Column="2" Background="#005A9E" Width="140" Height="35" CornerRadius="5">
+            <Border Grid.Column="2" Background="#005A9E" Width="140" CornerRadius="5" Padding="5">
                 <TextBlock Text="{Binding StatusPlc}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
-            <Border Grid.Column="3" Background="#D83B01" Width="50" Height="35" CornerRadius="5">
-                <TextBlock Text="{Binding Step}" Foreground="White" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Border Grid.Column="3" Background="#D83B01" Width="50" CornerRadius="5" Padding="5">
+                <TextBlock Text="{Binding Step}" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
             <!-- Tento posledný stĺpec má Width="*" z definície, takže zaberie zvyšok dostupného miesta -->
-            <Border Grid.Column="4" Background="#107C10" Height="35" CornerRadius="5">
-                <TextBlock Text="{Binding Message}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Left" Padding="15 0 0 0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <Border Grid.Column="4" Background="#107C10" CornerRadius="5" Padding="10,5">
+                <TextBlock Text="{Binding Message}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Left" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </Border>
             
         </Grid>
 
         <!-- Tlačidlá -->
-        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left">
             
             <!-- 1. Skupina: Pripojenie a Inicializácia -->
             <Button Content="Pripojiť" Command="{Binding ConnectCommand}" Background="LightBlue" />
             <Button Content="Init" Command="{Binding InitCommand}" Background="Plum" />
 
-            <Border Width="2" Background="DarkGray" Margin="5,0"/>
+            <Border Width="2" Background="DarkGray" Margin="2,0"/>
 
             <!-- 2. Skupina: Hlavné ovládanie behu -->
             <Button Content="Štart" Command="{Binding StartProgramCommand}" Background="LightGreen" />
             <Button Content="Parkovať" Command="{Binding StopProgramOnEndCommand}" Background="Orange" />
             <Button Content="Stop" Command="{Binding StopProgramImmediatelyCommand}" Background="Salmon" />
 
-            <Border Width="2" Background="DarkGray" Margin="5,0"/>
+            <Border Width="2" Background="DarkGray" Margin="2,0"/>
 
             <!-- 3. Skupina: Krokovanie -->
             <Button Content="{Binding ModeText}" 
                     Command="{Binding ToggleModeCommand}" 
-                    Background="#E0E0E0" 
-                    Width="110" />
+                    Background="#E0E0E0" />
             
             <Button Content="Krok" Command="{Binding NextStepProgramCommand}" Background="LightSkyBlue" />
 
-            <Border Width="2" Background="DarkGray" Margin="5,0" IsVisible="{Binding $parent[uc:UcStatusPlc].ShowSetupButton}" />
+            <Border Width="2" Background="DarkGray" Margin="2,0" IsVisible="{Binding $parent[uc:UcStatusPlc].ShowSetupButton}" />
             <Button Content="Setup" Click="OnSetupClicked" Background="DodgerBlue" Foreground="White" IsVisible="{Binding $parent[uc:UcStatusPlc].ShowSetupButton}" />
             
         </StackPanel>

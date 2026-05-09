@@ -8,8 +8,8 @@
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcLis"
              x:DataType="models:CLis">
 
-    <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10" Background="#E0F0FF">
-        <StackPanel Spacing="15">
+    <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="8" Margin="5" Background="#E0F0FF">
+        <StackPanel Spacing="5">
             
             <!-- Base PLC Ovládanie -->
             <uc:UcStatusPlc ShowSetupButton="True" SetupClicked="BtnSetup_OnClick" />
