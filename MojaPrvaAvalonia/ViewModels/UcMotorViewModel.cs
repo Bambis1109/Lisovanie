@@ -12,8 +12,13 @@ namespace MojaPrvaAvalonia.ViewModels;
 
 public partial class UcMotorViewModel : ObservableObject, IDisposable
 {
-    private readonly CDeviceEpos4? _device;
+    private CDeviceEpos4? _device;
     private DispatcherTimer? _refreshTimer;
+
+    public void AssignDevice(CDeviceEpos4 device)
+    {
+        _device = device;
+    }
     
     [ObservableProperty]
     private CDataMotor _motorData;

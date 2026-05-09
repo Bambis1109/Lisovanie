@@ -24,6 +24,10 @@ public partial class CManipulator : CPlc
 
     public CManipulator(string name) : base(name)
     {
+        MotorViewModels.Add(new UcMotorViewModel(null, "Up"));
+        MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
+        MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
+        MotorViewModels.Add(new UcMotorViewModel(null, "Z"));
     }
 
     public void ResetCommunication()

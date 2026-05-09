@@ -52,10 +52,21 @@ public class CMainProgram
                 manipulator.Motors.Add(manipulator.MotorJaws);
                 manipulator.Motors.Add(manipulator.MotorZ);
 
-                manipulator.MotorViewModels.Clear();
-                foreach (var motor in manipulator.Motors)
+                if (manipulator.MotorViewModels.Count == 4)
                 {
-                    manipulator.MotorViewModels.Add(new ViewModels.UcMotorViewModel(motor, motor.Name));
+                    manipulator.MotorViewModels[0].AssignDevice(manipulator.MotorUp);
+                    manipulator.MotorViewModels[1].AssignDevice(manipulator.MotorDown);
+                    manipulator.MotorViewModels[2].AssignDevice(manipulator.MotorJaws);
+                    manipulator.MotorViewModels[3].AssignDevice(manipulator.MotorZ);
+                    
+                    foreach (var vm in manipulator.MotorViewModels)
+                    {
+                        vm.StartRefresh();
+                    }
+                }
+                else
+                {
+                     Log.Error("MainProgram: Expected 4 MotorViewModels but found different count.");
                 }
 
                 manipulator.ResetCommunication();

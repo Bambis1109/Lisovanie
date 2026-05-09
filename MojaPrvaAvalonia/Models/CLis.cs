@@ -10,6 +10,8 @@ public partial class CLis : CPlc
 
     public CLis(string name) : base(name)
     {
+        MotorViewModels.Add(new UcMotorViewModel(null, "Press"));
+        MotorViewModels.Add(new UcMotorViewModel(null, "Ejector"));
     }
 
     public override int RunStep(int step)
