@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="150" d:DesignHeight="120"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotorReduced"
+             x:DataType="vm:UcMotorViewModel">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2" Background="White" TextElement.Foreground="Black">
+        <StackPanel Spacing="5">
+            <!-- 1. riadok: Name a Node bez popisu -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">
+                <TextBlock Text="{Binding MotorData.MotorName}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding MotorData.NodeId}"/>
+            </StackPanel>
+
+            <!-- 2. riadok: Status and Mode Indicators -->
+            <UniformGrid Columns="2" Margin="0">
+                <Border Background="{Binding ModeColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding ModeShorthand}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+                <Border Background="{Binding StatusColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding StatusText}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</UserControl>

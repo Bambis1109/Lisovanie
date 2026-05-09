@@ -12,16 +12,7 @@
         <StackPanel Spacing="15">
             
             <!-- Base PLC Ovládanie -->
-            <uc:UcStatusPlc />
-
-            <Button Content="Setup" 
-                    Click="BtnSetup_OnClick" 
-                    HorizontalAlignment="Right"
-                    Background="DodgerBlue"
-                    Foreground="White"
-                    FontWeight="Bold"
-                    Padding="15,8"
-                    CornerRadius="5"/>
+            <uc:UcStatusPlc ShowSetupButton="True" SetupClicked="BtnSetup_OnClick" />
 
             <Separator Height="1" Background="Gray" Margin="0,5"/>
 
@@ -34,7 +25,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <uc:UcMotor />
+                        <uc:UcMotorReduced />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
