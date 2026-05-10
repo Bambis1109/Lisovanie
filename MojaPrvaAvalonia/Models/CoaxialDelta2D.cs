@@ -31,6 +31,9 @@ public partial class CoaxialDelta2D : ObservableObject
     [ObservableProperty]
     private double _currentY;
 
+    [ObservableProperty]
+    private double _stepSize = 1.0;
+
     private CancellationTokenSource _cts;
 
     // --- Vypočítané offsety (v pulzoch) ---
@@ -119,16 +122,16 @@ public partial class CoaxialDelta2D : ObservableObject
 
        
     }
-    public void MoveRight(double angle)
+    public void MoveRight()
     {
-        LogCurrentPolar("MoveRight", angle);
-        MoveAngleRelative(angle);
+        LogCurrentPolar("MoveRight", StepSize);
+        MoveAngleRelative(StepSize);
     }
 
-    public void MoveLeft(double angle)
+    public void MoveLeft()
     {
-        LogCurrentPolar("MoveLeft", angle);
-        MoveAngleRelative(-angle);
+        LogCurrentPolar("MoveLeft", StepSize);
+        MoveAngleRelative(-StepSize);
     }
 
     private void MoveAngleRelative(double deltaPhi)
@@ -199,14 +202,14 @@ public partial class CoaxialDelta2D : ObservableObject
         MoveToPolar(r, phiDeg);
     }
 
-    public void MoveUp(double distance)
+    public void MoveUp()
     {
-        MoveRadialRelative(distance);
+        MoveRadialRelative(StepSize);
     }
 
-    public void MoveDown(double distance)
+    public void MoveDown()
     {
-        MoveRadialRelative(-distance);
+        MoveRadialRelative(-StepSize);
     }
 
     private void MoveRadialRelative(double deltaR)

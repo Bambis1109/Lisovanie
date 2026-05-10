@@ -593,7 +593,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { deltaRobot.MoveRight(10); });
+            await Task.Run(() => { deltaRobot.MoveRight(); });
         }
         catch (Exception ea)
         {
@@ -606,7 +606,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { deltaRobot.MoveLeft(10); });
+            await Task.Run(() => { deltaRobot.MoveLeft(); });
         }
         catch (Exception ea)
         {
@@ -619,7 +619,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { deltaRobot.MoveUp(10); });
+            await Task.Run(() => { deltaRobot.MoveUp(); });
         }
         catch (Exception ea)
         {
@@ -632,7 +632,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { deltaRobot.MoveDown(10); });
+            await Task.Run(() => { deltaRobot.MoveDown(); });
         }
         catch (Exception ea)
         {
@@ -645,7 +645,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(2, false, true); });
+            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true); });
         }
         catch (Exception ea)
         {
@@ -658,7 +658,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, false, true); });
+            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true); });
         }
         catch (Exception ea)
         {
@@ -671,7 +671,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); });
+            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true); });
         }
         catch (Exception ea)
         {
@@ -684,7 +684,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); });
+            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true); });
         }
         catch (Exception ea)
         {
