@@ -262,16 +262,13 @@ public partial class CManipulator : CPlc
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
+        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(30, 100, 100);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
+        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(30, 100, 100);
 
-        MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(135, true, true);
-        MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-135, true, true);
-
-        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
+       deltaRobot.MoveToPolar(65,-90);
+       deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
 
@@ -298,7 +295,7 @@ public partial class CManipulator : CPlc
     private int MainStep110(int step)
     {
         Message = "Vysun";
-        deltaRobot.MoveUp(100);
+        deltaRobot.MoveToPolar(100,10);
         deltaRobot.WaitForTargetReached(5000);
         return 120;
     }
@@ -322,7 +319,9 @@ public partial class CManipulator : CPlc
     private int MainStep140(int step)
     {
         Message = "Zasun";
-        deltaRobot.MoveUp(-100);
+        deltaRobot.MoveToPolar(58,30);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToPolar(200,-30);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     }
@@ -345,8 +344,9 @@ public partial class CManipulator : CPlc
 
     private int MainStep170(int step)
     {
-        Message = "Main 170: Čakanie na Jaws a koniec cyklu";
-
+        Message = "Vychodiskova poloha";
+        deltaRobot.MoveToPolar(60,-90);
+        deltaRobot.WaitForTargetReached(5000);
         return 100;
     }
 

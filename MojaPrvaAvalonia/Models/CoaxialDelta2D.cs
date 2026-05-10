@@ -127,9 +127,51 @@ public partial class CoaxialDelta2D : ObservableObject
 
     private void MoveAngleRelative(double deltaPhi)
     {
-      
-        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(deltaPhi, false, true);
-        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(deltaPhi, false, true);
+        if (_motorDown?.Data == null || _motorUp?.Data == null) return;
+        
+        UpdatePositions();
+        MoveToPhi(CurrentPhi + deltaPhi);
+    }
+
+    /// <summary>
+    /// Presun na absolútne polárne súradnice [R, Phi].
+    /// </summary>
+    public void MoveToPolar(double r, double phi)
+    {
+        if (_motorDown?.Data == null || _motorUp?.Data == null) return;
+
+        // Kontrola softvérových limitov pre vzdialenosť (R)
+        if (r < 56.0 || r > 270.0)
+        {
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Polomer mimo rozsahu (56 - 270 mm).");
+            return;
+        }
+
+        double alpha = CalculateAlphaFromR(r);
+
+        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: R:{r:F1}mm, Phi:{phi:F2}° (Alpha:{alpha:F2})");
+
+        // MotorDown = stred + alpha, MotorUp = stred - alpha
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alpha, true, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(phi - alpha, true, true);
+    }
+
+    /// <summary>
+    /// Presun na absolútny polomer R pri zachovaní aktuálneho uhla Phi.
+    /// </summary>
+    public void MoveToR(double r)
+    {
+        UpdatePositions();
+        MoveToPolar(r, CurrentPhi);
+    }
+
+    /// <summary>
+    /// Presun na absolútny uhol Phi pri zachovaní aktuálneho polomeru R.
+    /// </summary>
+    public void MoveToPhi(double phi)
+    {
+        UpdatePositions();
+        MoveToPolar(CurrentR, phi);
     }
 
     public void MoveUp(double distance)
