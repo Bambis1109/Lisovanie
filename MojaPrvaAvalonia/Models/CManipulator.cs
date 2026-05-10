@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -30,7 +31,6 @@ public partial class CManipulator : CPlc
         MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Z"));
-        
     }
 
     public override async Task ConnectAsync()
@@ -48,7 +48,20 @@ public partial class CManipulator : CPlc
         Message = "Pripájam zariadenia...";
 
         ResetCommunication();
+        await Task.Delay(50);
         ResetNodes();
+        await Task.Delay(50);
+
+        var resetResult = await WaitForResetAllNodeAsync();
+        if (resetResult == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neodpovedajú.");
+            StatusPlc = EnStatusPlc.Error;
+            Connection = EnStatusConnection.Disconnect;
+            Message = "Chyba: Zariadenia neodpovedajú.";
+            return;
+        }
+
         StartNodes();
 
         Connection = EnStatusConnection.Connected;
@@ -61,8 +74,6 @@ public partial class CManipulator : CPlc
         {
             motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetCommunication);
         }
-
-        Thread.Sleep(10);
     }
 
     public void ResetNodes()
@@ -71,8 +82,6 @@ public partial class CManipulator : CPlc
         {
             motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetNode);
         }
-
-        Thread.Sleep(2000);
     }
 
     public void StartNodes()
@@ -81,6 +90,40 @@ public partial class CManipulator : CPlc
         {
             motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
         }
+    }
+
+    private async Task<enmError> WaitForResetAllNodeAsync()
+    {
+        var tasks = Motors.Select(async item =>
+        {
+            enmError resultNode = enmError.Error;
+           
+            for (int i = 0; i < 10; i++) 
+            {
+                await Task.Delay(100); 
+                try
+                {
+                    if (item.Operation?.MotionInfo == null) continue;
+
+                    var fw = item.Operation.MotionInfo.GetFwVersion();                        
+                    Log.Logger.ForContext("Name", Name).Information($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) FW:[{fw}] has been reset");
+                    resultNode = enmError.NoError;
+                    break;
+                }
+                catch (Exception) { }
+            }
+            
+            if (resultNode == enmError.Error)
+            {
+                Log.Logger.ForContext("Name", Name).Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
+            }
+            
+            return resultNode;
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
     public override int RunStep(int step)
@@ -238,26 +281,26 @@ public partial class CManipulator : CPlc
     private int MainStep110(int step)
     {
         Message = "Vysun";
-       MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(50, true, true);
-       MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-50, true, true);
-       MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-       MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(50, true, true);
+        MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-50, true, true);
+        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
         return 120;
     }
 
     private int MainStep120(int step)
     {
         Message = "Z-axis dole";
-       MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
-       MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 130;
     }
 
     private int MainStep130(int step)
     {
         Message = "Celuste otvor";
-       MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(20, true, true);
-       MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(20, true, true);
+        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 140;
     }
 
@@ -282,8 +325,8 @@ public partial class CManipulator : CPlc
     private int MainStep160(int step)
     {
         Message = "Celuste zatvor";
-       MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-       MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
     }
 
