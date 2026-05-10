@@ -38,10 +38,13 @@ public partial class CManipulator : CPlc
         await base.ConnectAsync();
         Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Connect");
 
-        if (StatusPlc == EnStatusPlc.Ready)
+        if (StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)
         {
+            if (StatusPlc == EnStatusPlc.Ready)
+            {
+                Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
+            }
             StatusPlc = EnStatusPlc.NotInit;
-            Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
         }
 
         Connection = EnStatusConnection.WaitToConnect;
@@ -122,6 +125,12 @@ public partial class CManipulator : CPlc
         });
 
         var results = await Task.WhenAll(tasks);
+
+        if (results.Length == 0)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
+            return enmError.Error;
+        }
 
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
@@ -208,9 +217,9 @@ public partial class CManipulator : CPlc
     private int InitStep30(int step)
     {
         Message = "Homing Z a Jaws";
-        MotorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 10, 1500, 300, 0,
+        MotorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 20, 1500, 300, 0,
             EHomingMethod.HmCurrentThresholdNegativeSpeed);
-        MotorZ.Operation.HomingMode.SetHomingParameter(10000, 1500, 100, 0, 300, 0,
+        MotorZ.Operation.HomingMode.SetHomingParameter(10000, 1500, 500, 0, 300, 0,
             EHomingMethod.HmHomeSwitchPositiveSpeed);
 
         MotorJaws.Operation.HomingMode.FindHome();
