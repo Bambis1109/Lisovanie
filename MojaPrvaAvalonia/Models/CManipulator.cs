@@ -276,10 +276,10 @@ public partial class CManipulator : CPlc
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
+        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(30, 200, 200);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
+        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(30, 200, 200);
 
         deltaRobot.MoveToXY(0,58);
        deltaRobot.WaitForTargetReached(3000);
