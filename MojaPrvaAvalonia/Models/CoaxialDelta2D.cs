@@ -25,6 +25,12 @@ public partial class CoaxialDelta2D : ObservableObject
     [ObservableProperty]
     private double _currentPhi;
 
+    [ObservableProperty]
+    private double _currentX;
+
+    [ObservableProperty]
+    private double _currentY;
+
     private CancellationTokenSource _cts;
 
     // --- Vypočítané offsety (v pulzoch) ---
@@ -174,6 +180,25 @@ public partial class CoaxialDelta2D : ObservableObject
         MoveToPolar(CurrentR, phi);
     }
 
+    /// <summary>
+    /// Presun na absolútne karteziánske súradnice [X, Y].
+    /// Bod [0,0] je stred rotácie manipulátora.
+    /// Orientácia: +Y = 0 stupňov (vpred), +X = +90 stupňov (vpravo).
+    /// </summary>
+    public void MoveToXY(double x, double y)
+    {
+        // Vypočet vzdialenosti (R) od stredu pomocou Pytagorovej vety
+        double r = Math.Sqrt(x * x + y * y);
+
+        // Vypočet uhla (Phi) tak, aby +Y bolo 0° a +X bolo +90°
+        // Použijeme Atan2(x, y) namiesto štandardného (y, x)
+        double phiDeg = Math.Atan2(x, y) * 180.0 / Math.PI;
+
+        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
+
+        MoveToPolar(r, phiDeg);
+    }
+
     public void MoveUp(double distance)
     {
         MoveRadialRelative(distance);
@@ -262,6 +287,15 @@ public partial class CoaxialDelta2D : ObservableObject
         CurrentPhi = (ad + au) / 2.0;
         double alphaDeg = Math.Abs(ad - au) / 2.0;
         CurrentR = CalculateRFromAlpha(alphaDeg);
+
+        // Prepočet na karteziánske súradnice [X, Y]
+        // Phi je v stupňoch, Math.Sin/Cos očakávajú radiány
+        // Podľa tvojej orientácie (+Y je 0°, +X je 90°):
+        // X = R * Sin(Phi)
+        // Y = R * Cos(Phi)
+        double phiRad = CurrentPhi * Math.PI / 180.0;
+        CurrentX = CurrentR * Math.Sin(phiRad);
+        CurrentY = CurrentR * Math.Cos(phiRad);
     }
 
     public void StartMonitoring()

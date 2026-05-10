@@ -48,7 +48,18 @@
 
                     <Button Grid.Row="1" Grid.Column="0" Content="Left" Command="{Binding MoveLeftCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
                     <Button Grid.Row="1" Grid.Column="2" Content="Right" Command="{Binding MoveRightCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+                    
+                    <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="X" FontSize="10" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding deltaRobot.CurrentX, StringFormat=\{0:F1\}mm}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
                     <Button Grid.Row="2" Grid.Column="1" Content="Down" Command="{Binding MoveDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+
+                    <StackPanel Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="Y" FontSize="10" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding deltaRobot.CurrentY, StringFormat=\{0:F1\}mm}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Jaws Controls -->

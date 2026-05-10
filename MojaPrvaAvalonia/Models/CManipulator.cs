@@ -262,12 +262,12 @@ public partial class CManipulator : CPlc
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(30, 100, 100);
+        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(30, 100, 100);
+        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
 
-       deltaRobot.MoveToPolar(65,-90);
+        deltaRobot.MoveToXY(0,58);
        deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
@@ -295,7 +295,15 @@ public partial class CManipulator : CPlc
     private int MainStep110(int step)
     {
         Message = "Vysun";
-        deltaRobot.MoveToPolar(100,10);
+        deltaRobot.MoveToXY(0,60);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(0,160);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(-100,160);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(-100,60);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(0,60);
         deltaRobot.WaitForTargetReached(5000);
         return 120;
     }
@@ -319,10 +327,17 @@ public partial class CManipulator : CPlc
     private int MainStep140(int step)
     {
         Message = "Zasun";
-        deltaRobot.MoveToPolar(58,30);
+        deltaRobot.MoveToXY(0,60);
         deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToPolar(200,-30);
+        deltaRobot.MoveToXY(0,160);
         deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(100,160);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(100,60);
+        deltaRobot.WaitForTargetReached(5000);
+        deltaRobot.MoveToXY(0,60);
+        deltaRobot.WaitForTargetReached(5000);
+        
         return 150;
     }
 
@@ -345,7 +360,7 @@ public partial class CManipulator : CPlc
     private int MainStep170(int step)
     {
         Message = "Vychodiskova poloha";
-        deltaRobot.MoveToPolar(60,-90);
+        
         deltaRobot.WaitForTargetReached(5000);
         return 100;
     }
