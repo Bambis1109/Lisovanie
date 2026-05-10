@@ -3,11 +3,40 @@
              x:Class="MojaPrvaAvalonia.App"
              xmlns:local="using:MojaPrvaAvalonia"
              xmlns:converters="using:MojaPrvaAvalonia.Converters"
+             xmlns:models="using:MojaPrvaAvalonia.Models"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Resources>
         <converters:EqualityConverter x:Key="EqualityConverter"/>
+        
+        <converters:EnumToStringConverter x:Key="UpButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="R+" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="Y+" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="DownButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="R-" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="Y-" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="LeftButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="Phi-" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="X-" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="RightButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="Phi+" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="X+" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
     </Application.Resources>
 
     <Application.DataTemplates>

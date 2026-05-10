@@ -32,6 +32,14 @@
             </ItemsControl>
 
             <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center" Margin="0,10,0,0">
+                <!-- Mode Selection -->
+                <TextBlock Text="Mode:" VerticalAlignment="Center" FontWeight="Bold"/>
+                <RadioButton Content="Polar" GroupName="MoveMode" IsChecked="{Binding deltaRobot.MovementMode, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static models:EnMovementMode.Polar}}"/>
+                <RadioButton Content="XY" GroupName="MoveMode" IsChecked="{Binding deltaRobot.MovementMode, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static models:EnMovementMode.XY}}"/>
+                
+                <Separator Width="1" Background="Gray" Margin="10,0"/>
+
+                <!-- Step Size Selection -->
                 <TextBlock Text="Step size:" VerticalAlignment="Center" FontWeight="Bold"/>
                 <RadioButton Content="0.1" GroupName="StepSize" IsChecked="{Binding deltaRobot.StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=0.1}"/>
                 <RadioButton Content="1" GroupName="StepSize" IsChecked="{Binding deltaRobot.StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=1.0}"/>
@@ -46,22 +54,22 @@
                         <TextBlock Text="{Binding deltaRobot.CurrentPhi, StringFormat=\{0:F1\}°}" FontWeight="Bold" HorizontalAlignment="Center"/>
                     </StackPanel>
                     
-                    <Button Grid.Row="0" Grid.Column="1" Content="UP" Command="{Binding MoveUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+                    <Button Grid.Row="0" Grid.Column="1" Content="{Binding deltaRobot.MovementMode, Converter={StaticResource UpButtonLabelConverter}}" Command="{Binding MoveUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
                     
                     <StackPanel Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="Distance" FontSize="10" HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding deltaRobot.CurrentR, StringFormat=\{0:F1\}mm}" FontWeight="Bold" HorizontalAlignment="Center"/>
                     </StackPanel>
 
-                    <Button Grid.Row="1" Grid.Column="0" Content="Left" Command="{Binding MoveLeftCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
-                    <Button Grid.Row="1" Grid.Column="2" Content="Right" Command="{Binding MoveRightCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+                    <Button Grid.Row="1" Grid.Column="0" Content="{Binding deltaRobot.MovementMode, Converter={StaticResource LeftButtonLabelConverter}}" Command="{Binding MoveLeftCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="{Binding deltaRobot.MovementMode, Converter={StaticResource RightButtonLabelConverter}}" Command="{Binding MoveRightCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
                     
                     <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="X" FontSize="10" HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding deltaRobot.CurrentX, StringFormat=\{0:F1\}mm}" FontWeight="Bold" HorizontalAlignment="Center"/>
                     </StackPanel>
 
-                    <Button Grid.Row="2" Grid.Column="1" Content="Down" Command="{Binding MoveDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
+                    <Button Grid.Row="2" Grid.Column="1" Content="{Binding deltaRobot.MovementMode, Converter={StaticResource DownButtonLabelConverter}}" Command="{Binding MoveDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White"/>
 
                     <StackPanel Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="Y" FontSize="10" HorizontalAlignment="Center"/>
@@ -120,7 +128,6 @@
                                 <Button Grid.Column="0" Content="Enable" Command="{Binding EnableMotorsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="0,0,5,0"/>
                                 <Button Grid.Column="1" Content="Disable" Command="{Binding DisableMotorsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="5,0,0,0"/>
                             </Grid>
-                            <Button Content="Init Hardware" Command="{Binding SetupInitCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkGoldenrod" Foreground="White" FontWeight="Bold"/>
                             <Button Content="Kalibruj" Command="{Binding KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                             <Grid ColumnDefinitions="*,*">
                                 <Button Grid.Column="0" Content="Save Params" Command="{Binding SaveParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>

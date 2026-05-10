@@ -6,6 +6,12 @@ using EposCmd.Net;
 
 namespace MojaPrvaAvalonia.Models;
 
+public enum EnMovementMode
+{
+    Polar,
+    XY
+}
+
 public partial class CoaxialDelta2D : ObservableObject
 {
     // --- Hardvérové a kinematické parametre ---
@@ -33,6 +39,9 @@ public partial class CoaxialDelta2D : ObservableObject
 
     [ObservableProperty]
     private double _stepSize = 1.0;
+
+    [ObservableProperty]
+    private EnMovementMode _movementMode = EnMovementMode.Polar;
 
     private CancellationTokenSource _cts;
 
@@ -124,14 +133,30 @@ public partial class CoaxialDelta2D : ObservableObject
     }
     public void MoveRight()
     {
-        LogCurrentPolar("MoveRight", StepSize);
-        MoveAngleRelative(StepSize);
+        if (MovementMode == EnMovementMode.Polar)
+        {
+            LogCurrentPolar("MoveRight(Polar)", StepSize);
+            MoveAngleRelative(StepSize);
+        }
+        else
+        {
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveRight(XY): X + {StepSize}");
+            MoveToXY(CurrentX + StepSize, CurrentY);
+        }
     }
 
     public void MoveLeft()
     {
-        LogCurrentPolar("MoveLeft", StepSize);
-        MoveAngleRelative(-StepSize);
+        if (MovementMode == EnMovementMode.Polar)
+        {
+            LogCurrentPolar("MoveLeft(Polar)", StepSize);
+            MoveAngleRelative(-StepSize);
+        }
+        else
+        {
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveLeft(XY): X - {StepSize}");
+            MoveToXY(CurrentX - StepSize, CurrentY);
+        }
     }
 
     private void MoveAngleRelative(double deltaPhi)
@@ -204,12 +229,28 @@ public partial class CoaxialDelta2D : ObservableObject
 
     public void MoveUp()
     {
-        MoveRadialRelative(StepSize);
+        if (MovementMode == EnMovementMode.Polar)
+        {
+            MoveRadialRelative(StepSize);
+        }
+        else
+        {
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveUp(XY): Y + {StepSize}");
+            MoveToXY(CurrentX, CurrentY + StepSize);
+        }
     }
 
     public void MoveDown()
     {
-        MoveRadialRelative(-StepSize);
+        if (MovementMode == EnMovementMode.Polar)
+        {
+            MoveRadialRelative(-StepSize);
+        }
+        else
+        {
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveDown(XY): Y - {StepSize}");
+            MoveToXY(CurrentX, CurrentY - StepSize);
+        }
     }
 
     private void MoveRadialRelative(double deltaR)
