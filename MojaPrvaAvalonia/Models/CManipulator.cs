@@ -256,10 +256,10 @@ public partial class CManipulator : CPlc
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(40, 200, 200);
+        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(40, 200, 200);
+        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(10, 100, 100);
 
         MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(135, true, true);
         MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-135, true, true);

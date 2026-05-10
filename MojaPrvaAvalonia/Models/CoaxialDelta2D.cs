@@ -103,23 +103,86 @@ public class CoaxialDelta2D
     }
     public void MoveRight(double angle)
     {
+        LogCurrentPolar("MoveRight", angle);
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
         _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
     }
+
     public void MoveLeft(double angle)
     {
+        LogCurrentPolar("MoveLeft", angle);
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
         _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
     }
-    public void MoveUp(double angle)
+
+    public void MoveUp(double distance)
     {
-        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
-        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+        MoveRadial(distance);
     }
-    public void MoveDown(double angle)
+
+    public void MoveDown(double distance)
     {
-        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
-        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
-        _motorDown.Data.PositionActualGear
+        MoveRadial(-distance);
+    }
+
+    private void MoveRadial(double deltaR)
+    {
+        if (_motorDown?.Data == null || _motorUp?.Data == null) return;
+
+        double ad = _motorDown.Data.PositionActualGear;
+        double au = _motorUp.Data.PositionActualGear;
+
+        // 1. Získame aktuálny stav.
+        // Kedze ad je kladne (napr. 135) a au je zaporne (napr. -135), 
+        // stred phi = (ad + au) / 2.
+        double phi = (ad + au) / 2.0;
+        
+        // Alpha je polovica roztvorenia medzi ramenami.
+        double alphaOld = Math.Abs(ad - au) / 2.0;
+        double rOld = CalculateRFromAlpha(alphaOld);
+
+        // 2. Vypočítame nové R a z neho nový uhol roztvorenia Alpha
+        double rNew = rOld + deltaR;
+        double alphaNew = CalculateAlphaFromR(rNew);
+
+        Serilog.Log.Logger.Information($"[DELTA] MoveRadial({deltaR:F1}mm): R:{rOld:F1}->{rNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
+
+        // 3. Nastavíme motory na nové ABSOLÚTNE polohy (true).
+        // Kedze MotorDown (ad) ide do kladnych hodnot a MotorUp (au) do zapornych,
+        // MotorDown = stred + alpha, MotorUp = stred - alpha
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alphaNew, true, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(phi - alphaNew, true, true);
+    }
+
+    private double CalculateAlphaFromR(double r)
+    {
+        // Kosínusová veta pre uhol alpha: cos(alpha) = (R^2 + L1^2 - L2^2) / (2 * R * L1)
+        double val = (r * r + L1 * L1 - L2 * L2) / (2.0 * r * L1);
+        
+        // Ošetrenie limitov (matematická bezpečnosť)
+        if (val > 1.0) val = 1.0;
+        if (val < -1.0) val = -1.0;
+
+        return Math.Acos(val) * 180.0 / Math.PI;
+    }
+
+    private double CalculateRFromAlpha(double alphaDeg)
+    {
+        double alphaRad = Math.PI * alphaDeg / 180.0;
+        return L1 * Math.Cos(alphaRad) + Math.Sqrt(L2 * L2 - Math.Pow(L1 * Math.Sin(alphaRad), 2));
+    }
+
+    private void LogCurrentPolar(string method, double inputVal)
+    {
+        if (_motorDown?.Data == null || _motorUp?.Data == null) return;
+
+        double ad = _motorDown.Data.PositionActualGear;
+        double au = _motorUp.Data.PositionActualGear;
+
+        double phi = (ad + au) / 2.0;
+        double alphaDeg = Math.Abs(au - ad) / 2.0;
+        double r = CalculateRFromAlpha(alphaDeg);
+
+        Serilog.Log.Logger.Information($"[DELTA] {method}({inputVal}): Ad:{ad:F2}° Au:{au:F2}° => R:{r:F2}mm, Phi:{phi:F2}°");
     }
 }
