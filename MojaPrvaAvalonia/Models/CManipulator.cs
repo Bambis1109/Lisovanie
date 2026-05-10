@@ -44,6 +44,7 @@ public partial class CManipulator : CPlc
             {
                 Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
             }
+
             StatusPlc = EnStatusPlc.NotInit;
         }
 
@@ -68,6 +69,7 @@ public partial class CManipulator : CPlc
         StartNodes();
 
         deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
+        deltaRobot.StartMonitoring();
 
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
@@ -102,27 +104,31 @@ public partial class CManipulator : CPlc
         var tasks = Motors.Select(async item =>
         {
             enmError resultNode = enmError.Error;
-           
-            for (int i = 0; i < 10; i++) 
+
+            for (int i = 0; i < 10; i++)
             {
-                await Task.Delay(100); 
+                await Task.Delay(100);
                 try
                 {
                     if (item.Operation?.MotionInfo == null) continue;
 
-                    var fw = item.Operation.MotionInfo.GetFwVersion();                        
-                    Log.Logger.ForContext("Name", Name).Information($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) FW:[{fw}] has been reset");
+                    var fw = item.Operation.MotionInfo.GetFwVersion();
+                    Log.Logger.ForContext("Name", Name).Information(
+                        $"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) FW:[{fw}] has been reset");
                     resultNode = enmError.NoError;
                     break;
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                }
             }
-            
+
             if (resultNode == enmError.Error)
             {
-                Log.Logger.ForContext("Name", Name).Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
             }
-            
+
             return resultNode;
         });
 
@@ -292,10 +298,8 @@ public partial class CManipulator : CPlc
     private int MainStep110(int step)
     {
         Message = "Vysun";
-        MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(50, true, true);
-        MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-50, true, true);
-        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
+        deltaRobot.MoveUp(100);
+        deltaRobot.WaitForTargetReached(5000);
         return 120;
     }
 
@@ -318,10 +322,8 @@ public partial class CManipulator : CPlc
     private int MainStep140(int step)
     {
         Message = "Zasun";
-        MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(135, true, true);
-        MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-135, true, true);
-        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
+        deltaRobot.MoveUp(-100);
+        deltaRobot.WaitForTargetReached(5000);
         return 150;
     }
 
@@ -576,10 +578,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() =>
-            {
-               deltaRobot.MoveRight(10);
-            });
+            await Task.Run(() => { deltaRobot.MoveRight(10); });
         }
         catch (Exception ea)
         {
@@ -592,10 +591,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() =>
-            {
-                deltaRobot.MoveLeft(10);
-            });
+            await Task.Run(() => { deltaRobot.MoveLeft(10); });
         }
         catch (Exception ea)
         {
@@ -608,10 +604,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() =>
-            {
-                deltaRobot.MoveUp(10);
-            });
+            await Task.Run(() => { deltaRobot.MoveUp(10); });
         }
         catch (Exception ea)
         {
@@ -624,10 +617,7 @@ public partial class CManipulator : CPlc
     {
         try
         {
-            await Task.Run(() =>
-            {
-               deltaRobot.MoveDown(10);
-            });
+            await Task.Run(() => { deltaRobot.MoveDown(10); });
         }
         catch (Exception ea)
         {

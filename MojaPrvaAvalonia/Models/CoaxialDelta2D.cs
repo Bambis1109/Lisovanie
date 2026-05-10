@@ -1,9 +1,12 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using EposCmd.Net;
 
 namespace MojaPrvaAvalonia.Models;
 
-public class CoaxialDelta2D
+public partial class CoaxialDelta2D : ObservableObject
 {
     // --- Hardvérové a kinematické parametre ---
     public double L1 { get; private set; }
@@ -14,6 +17,15 @@ public class CoaxialDelta2D
     // --- Referencie na motory ---
     private CDeviceEpos4 _motorDown;
     private CDeviceEpos4 _motorUp;
+
+    // --- Dynamické polohy pre UI ---
+    [ObservableProperty]
+    private double _currentR;
+
+    [ObservableProperty]
+    private double _currentPhi;
+
+    private CancellationTokenSource _cts;
 
     // --- Vypočítané offsety (v pulzoch) ---
     public double OffsetSystem { get; private set; }
@@ -104,28 +116,33 @@ public class CoaxialDelta2D
     public void MoveRight(double angle)
     {
         LogCurrentPolar("MoveRight", angle);
-        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
-        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+        MoveAngleRelative(angle);
     }
 
     public void MoveLeft(double angle)
     {
         LogCurrentPolar("MoveLeft", angle);
-        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
-        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
+        MoveAngleRelative(-angle);
+    }
+
+    private void MoveAngleRelative(double deltaPhi)
+    {
+      
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(deltaPhi, false, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(deltaPhi, false, true);
     }
 
     public void MoveUp(double distance)
     {
-        MoveRadial(distance);
+        MoveRadialRelative(distance);
     }
 
     public void MoveDown(double distance)
     {
-        MoveRadial(-distance);
+        MoveRadialRelative(-distance);
     }
 
-    private void MoveRadial(double deltaR)
+    private void MoveRadialRelative(double deltaR)
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
@@ -141,8 +158,17 @@ public class CoaxialDelta2D
         double alphaOld = Math.Abs(ad - au) / 2.0;
         double rOld = CalculateRFromAlpha(alphaOld);
 
-        // 2. Vypočítame nové R a z neho nový uhol roztvorenia Alpha
+        // 2. Vypočítame nové R
         double rNew = rOld + deltaR;
+
+        // Kontrola softvérových limitov pre vzdialenosť (R)
+        if (rNew < 56.0 || rNew > 270.0)
+        {
+            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť R={rNew:F1}mm je mimo povoleného rozsahu (56 - 270 mm).");
+            return;
+        }
+
+        // Vypocet noveho uhla roztvorenia Alpha
         double alphaNew = CalculateAlphaFromR(rNew);
 
         Serilog.Log.Logger.Information($"[DELTA] MoveRadial({deltaR:F1}mm): R:{rOld:F1}->{rNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
@@ -154,6 +180,12 @@ public class CoaxialDelta2D
         _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(phi - alphaNew, true, true);
     }
 
+
+    public void WaitForTargetReached(uint timeout)
+    {
+        _motorDown.Operation.MotionInfo.WaitForTargetReached(timeout);
+        _motorUp.Operation.MotionInfo.WaitForTargetReached(timeout);
+    }
     private double CalculateAlphaFromR(double r)
     {
         // Kosínusová veta pre uhol alpha: cos(alpha) = (R^2 + L1^2 - L2^2) / (2 * R * L1)
@@ -174,15 +206,39 @@ public class CoaxialDelta2D
 
     private void LogCurrentPolar(string method, double inputVal)
     {
+        UpdatePositions();
+        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"{method}({inputVal}): Ad:{_motorDown.Data.PositionActualGear:F2}° Au:{_motorUp.Data.PositionActualGear:F2}° => R:{CurrentR:F2}mm, Phi:{CurrentPhi:F2}°");
+    }
+
+    public void UpdatePositions()
+    {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
         double ad = _motorDown.Data.PositionActualGear;
         double au = _motorUp.Data.PositionActualGear;
 
-        double phi = (ad + au) / 2.0;
-        double alphaDeg = Math.Abs(au - ad) / 2.0;
-        double r = CalculateRFromAlpha(alphaDeg);
+        CurrentPhi = (ad + au) / 2.0;
+        double alphaDeg = Math.Abs(ad - au) / 2.0;
+        CurrentR = CalculateRFromAlpha(alphaDeg);
+    }
 
-        Serilog.Log.Logger.Information($"[DELTA] {method}({inputVal}): Ad:{ad:F2}° Au:{au:F2}° => R:{r:F2}mm, Phi:{phi:F2}°");
+    public void StartMonitoring()
+    {
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    UpdatePositions();
+                }
+                catch (Exception) { }
+                await Task.Delay(100, token);
+            }
+        }, token);
     }
 }
