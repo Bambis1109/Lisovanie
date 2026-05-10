@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -160,13 +160,27 @@ public partial class CManipulator : CPlc
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
+            
+            // Vysun
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
-            case 160: return MainStep160(step);
-            case 170: return MainStep170(step);
+
+            case 160: return MainStep160(step); // Z-axis dole
+            case 170: return MainStep170(step); // Celuste otvor
+
+            // Zasun
+            case 180: return MainStep180(step);
+            case 190: return MainStep190(step);
+            case 200: return MainStep200(step);
+            case 210: return MainStep210(step);
+            case 220: return MainStep220(step);
+
+            case 230: return MainStep230(step); // Z hore
+            case 240: return MainStep240(step); // Celuste zatvor
+            case 250: return MainStep250(step); // Vychodiskova poloha
 
             default: return base.RunStep(step);
         }
@@ -294,15 +308,7 @@ public partial class CManipulator : CPlc
 
     private int MainStep110(int step)
     {
-        Message = "Vysun";
-        deltaRobot.MoveToXY(0,60);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(0,160);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(-100,160);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(-100,60);
-        deltaRobot.WaitForTargetReached(5000);
+        Message = "Vysun 1: Centruj";
         deltaRobot.MoveToXY(0,60);
         deltaRobot.WaitForTargetReached(5000);
         return 120;
@@ -310,57 +316,111 @@ public partial class CManipulator : CPlc
 
     private int MainStep120(int step)
     {
-        Message = "Z-axis dole";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Vysun 2: Vpred";
+        deltaRobot.MoveToXY(0,160);
+        deltaRobot.WaitForTargetReached(5000);
         return 130;
     }
 
     private int MainStep130(int step)
     {
-        Message = "Celuste otvor";
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(20, true, true);
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Vysun 3: Vlavo";
+        deltaRobot.MoveToXY(-100,160);
+        deltaRobot.WaitForTargetReached(5000);
         return 140;
     }
 
     private int MainStep140(int step)
     {
-        Message = "Zasun";
-        deltaRobot.MoveToXY(0,60);
+        Message = "Vysun 4: Spat";
+        deltaRobot.MoveToXY(-100,60);
         deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(0,160);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(100,160);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(100,60);
-        deltaRobot.WaitForTargetReached(5000);
-        deltaRobot.MoveToXY(0,60);
-        deltaRobot.WaitForTargetReached(5000);
-        
         return 150;
     }
 
     private int MainStep150(int step)
     {
-        Message = "Z hore";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Vysun 5: Finalizuj";
+        deltaRobot.MoveToXY(0,60);
+        deltaRobot.WaitForTargetReached(5000);
         return 160;
     }
 
     private int MainStep160(int step)
     {
-        Message = "Celuste zatvor";
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Z-axis dole";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
     }
 
     private int MainStep170(int step)
     {
+        Message = "Celuste otvor";
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, true, true);
+        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 180;
+    }
+
+    private int MainStep180(int step)
+    {
+        Message = "Zasun 1: Centruj";
+        deltaRobot.MoveToXY(0,60);
+        deltaRobot.WaitForTargetReached(5000);
+        return 190;
+    }
+
+    private int MainStep190(int step)
+    {
+        Message = "Zasun 2: Vpred";
+        deltaRobot.MoveToXY(0,160);
+        deltaRobot.WaitForTargetReached(5000);
+        return 200;
+    }
+
+    private int MainStep200(int step)
+    {
+        Message = "Zasun 3: Vpravo";
+        deltaRobot.MoveToXY(100,160);
+        deltaRobot.WaitForTargetReached(5000);
+        return 210;
+    }
+
+    private int MainStep210(int step)
+    {
+        Message = "Zasun 4: Spat";
+        deltaRobot.MoveToXY(100,60);
+        deltaRobot.WaitForTargetReached(5000);
+        return 220;
+    }
+
+    private int MainStep220(int step)
+    {
+        Message = "Zasun 5: Finalizuj";
+        deltaRobot.MoveToXY(0,60);
+        deltaRobot.WaitForTargetReached(5000);
+        return 230;
+    }
+
+    private int MainStep230(int step)
+    {
+        Message = "Z hore";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 240;
+    }
+
+    private int MainStep240(int step)
+    {
+        Message = "Celuste zatvor";
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 250;
+    }
+
+    private int MainStep250(int step)
+    {
         Message = "Vychodiskova poloha";
-        
         deltaRobot.WaitForTargetReached(5000);
         return 100;
     }
