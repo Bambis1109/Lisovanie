@@ -67,6 +67,8 @@ public partial class CManipulator : CPlc
 
         StartNodes();
 
+        deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
+
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
     }
@@ -576,8 +578,7 @@ public partial class CManipulator : CPlc
         {
             await Task.Run(() =>
             {
-                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
-                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+               deltaRobot.MoveRight(10);
             });
         }
         catch (Exception ea)
@@ -593,8 +594,7 @@ public partial class CManipulator : CPlc
         {
             await Task.Run(() =>
             {
-                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
-                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+                deltaRobot.MoveLeft(10);
             });
         }
         catch (Exception ea)
@@ -610,8 +610,7 @@ public partial class CManipulator : CPlc
         {
             await Task.Run(() =>
             {
-                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
-                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+                deltaRobot.MoveUp(10);
             });
         }
         catch (Exception ea)
@@ -627,8 +626,7 @@ public partial class CManipulator : CPlc
         {
             await Task.Run(() =>
             {
-                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
-                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+               deltaRobot.MoveDown(10);
             });
         }
         catch (Exception ea)

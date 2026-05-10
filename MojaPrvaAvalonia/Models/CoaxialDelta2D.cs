@@ -1,4 +1,5 @@
 using System;
+using EposCmd.Net;
 
 namespace MojaPrvaAvalonia.Models;
 
@@ -9,6 +10,10 @@ public class CoaxialDelta2D
     public double L2 { get; private set; }
     public double EncoderResolution { get; private set; }
     public double HalfResolution { get; private set; }
+
+    // --- Referencie na motory ---
+    private CDeviceEpos4 _motorDown;
+    private CDeviceEpos4 _motorUp;
 
     // --- Vypočítané offsety (v pulzoch) ---
     public double OffsetSystem { get; private set; }
@@ -26,6 +31,15 @@ public class CoaxialDelta2D
         L2 = l2;
         EncoderResolution = encoderResolution;
         HalfResolution = encoderResolution / 2.0;
+    }
+
+    /// <summary>
+    /// Nastavenie referencií na fyzické motory pre výpočet polohy.
+    /// </summary>
+    public void SetMotors(CDeviceEpos4 motorDown, CDeviceEpos4 motorUp)
+    {
+        _motorDown = motorDown;
+        _motorUp = motorUp;
     }
 
     /// <summary>
@@ -84,5 +98,28 @@ public class CoaxialDelta2D
         {
             actualLD -= EncoderResolution;
         }
+
+       
+    }
+    public void MoveRight(double angle)
+    {
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+    }
+    public void MoveLeft(double angle)
+    {
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
+    }
+    public void MoveUp(double angle)
+    {
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+    }
+    public void MoveDown(double angle)
+    {
+        _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(angle, false, true);
+        _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(-angle, false, true);
+        _motorDown.Data.PositionActualGear
     }
 }
