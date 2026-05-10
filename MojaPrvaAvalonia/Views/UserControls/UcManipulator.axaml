@@ -20,7 +20,7 @@
             <ItemsControl ItemsSource="{Binding MotorViewModels}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>

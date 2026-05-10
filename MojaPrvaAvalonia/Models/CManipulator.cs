@@ -20,14 +20,39 @@ public partial class CManipulator : CPlc
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0);
     public List<CDeviceEpos4> Motors { get; } = new();
 
-    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } = new ObservableCollection<UcMotorViewModel>();
+    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } =
+        new ObservableCollection<UcMotorViewModel>();
 
     public CManipulator(string name) : base(name)
     {
+        LoadParameters();
         MotorViewModels.Add(new UcMotorViewModel(null, "Up"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Z"));
+        
+    }
+
+    public override async Task ConnectAsync()
+    {
+        await base.ConnectAsync();
+        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Connect");
+
+        if (StatusPlc == EnStatusPlc.Ready)
+        {
+            StatusPlc = EnStatusPlc.NotInit;
+            Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
+        }
+
+        Connection = EnStatusConnection.WaitToConnect;
+        Message = "Pripájam zariadenia...";
+
+        ResetCommunication();
+        ResetNodes();
+        StartNodes();
+
+        Connection = EnStatusConnection.Connected;
+        Message = "Pripojené. Čaká na Init.";
     }
 
     public void ResetCommunication()
@@ -36,6 +61,7 @@ public partial class CManipulator : CPlc
         {
             motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetCommunication);
         }
+
         Thread.Sleep(10);
     }
 
@@ -45,6 +71,7 @@ public partial class CManipulator : CPlc
         {
             motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetNode);
         }
+
         Thread.Sleep(2000);
     }
 
@@ -97,33 +124,47 @@ public partial class CManipulator : CPlc
 
     private int InitStep10(int step)
     {
-        Message = "Init 10: Resetovanie pohonov";
+        Message = "Vypocet polohy ramena";
+        deltaRobot.CalculateAndSetCalibrationOffsets(Parameters.RawLH, Parameters.RawLD);
+        Parameters.OffsetArm = (int)deltaRobot.OffsetArm;
+        Parameters.OffsetSystem = (int)deltaRobot.OffsetSystem;
+        double eposPositionLH;
+        double eposPositionLD;
+        deltaRobot.CalculateColdStartPositions(MotorUp.Data.PositionActualSensor2,
+            MotorDown.Data.PositionActualSensor2, out eposPositionLH,
+            out eposPositionLD);
+        Parameters.EposLH = (int)eposPositionLH;
+        Parameters.EposLD = (int)eposPositionLD;
+        return 20;
+    }
 
-        // Reálna logika z CDelta.Init() - zjednodušená do krokov
-        if (Motors == null || Motors.Count < 4 ||
-            MotorDown?.Operation == null || MotorUp?.Operation == null ||
-            MotorJaws?.Operation == null || MotorZ?.Operation == null)
+    private int InitStep20(int step)
+    {
+        Message = "Mazanie chyb a nastav enable";
+        foreach (var motor in Motors)
         {
-            Log.Warning("Manipulator: Cannot init, motors are not fully connected or initialized.");
-            return 999; // Error state
+            if (motor.Operation?.StateMachine == null) continue;
+            motor.Operation.StateMachine.ClearFault();
         }
 
         foreach (var motor in Motors)
         {
             if (motor.Operation?.StateMachine == null) continue;
-            motor.Operation.StateMachine.ClearFault();
             motor.Operation.StateMachine.SetEnableState();
+        }
+
+        foreach (var motor in Motors)
+        {
+            if (motor.Operation?.StateMachine == null) continue;
             motor.Operation.HomingMode?.ActivateHomingMode();
         }
 
-        return 20;
+        return 30;
     }
 
-
-    private int InitStep20(int step)
+    private int InitStep30(int step)
     {
-        Message = "Init 20: Homing Jaws a Z-axis";
-        
+        Message = "Homing Z a Jaws";
         MotorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 10, 1500, 300, 0,
             EHomingMethod.HmCurrentThresholdNegativeSpeed);
         MotorZ.Operation.HomingMode.SetHomingParameter(10000, 1500, 100, 0, 300, 0,
@@ -132,13 +173,6 @@ public partial class CManipulator : CPlc
         MotorJaws.Operation.HomingMode.FindHome();
         MotorZ.Operation.HomingMode.FindHome();
 
-        return 30;
-    }
-
-    private int InitStep30(int step)
-    {
-        Message = "Init 30: Čakanie na Homing a setup Delta ramien";
-        
         MotorJaws.Operation.MotionInfo.WaitForHomingAttained(5000);
         MotorZ.Operation.MotionInfo.WaitForHomingAttained(5000);
 
@@ -148,19 +182,14 @@ public partial class CManipulator : CPlc
         MotorJaws.Operation.ProfilePositionMode.SetPositionProfile(4000, 20000, 20000);
         MotorZ.Operation.ProfilePositionMode.SetPositionProfile(6000, 60000, 60000);
 
-        // Kinematika
-        deltaRobot.CalculateAndSetCalibrationOffsets(Parameters.RawLH, Parameters.RawLD);
-        Parameters.OffsetArm = (int)deltaRobot.OffsetArm;
-        Parameters.OffsetSystem = (int)deltaRobot.OffsetSystem;
-        
-        deltaRobot.CalculateColdStartPositions(MotorUp.Data.PositionActualSensor2,
-            MotorDown.Data.PositionActualSensor2, out double eposPositionLH,
-            out double eposPositionLD);
 
-        Parameters.EposLH = (int)eposPositionLH;
-        Parameters.EposLD = (int)eposPositionLD;
+        return 40;
+    }
 
-        // Homing Delta ramien
+    private int InitStep40(int step)
+    {
+        Message = "Inicializacia ramien";
+
         MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLD,
             EHomingMethod.HmActualPosition);
         MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLH,
@@ -169,13 +198,6 @@ public partial class CManipulator : CPlc
         MotorDown.Operation.HomingMode.FindHome();
         MotorUp.Operation.HomingMode.FindHome();
 
-        return 40;
-    }
-
-    private int InitStep40(int step)
-    {
-        Message = "Init 40: Presun do základnej pozície";
-        
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
@@ -191,7 +213,9 @@ public partial class CManipulator : CPlc
         MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
         MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
 
-        return 99; 
+        Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
+
+        return 99;
     }
 
     // ==========================================
@@ -205,7 +229,7 @@ public partial class CManipulator : CPlc
         if (RequestToEnd)
         {
             Log.Logger.ForContext("Name", Name).Information("Zachytená požiadavka na parkovanie, ukončujem program.");
-            return 0; 
+            return 0;
         }
 
         return 110;
@@ -213,66 +237,61 @@ public partial class CManipulator : CPlc
 
     private int MainStep110(int step)
     {
-        Message = "Main 110: Zdvih dole";
-        MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(50, true, true);
-        MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-50, true, true);
+        Message = "Vysun";
+       MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(50, true, true);
+       MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-50, true, true);
+       MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
+       MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
         return 120;
     }
 
     private int MainStep120(int step)
     {
-        Message = "Main 120: Čakanie na zdvih a Z-axis dole";
-        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
+        Message = "Z-axis dole";
+       MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
+       MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 130;
     }
 
     private int MainStep130(int step)
     {
-        Message = "Main 130: Čakanie na Z a Jaws Close";
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(20, true, true);
+        Message = "Celuste otvor";
+       MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(20, true, true);
+       MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 140;
     }
 
     private int MainStep140(int step)
     {
-        Message = "Main 140: Čakanie na Jaws a návrat hore";
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-        
+        Message = "Zasun";
         MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(135, true, true);
         MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-135, true, true);
+        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
         return 150;
     }
 
     private int MainStep150(int step)
     {
-        Message = "Main 150: Čakanie na Delta a Z hore";
-        MotorDown.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorUp.Operation.MotionInfo.WaitForTargetReached(5000);
-        
+        Message = "Z hore";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 160;
     }
 
     private int MainStep160(int step)
     {
-        Message = "Main 160: Čakanie na Z a Jaws Open";
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        Message = "Celuste zatvor";
+       MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+       MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
     }
 
     private int MainStep170(int step)
     {
         Message = "Main 170: Čakanie na Jaws a koniec cyklu";
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        return 100; 
+
+        return 100;
     }
 
     // Dodatočné metódy z CDelta
@@ -293,7 +312,8 @@ public partial class CManipulator : CPlc
                     Parameters.RawLD = MotorDown.Operation.HomingMode.GetSSiEncoderActualPositionA();
                 }
 
-                Log.Information($"Manipulator: Kalibruj dokončené. RawLH: {Parameters.RawLH}, RawLD: {Parameters.RawLD}");
+                Log.Information(
+                    $"Manipulator: Kalibruj dokončené. RawLH: {Parameters.RawLH}, RawLD: {Parameters.RawLD}");
             });
         }
         catch (Exception ex)
@@ -329,6 +349,7 @@ public partial class CManipulator : CPlc
                 {
                     motor.Operation?.StateMachine?.SetDisableState();
                 }
+
                 ShowLog();
             });
         }
@@ -350,6 +371,7 @@ public partial class CManipulator : CPlc
                 {
                     motor.Operation?.StateMachine?.SetEnableState();
                 }
+
                 ShowLog();
             });
         }
@@ -498,56 +520,120 @@ public partial class CManipulator : CPlc
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveRightAsync()
     {
-        try { await Task.Run(() => { MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveRight Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+            });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveRight Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveLeftAsync()
     {
-        try { await Task.Run(() => { MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveLeft Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+            });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveLeft Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveUpAsync()
     {
-        try { await Task.Run(() => { MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveUp Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+            });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveUp Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveDownAsync()
     {
-        try { await Task.Run(() => { MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveDown Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorDown.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true);
+                MotorUp.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true);
+            });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveDown Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task JawsOpenAsync()
     {
-        try { await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(2, false, true); }); }
-        catch (Exception ea) { Log.Error($"JawsOpen Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(2, false, true); });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"JawsOpen Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task JawsCloseAsync()
     {
-        try { await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, false, true); }); }
-        catch (Exception ea) { Log.Error($"JawsClose Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, false, true); });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"JawsClose Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveZUpAsync()
     {
-        try { await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveZUp Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(10, false, true); });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveZUp Error: {ea.Message}");
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     public async Task MoveZDownAsync()
     {
-        try { await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); }); }
-        catch (Exception ea) { Log.Error($"MoveZDown Error: {ea.Message}"); }
+        try
+        {
+            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-10, false, true); });
+        }
+        catch (Exception ea)
+        {
+            Log.Error($"MoveZDown Error: {ea.Message}");
+        }
     }
 }

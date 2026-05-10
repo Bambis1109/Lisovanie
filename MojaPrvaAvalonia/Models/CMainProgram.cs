@@ -69,9 +69,7 @@ public class CMainProgram
                      Log.Error("MainProgram: Expected 4 MotorViewModels but found different count.");
                 }
 
-                manipulator.ResetCommunication();
-                manipulator.ResetNodes();
-                manipulator.StartNodes();
+            
                 
                 Log.Information("MainProgram: CManipulator motors initialized.");
             }
