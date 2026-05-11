@@ -8,27 +8,48 @@
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcManipulator"
              x:DataType="models:CManipulator">
 
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="82"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+    </UserControl.Styles>
+
     <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="8" Margin="5" Background="#DCDCDC">
         <StackPanel Spacing="5">
             
             <!-- Base PLC Ovládanie -->
-            <uc:UcStatusPlc ShowSetupButton="True" SetupClicked="BtnSetup_OnClick" />
+            <uc:UcStatusPlc />
 
             <Separator Height="1" Background="Gray" Margin="0,5"/>
 
-            <!-- Reálne motory pre Manipulátor -->
-            <ItemsControl ItemsSource="{Binding MotorViewModels}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <uc:UcMotorReduced />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- Reálne motory a Setup tlačidlo pre Manipulátor -->
+            <Grid ColumnDefinitions="*, Auto">
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding MotorViewModels}" HorizontalAlignment="Left">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="5"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <uc:UcMotorReduced />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                
+                <!-- Setup Tlačidlo tváriace sa ako motor block -->
+                <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick" 
+                        Background="DodgerBlue" Foreground="White" 
+                        Width="80" Height="60" Margin="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+            </Grid>
             
         </StackPanel>
     </Border>

@@ -71,9 +71,6 @@
             
             <Button Content="Krok" Command="{Binding NextStepProgramCommand}" Background="LightSkyBlue" />
 
-            <Border Width="2" Background="DarkGray" Margin="2,0" IsVisible="{Binding $parent[uc:UcStatusPlc].ShowSetupButton}" />
-            <Button Content="Setup" Click="OnSetupClicked" Background="DodgerBlue" Foreground="White" IsVisible="{Binding $parent[uc:UcStatusPlc].ShowSetupButton}" />
-            
         </StackPanel>
         
     </StackPanel>

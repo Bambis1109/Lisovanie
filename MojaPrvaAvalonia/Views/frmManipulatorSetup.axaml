@@ -8,7 +8,7 @@
         x:Class="MojaPrvaAvalonia.Views.frmManipulatorSetup"
         x:DataType="models:CManipulator"
         Title="Manipulator Setup"
-        Width="780" Height="500"
+        Width="780" Height="900"
         WindowStartupLocation="CenterOwner"
         Topmost="True">
     
