@@ -9,7 +9,8 @@ This class acts as the main "PLC" (Programmable Logic Controller) for the manipu
    - Handles the CANopen initialization sequence (`ConnectAsync`, `ResetNodes`, `StartNodes`).
 2. **Kinematic Integration (`deltaRobot`):**
    - Instantiates and owns the `CoaxialDelta2D` kinematic engine.
-   - Delegates all complex movement commands (X/Y/Polar) to `deltaRobot`.
+   - Instantiation includes hardware parameters, mechanical limits, and GCP offset: `new CoaxialDelta2D(L1, L2, Res, MinTCP, MaxTCP, OffsetGCP)`.
+   - Delegates all complex movement commands (X/Y/Polar) to `deltaRobot`. All coordinate commands sent here represent the GCP (gripper center), not the TCP.
    - **Parameter Delegation:** It no longer manages its own delta parameters. It instructs `deltaRobot` to load/save its own parameters (`ParametersDelta.json`).
 3. **Step Machine (RunStep):**
    - Executes the machine's sequence in discrete steps.

@@ -4,18 +4,21 @@
 This class is the mathematical and logical core for controlling a 2D Coaxial Delta Robot. It abstracts the complex inverse and forward kinematics, providing a simple Cartesian (X,Y) and Polar (R, Phi) interface for the rest of the application (`CManipulator`).
 
 ## Terminology
-- **TCP (Tool Center Point):** The joint point where the two long arms connect. This is the point used for all Cartesian (X,Y) and Polar (R, Phi) calculations.
+- **TCP (Tool Center Point):** The joint point where the two long arms connect. This is the mechanical reference point for the robot's physical limits (`MinTCP`, `MaxTCP`).
+- **GCP (Gripper Center Point):** The actual point of operation (the center of the gripper jaws). It lies on the extended axis from the robot's center through the TCP.
 
 ## Core Responsibilities
-1. **Kinematics:**
-   - **Inverse Kinematics (`MoveToPolar`, `MoveToXY`):** Translates desired real-world coordinates into specific motor angles. Uses the Law of Cosines (`CalculateAlphaFromR`) to determine the arm separation angle (`Alpha`).
-   - **Forward Kinematics (`UpdatePositions`):** Reads actual gear positions from the physical EPOS4 motors and calculates the current tool position (R, Phi, X, Y).
+1. **Kinematics & GCP Compensation (Transparent Mode):**
+   - **Inverse Kinematics (`MoveToPolar`, `MoveToXY`):** Translates desired real-world GCP coordinates into specific motor angles. It automatically subtracts `_offsetGCP` from the target radius to find the required TCP position, then uses the Law of Cosines (`CalculateAlphaFromR`) to determine the arm separation angle (`Alpha`).
+   - **Forward Kinematics (`UpdatePositions`):** Reads actual gear positions from the physical EPOS4 motors, calculates the TCP position, and then adds `_offsetGCP`. The resulting `CurrentR`, `CurrentX`, and `CurrentY` properties reflect the GCP (Gripper) position, not the TCP.
+   - **Mechanical Limits:** Safety limits (`_minTCP` and `_maxTCP`) are private and strictly enforced against the calculated TCP, ensuring the mechanics never over-extend or collide, regardless of the gripper's length.
 2. **Coordinate System:**
    - The origin `[0,0]` is the physical center of the robot's primary axis.
    - **Orientation:** The +Y axis is considered 0° (Forward), and the +X axis is +90° (Right).
    - Motor angles are calculated symmetrically: `MotorDown = Phi + Alpha` and `MotorUp = Phi - Alpha`.
 3. **Parameter Management (Refactored):**
    - Owns the `ParametersDelta` object, keeping the physical state decoupled from the PLC logic.
+   - Hardware limits and offsets (`_l1`, `_l2`, `_minTCP`, `_maxTCP`, `_offsetGCP`) are encapsulated as private fields and injected via the constructor.
    - Handles saving/loading parameters directly to/from `ParametersDelta.json`.
 
 ## Calibration Flow (Two-Stage)
