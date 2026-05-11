@@ -1,8 +1,12 @@
 using System;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
+using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
@@ -23,6 +27,9 @@ public partial class CoaxialDelta2D : ObservableObject
     // --- Referencie na motory ---
     private CDeviceEpos4 _motorDown;
     private CDeviceEpos4 _motorUp;
+
+    // --- Parametre ---
+    public CParameters ParametersDelta { get; set; } = new();
 
     // --- Dynamické polohy pre UI ---
     [ObservableProperty]
@@ -373,5 +380,103 @@ public partial class CoaxialDelta2D : ObservableObject
                 await Task.Delay(100, token);
             }
         }, token);
+    }
+
+    [RelayCommand]
+    public async Task KalibrujAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                if (_motorUp != null && _motorUp.Operation != null)
+                {
+                    ParametersDelta.RawLH = _motorUp.Operation.HomingMode.GetSSiEncoderActualPositionA();
+                }
+
+                if (_motorDown != null && _motorDown.Operation != null)
+                {
+                    ParametersDelta.RawLD = _motorDown.Operation.HomingMode.GetSSiEncoderActualPositionA();
+                }
+
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    Log.Information($"Delta2D: Kalibruj dokončené. RawLH: {ParametersDelta.RawLH}, RawLD: {ParametersDelta.RawLD}");
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Delta2D Kalibruj Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task OrientujAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                OrientSystem();
+                
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    ParametersDelta.OffsetSystem = (int)OffsetSystem;
+                    Log.Information($"Delta2D: Orientuj dokončené. Nový OffsetSystem: {ParametersDelta.OffsetSystem}");
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Delta2D Orientuj Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void SaveParameters()
+    {
+        try
+        {
+            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var path = Path.Combine(directory, "ParametersDelta.json");
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(ParametersDelta, options);
+            File.WriteAllText(path, json);
+            Log.Information($"Delta2D: Parameters saved to: {path}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Delta2D: Error saving parameters: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void LoadParameters()
+    {
+        try
+        {
+            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var path = Path.Combine(directory, "ParametersDelta.json");
+            if (File.Exists(path))
+            {
+                var json = File.ReadAllText(path);
+                var loaded = JsonSerializer.Deserialize<CParameters>(json);
+                if (loaded != null)
+                {
+                    ParametersDelta.RawLH = loaded.RawLH;
+                    ParametersDelta.RawLD = loaded.RawLD;
+                    ParametersDelta.EposLH = loaded.EposLH;
+                    ParametersDelta.EposLD = loaded.EposLD;
+                    ParametersDelta.OffsetArm = loaded.OffsetArm;
+                    ParametersDelta.OffsetSystem = loaded.OffsetSystem;
+                    Log.Information($"Delta2D: Parameters loaded from: {path}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Delta2D: Error loading parameters: {ex.Message}");
+        }
     }
 }

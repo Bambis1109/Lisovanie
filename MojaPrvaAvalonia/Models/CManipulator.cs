@@ -26,7 +26,7 @@ public partial class CManipulator : CPlc
 
     public CManipulator(string name) : base(name)
     {
-        LoadParameters();
+        deltaRobot.LoadParameters();
         MotorViewModels.Add(new UcMotorViewModel(null, "Up"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
@@ -264,9 +264,9 @@ public partial class CManipulator : CPlc
     {
         Message = "Inicializacia ramien";
 
-        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLD,
+        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLD,
             EHomingMethod.HmActualPosition);
-        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLH,
+        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLH,
             EHomingMethod.HmActualPosition);
 
         MotorDown.Operation.HomingMode.FindHome();

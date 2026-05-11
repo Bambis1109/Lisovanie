@@ -83,51 +83,6 @@ public class CMainProgram
         }
     }
 
-    public void SaveParameters(CManipulator manipulator, string fileName)
-    {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = Path.Combine(directory, $"{fileName}.json");
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(manipulator.Parameters, options);
-            File.WriteAllText(path, json);
-            Log.Information($"Parameters saved to: {path}");
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Error saving parameters: {ex.Message}");
-        }
-    }
-
-    public void LoadParameters(CManipulator manipulator, string fileName)
-    {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = Path.Combine(directory, $"{fileName}.json");
-            if (File.Exists(path))
-            {
-                var json = File.ReadAllText(path);
-                var loaded = JsonSerializer.Deserialize<CParameters>(json);
-                if (loaded != null)
-                {
-                    manipulator.Parameters.RawLH = loaded.RawLH;
-                    manipulator.Parameters.RawLD = loaded.RawLD;
-                    manipulator.Parameters.EposLH = loaded.EposLH;
-                    manipulator.Parameters.EposLD = loaded.EposLD;
-                    manipulator.Parameters.OffsetArm = loaded.OffsetArm;
-                    manipulator.Parameters.OffsetSystem = loaded.OffsetSystem;
-                    Log.Information($"Parameters loaded from: {path}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Error loading parameters: {ex.Message}");
-        }
-    }
-
     private bool CreateCanConector(int canline, int boardline)
     {
         try
