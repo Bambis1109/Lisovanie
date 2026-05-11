@@ -49,6 +49,7 @@ public partial class CoaxialDelta2D : ObservableObject
 
     private double _minTCP = 56.0;
     private double _maxTCP = 270.0;
+    private double _offsetGCP = 0.0;
 
     [ObservableProperty]
     private EnMovementMode _movementMode = EnMovementMode.Polar;
@@ -67,7 +68,8 @@ public partial class CoaxialDelta2D : ObservableObject
     /// <param name="encoderResolution">Rozlíšenie absolútneho snímača na otáčku (napr. 1048576)</param>
     /// <param name="minTCP">Minimálny povolený polomer TCP [mm]</param>
     /// <param name="maxTCP">Maximálny povolený polomer TCP [mm]</param>
-    public CoaxialDelta2D(double l1, double l2, double encoderResolution, double minTCP, double maxTCP)
+    /// <param name="offsetGCP">Vzdialenosť od TCP k stredu grippera [mm]</param>
+    public CoaxialDelta2D(double l1, double l2, double encoderResolution, double minTCP, double maxTCP, double offsetGCP)
     {
         _l1 = l1;
         _l2 = l2;
@@ -75,6 +77,7 @@ public partial class CoaxialDelta2D : ObservableObject
         _halfResolution = encoderResolution / 2.0;
         _minTCP = minTCP;
         _maxTCP = maxTCP;
+        _offsetGCP = offsetGCP;
     }
 
     /// <summary>
@@ -196,21 +199,25 @@ public partial class CoaxialDelta2D : ObservableObject
 
     /// <summary>
     /// Presun na absolútne polárne súradnice [R, Phi].
+    /// r je v tomto prípade cieľový GCP polomer (stred grippera).
     /// </summary>
     public void MoveToPolar(double r, double phi)
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
-        // Kontrola softvérových limitov pre vzdialenosť (R)
-        if (r < _minTCP || r > _maxTCP)
+        // Musíme vypočítať TCP polomer (kĺb ramien), aby sme mohli vypočítať Alpha
+        double rTcp = r - _offsetGCP;
+
+        // Kontrola softvérových limitov pre mechaniku (TCP)
+        if (rTcp < _minTCP || rTcp > _maxTCP)
         {
-            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Polomer mimo rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(GCP-R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Mechanický polomer TCP ({rTcp:F1}) mimo rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
-        double alpha = CalculateAlphaFromR(r);
+        double alpha = CalculateAlphaFromR(rTcp);
 
-        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: R:{r:F1}mm, Phi:{phi:F2}° (Alpha:{alpha:F2})");
+        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: GCP-R:{r:F1}mm (TCP-R:{rTcp:F1}), Phi:{phi:F2}° (Alpha:{alpha:F2})");
 
         // MotorDown = stred + alpha, MotorUp = stred - alpha
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alpha, true, true);
@@ -287,33 +294,31 @@ public partial class CoaxialDelta2D : ObservableObject
         double ad = _motorDown.Data.PositionActualGear;
         double au = _motorUp.Data.PositionActualGear;
 
-        // 1. Získame aktuálny stav.
-        // Kedze ad je kladne (napr. 135) a au je zaporne (napr. -135), 
-        // stred phi = (ad + au) / 2.
+        // 1. Získame aktuálny stav (TCP).
         double phi = (ad + au) / 2.0;
-        
-        // Alpha je polovica roztvorenia medzi ramenami.
         double alphaOld = Math.Abs(ad - au) / 2.0;
-        double rOld = CalculateRFromAlpha(alphaOld);
+        double rTcpOld = CalculateRFromAlpha(alphaOld);
+        
+        // Aktuálne GCP polomer
+        double rGcpOld = rTcpOld + _offsetGCP;
 
-        // 2. Vypočítame nové R
-        double rNew = rOld + deltaR;
+        // 2. Vypočítame nové GCP R
+        double rGcpNew = rGcpOld + deltaR;
+        double rTcpNew = rGcpNew - _offsetGCP;
 
-        // Kontrola softvérových limitov pre vzdialenosť (R)
-        if (rNew < _minTCP || rNew > _maxTCP)
+        // Kontrola softvérových limitov pre mechaniku (TCP)
+        if (rTcpNew < _minTCP || rTcpNew > _maxTCP)
         {
-            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť R={rNew:F1}mm je mimo povoleného rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
+            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť GCP-R={rGcpNew:F1}mm (TCP-R={rTcpNew:F1}mm) je mimo povoleného rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
-        // Vypocet noveho uhla roztvorenia Alpha
-        double alphaNew = CalculateAlphaFromR(rNew);
+        // Vypocet noveho uhla roztvorenia Alpha z noveho TCP R
+        double alphaNew = CalculateAlphaFromR(rTcpNew);
 
-        Serilog.Log.Logger.Information($"[DELTA] MoveRadial({deltaR:F1}mm): R:{rOld:F1}->{rNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
+        Serilog.Log.Logger.Information($"[DELTA] MoveRadial({deltaR:F1}mm): GCP-R:{rGcpOld:F1}->{rGcpNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
 
-        // 3. Nastavíme motory na nové ABSOLÚTNE polohy (true).
-        // Kedze MotorDown (ad) ide do kladnych hodnot a MotorUp (au) do zapornych,
-        // MotorDown = stred + alpha, MotorUp = stred - alpha
+        // 3. Nastavíme motory
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alphaNew, true, true);
         _motorUp.Operation.ProfilePositionMode.MoveToPositionGear(phi - alphaNew, true, true);
     }
@@ -355,15 +360,17 @@ public partial class CoaxialDelta2D : ObservableObject
         double ad = _motorDown.Data.PositionActualGear;
         double au = _motorUp.Data.PositionActualGear;
 
+        // Phi je rovnaké pre TCP aj GCP
         CurrentPhi = (ad + au) / 2.0;
-        double alphaDeg = Math.Abs(ad - au) / 2.0;
-        CurrentR = CalculateRFromAlpha(alphaDeg);
 
-        // Prepočet na karteziánske súradnice [X, Y]
-        // Phi je v stupňoch, Math.Sin/Cos očakávajú radiány
-        // Podľa tvojej orientácie (+Y je 0°, +X je 90°):
-        // X = R * Sin(Phi)
-        // Y = R * Cos(Phi)
+        // Výpočet mechanického polomeru (TCP)
+        double alphaDeg = Math.Abs(ad - au) / 2.0;
+        double rTcp = CalculateRFromAlpha(alphaDeg);
+
+        // Prepisujeme CurrentR tak, aby zobrazoval polohu GCP (stred grippera)
+        CurrentR = rTcp + _offsetGCP;
+
+        // Prepočet na karteziánske súradnice [X, Y] pre bod GCP
         double phiRad = CurrentPhi * Math.PI / 180.0;
         CurrentX = CurrentR * Math.Sin(phiRad);
         CurrentY = CurrentR * Math.Cos(phiRad);
