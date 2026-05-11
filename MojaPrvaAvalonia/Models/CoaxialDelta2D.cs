@@ -19,10 +19,10 @@ public enum EnMovementMode
 public partial class CoaxialDelta2D : ObservableObject
 {
     // --- Hardvérové a kinematické parametre ---
-    public double L1 { get; private set; }
-    public double L2 { get; private set; }
-    public double EncoderResolution { get; private set; }
-    public double HalfResolution { get; private set; }
+    private double _l1;
+    private double _l2;
+    private double _encoderResolution;
+    private double _halfResolution;
 
     // --- Referencie na motory ---
     private CDeviceEpos4 _motorDown;
@@ -47,6 +47,9 @@ public partial class CoaxialDelta2D : ObservableObject
     [ObservableProperty]
     private double _stepSize = 1.0;
 
+    private double _minTCP = 56.0;
+    private double _maxTCP = 270.0;
+
     [ObservableProperty]
     private EnMovementMode _movementMode = EnMovementMode.Polar;
 
@@ -62,12 +65,16 @@ public partial class CoaxialDelta2D : ObservableObject
     /// <param name="l1">Dĺžka krátkych (hnacích) ramien [mm]</param>
     /// <param name="l2">Dĺžka dlhých (pasívnych) ramien [mm]</param>
     /// <param name="encoderResolution">Rozlíšenie absolútneho snímača na otáčku (napr. 1048576)</param>
-    public CoaxialDelta2D(double l1, double l2, double encoderResolution)
+    /// <param name="minTCP">Minimálny povolený polomer TCP [mm]</param>
+    /// <param name="maxTCP">Maximálny povolený polomer TCP [mm]</param>
+    public CoaxialDelta2D(double l1, double l2, double encoderResolution, double minTCP, double maxTCP)
     {
-        L1 = l1;
-        L2 = l2;
-        EncoderResolution = encoderResolution;
-        HalfResolution = encoderResolution / 2.0;
+        _l1 = l1;
+        _l2 = l2;
+        _encoderResolution = encoderResolution;
+        _halfResolution = encoderResolution / 2.0;
+        _minTCP = minTCP;
+        _maxTCP = maxTCP;
     }
 
     /// <summary>
@@ -112,7 +119,7 @@ public partial class CoaxialDelta2D : ObservableObject
     public void OrientSystem()
     {
         UpdatePositions();
-        double phiErrorPulses = CurrentPhi * (EncoderResolution / 360.0);
+        double phiErrorPulses = CurrentPhi * (_encoderResolution / 360.0);
         OffsetSystem -= phiErrorPulses;
         UpdatePositions();
     }
@@ -129,24 +136,24 @@ public partial class CoaxialDelta2D : ObservableObject
         double ld_shifted = rawLD_Startup + OffsetArm + OffsetSystem;
 
         // 2. Bezpečné matematické modulo (vždy vráti 0 až 1 048 575)
-        actualLH = ((lh_shifted % EncoderResolution) + EncoderResolution) % EncoderResolution;
-        actualLD = ((ld_shifted % EncoderResolution) + EncoderResolution) % EncoderResolution;
+        actualLH = ((lh_shifted % _encoderResolution) + _encoderResolution) % _encoderResolution;
+        actualLD = ((ld_shifted % _encoderResolution) + _encoderResolution) % _encoderResolution;
 
         // 3. Konverzia na Signed hodnoty s ASYMETRICKÝMI HRANICAMI
 
         // Hranica pre LH: +90° (Všetko fyzicky za +90° je považované za záporné natočenie, napr. -256°)
-        double boundaryLH = EncoderResolution * (90.0 / 360.0); // 262 144 pulzov
+        double boundaryLH = _encoderResolution * (90.0 / 360.0); // 262 144 pulzov
         if (actualLH > boundaryLH)
         {
-            actualLH -= EncoderResolution;
+            actualLH -= _encoderResolution;
         }
 
         // Hranica pre LD: +315° (Všetko fyzicky za +315° je považované za záporné natočenie, max je +275°)
         // Umožňuje dolnému ramenu ísť do záporu maximálne po -45°.
-        double boundaryLD = EncoderResolution * (315.0 / 360.0); // 917 504 pulzov
+        double boundaryLD = _encoderResolution * (315.0 / 360.0); // 917 504 pulzov
         if (actualLD > boundaryLD)
         {
-            actualLD -= EncoderResolution;
+            actualLD -= _encoderResolution;
         }
 
        
@@ -195,9 +202,9 @@ public partial class CoaxialDelta2D : ObservableObject
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
         // Kontrola softvérových limitov pre vzdialenosť (R)
-        if (r < 56.0 || r > 270.0)
+        if (r < _minTCP || r > _maxTCP)
         {
-            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Polomer mimo rozsahu (56 - 270 mm).");
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Polomer mimo rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
@@ -293,9 +300,9 @@ public partial class CoaxialDelta2D : ObservableObject
         double rNew = rOld + deltaR;
 
         // Kontrola softvérových limitov pre vzdialenosť (R)
-        if (rNew < 56.0 || rNew > 270.0)
+        if (rNew < _minTCP || rNew > _maxTCP)
         {
-            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť R={rNew:F1}mm je mimo povoleného rozsahu (56 - 270 mm).");
+            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť R={rNew:F1}mm je mimo povoleného rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
@@ -319,8 +326,8 @@ public partial class CoaxialDelta2D : ObservableObject
     }
     private double CalculateAlphaFromR(double r)
     {
-        // Kosínusová veta pre uhol alpha: cos(alpha) = (R^2 + L1^2 - L2^2) / (2 * R * L1)
-        double val = (r * r + L1 * L1 - L2 * L2) / (2.0 * r * L1);
+        // Kosínusová veta pre uhol alpha: cos(alpha) = (R^2 + _l1^2 - _l2^2) / (2 * R * _l1)
+        double val = (r * r + _l1 * _l1 - _l2 * _l2) / (2.0 * r * _l1);
         
         // Ošetrenie limitov (matematická bezpečnosť)
         if (val > 1.0) val = 1.0;
@@ -332,7 +339,7 @@ public partial class CoaxialDelta2D : ObservableObject
     private double CalculateRFromAlpha(double alphaDeg)
     {
         double alphaRad = Math.PI * alphaDeg / 180.0;
-        return L1 * Math.Cos(alphaRad) + Math.Sqrt(L2 * L2 - Math.Pow(L1 * Math.Sin(alphaRad), 2));
+        return _l1 * Math.Cos(alphaRad) + Math.Sqrt(_l2 * _l2 - Math.Pow(_l1 * Math.Sin(alphaRad), 2));
     }
 
     private void LogCurrentPolar(string method, double inputVal)

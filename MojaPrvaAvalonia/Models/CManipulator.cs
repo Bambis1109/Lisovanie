@@ -18,7 +18,7 @@ public partial class CManipulator : CPlc
     public CDeviceEpos4 MotorJaws { get; set; }
     public CDeviceEpos4 MotorZ { get; set; }
     public CParameters Parameters { get; set; } = new();
-    public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0);
+    public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0);
     public List<CDeviceEpos4> Motors { get; } = new();
 
     public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } =

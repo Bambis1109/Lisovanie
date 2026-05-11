@@ -3,6 +3,9 @@
 ## Overview
 This class is the mathematical and logical core for controlling a 2D Coaxial Delta Robot. It abstracts the complex inverse and forward kinematics, providing a simple Cartesian (X,Y) and Polar (R, Phi) interface for the rest of the application (`CManipulator`).
 
+## Terminology
+- **TCP (Tool Center Point):** The joint point where the two long arms connect. This is the point used for all Cartesian (X,Y) and Polar (R, Phi) calculations.
+
 ## Core Responsibilities
 1. **Kinematics:**
    - **Inverse Kinematics (`MoveToPolar`, `MoveToXY`):** Translates desired real-world coordinates into specific motor angles. Uses the Law of Cosines (`CalculateAlphaFromR`) to determine the arm separation angle (`Alpha`).
