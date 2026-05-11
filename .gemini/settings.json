@@ -1,0 +1,16 @@
+{
+  "modelConfigs": {
+    "overrides": [
+      {
+        "match": {
+          "model": "*"
+        },
+        "modelConfig": {
+          "generateContentConfig": {
+            "temperature": 0.2
+          }
+        }
+      }
+    ]
+  }
+}

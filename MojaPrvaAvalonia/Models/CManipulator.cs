@@ -275,11 +275,15 @@ public partial class CManipulator : CPlc
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
+        uint velocity = 10;
+        uint acceleration = 100;
+        uint deceleration = 100;
+        
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(30, 200, 200);
+        MotorDown.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(30, 200, 200);
+        MotorUp.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
         deltaRobot.MoveToXY(0,58);
        deltaRobot.WaitForTargetReached(3000);
@@ -317,7 +321,7 @@ public partial class CManipulator : CPlc
     private int MainStep120(int step)
     {
         Message = "Vysun 2: Vpred";
-        deltaRobot.MoveToXY(0,160);
+        deltaRobot.MoveToXY(0,120);
         deltaRobot.WaitForTargetReached(5000);
         return 130;
     }
@@ -325,7 +329,7 @@ public partial class CManipulator : CPlc
     private int MainStep130(int step)
     {
         Message = "Vysun 3: Vlavo";
-        deltaRobot.MoveToXY(-100,160);
+        deltaRobot.MoveToXY(-100,120);
         deltaRobot.WaitForTargetReached(5000);
         return 140;
     }
@@ -333,7 +337,7 @@ public partial class CManipulator : CPlc
     private int MainStep140(int step)
     {
         Message = "Vysun 4: Spat";
-        deltaRobot.MoveToXY(-100,60);
+        deltaRobot.MoveToXY(-100,0);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     }
@@ -349,7 +353,7 @@ public partial class CManipulator : CPlc
     private int MainStep160(int step)
     {
         Message = "Z-axis dole";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-30, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-10, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
     }
@@ -357,7 +361,7 @@ public partial class CManipulator : CPlc
     private int MainStep170(int step)
     {
         Message = "Celuste otvor";
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, true, true);
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
         MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 180;
     }
@@ -373,7 +377,7 @@ public partial class CManipulator : CPlc
     private int MainStep190(int step)
     {
         Message = "Zasun 2: Vpred";
-        deltaRobot.MoveToXY(0,160);
+        deltaRobot.MoveToXY(0,120);
         deltaRobot.WaitForTargetReached(5000);
         return 200;
     }
@@ -381,7 +385,7 @@ public partial class CManipulator : CPlc
     private int MainStep200(int step)
     {
         Message = "Zasun 3: Vpravo";
-        deltaRobot.MoveToXY(100,160);
+        deltaRobot.MoveToXY(100,120);
         deltaRobot.WaitForTargetReached(5000);
         return 210;
     }
@@ -389,7 +393,7 @@ public partial class CManipulator : CPlc
     private int MainStep210(int step)
     {
         Message = "Zasun 4: Spat";
-        deltaRobot.MoveToXY(100,60);
+        deltaRobot.MoveToXY(100,0);
         deltaRobot.WaitForTargetReached(5000);
         return 220;
     }
@@ -450,6 +454,28 @@ public partial class CManipulator : CPlc
         catch (Exception ex)
         {
             Log.Error($"Manipulator Kalibruj Error: {ex.Message}");
+        }
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    public async Task OrientujAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                deltaRobot.OrientSystem();
+                
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    Parameters.OffsetSystem = (int)deltaRobot.OffsetSystem;
+                    Log.Information($"Manipulator: Orientuj dokončené. Nový OffsetSystem: {Parameters.OffsetSystem}");
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Manipulator Orientuj Error: {ex.Message}");
         }
     }
 

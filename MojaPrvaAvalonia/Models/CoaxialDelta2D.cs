@@ -98,6 +98,19 @@ public partial class CoaxialDelta2D : ObservableObject
     }
 
     /// <summary>
+    /// Jemné doladenie orientácie systému.
+    /// Ak je manipulátor mechanicky nastavený presne na os +Y, ale softvér ukazuje odchýlku CurrentPhi,
+    /// táto metóda túto odchýlku eliminuje úpravou OffsetSystem.
+    /// </summary>
+    public void OrientSystem()
+    {
+        UpdatePositions();
+        double phiErrorPulses = CurrentPhi * (EncoderResolution / 360.0);
+        OffsetSystem -= phiErrorPulses;
+        UpdatePositions();
+    }
+
+    /// <summary>
     /// Spracuje surové dáta zo snímačov po zapnutí napájania a vypočíta 
     /// interné (signed) polohy v pulzoch s asymetrickým rozsahom pracovného priestoru.
     /// </summary>

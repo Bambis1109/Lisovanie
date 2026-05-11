@@ -128,7 +128,10 @@
                                 <Button Grid.Column="0" Content="Enable" Command="{Binding EnableMotorsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="0,0,5,0"/>
                                 <Button Grid.Column="1" Content="Disable" Command="{Binding DisableMotorsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="5,0,0,0"/>
                             </Grid>
-                            <Button Content="Kalibruj" Command="{Binding KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            <Grid ColumnDefinitions="*,*">
+                                <Button Grid.Column="0" Content="Kalibruj" Command="{Binding KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
+                                <Button Grid.Column="1" Content="Orientuj" Command="{Binding OrientujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
+                            </Grid>
                             <Grid ColumnDefinitions="*,*">
                                 <Button Grid.Column="0" Content="Save Params" Command="{Binding SaveParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
                                 <Button Grid.Column="1" Content="Load Params" Command="{Binding LoadParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
