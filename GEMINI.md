@@ -2,6 +2,13 @@
 
 An Avalonia UI application simulating a PLC-controlled machine (Manipulator) with motor data and real-time logging.
 
+## AI Context & Documentation
+
+> [!IMPORTANT]
+> This project uses standalone `.txt` files to store detailed AI-readable context and architectural documentation for specific C# classes. 
+> 
+> **GLOBAL RULE:** Before modifying ANY `.cs` file, you MUST check if a corresponding `.txt` file exists in the same directory (e.g., if editing `MyClass.cs`, check for `MyClass.txt`). If it exists, you MUST read its contents to understand the underlying math, architecture, or business logic before making any changes.
+
 ## Project Overview
 
 - **Purpose**: Simulate industrial automation control (PLC) and monitoring (HMI).

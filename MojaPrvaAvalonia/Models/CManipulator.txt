@@ -1,0 +1,20 @@
+# AI Context: CManipulator.cs (PLC Orchestrator)
+
+## Overview
+This class acts as the main "PLC" (Programmable Logic Controller) for the manipulator station. It inherits from `CPlc` and manages the physical hardware connections (CANopen nodes) and the high-level operational logic (Step/State Machine).
+
+## Core Responsibilities
+1. **Hardware Management:**
+   - Owns the physical EPOS4 motor controllers (`MotorUp`, `MotorDown`, `MotorJaws`, `MotorZ`).
+   - Handles the CANopen initialization sequence (`ConnectAsync`, `ResetNodes`, `StartNodes`).
+2. **Kinematic Integration (`deltaRobot`):**
+   - Instantiates and owns the `CoaxialDelta2D` kinematic engine.
+   - Delegates all complex movement commands (X/Y/Polar) to `deltaRobot`.
+   - **Parameter Delegation:** It no longer manages its own delta parameters. It instructs `deltaRobot` to load/save its own parameters (`ParametersDelta.json`).
+3. **Step Machine (RunStep):**
+   - Executes the machine's sequence in discrete steps.
+   - **Initialization Phase (Steps 1-99):** 
+     - Step 10: **Crucial Step.** Instructs the `deltaRobot` to load its active offsets (`LoadOffsets`) and calculates the cold-start absolute positions for the EPOS drives based on current raw encoder data.
+     - Step 20-30: Clears faults, enables drives, and homes secondary axes (Z, Jaws).
+     - Step 40: Homes the main Delta arms using the absolute positions calculated in Step 10 and sets up motion profiles.
+   - **Main Cycle Phase (Steps 100+):** Contains the production logic (e.g., parking, moving to pick/place coordinates, opening/closing jaws).
