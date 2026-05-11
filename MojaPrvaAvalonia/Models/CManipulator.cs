@@ -199,16 +199,20 @@ public partial class CManipulator : CPlc
     private int InitStep10(int step)
     {
         Message = "Vypocet polohy ramena";
-        deltaRobot.CalculateAndSetCalibrationOffsets(Parameters.RawLH, Parameters.RawLD);
-        Parameters.OffsetArm = (int)deltaRobot.OffsetArm;
-        Parameters.OffsetSystem = (int)deltaRobot.OffsetSystem;
+        
+        // DÔLEŽITÁ OPRAVA: Načítame aktívne offsety z uložených parametrov do kinematiky (ako vo funkčnej verzii)
+        deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
+
         double eposPositionLH;
         double eposPositionLD;
+        
         deltaRobot.CalculateColdStartPositions(MotorUp.Data.PositionActualSensor2,
             MotorDown.Data.PositionActualSensor2, out eposPositionLH,
             out eposPositionLD);
-        Parameters.EposLH = (int)eposPositionLH;
-        Parameters.EposLD = (int)eposPositionLD;
+            
+        deltaRobot.ParametersDelta.EposLH = (int)eposPositionLH;
+        deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
+        
         return 20;
     }
 
