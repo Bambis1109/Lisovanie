@@ -279,9 +279,9 @@ public partial class CManipulator : CPlc
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 10;
-        uint acceleration = 100;
-        uint deceleration = 100;
+        uint velocity = 30;
+        uint acceleration = 300;
+        uint deceleration = 300;
         
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorDown.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
@@ -289,7 +289,7 @@ public partial class CManipulator : CPlc
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorUp.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
-        deltaRobot.MoveToXY(0,58);
+        deltaRobot.MoveToXY(0,140);
        deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
@@ -317,7 +317,7 @@ public partial class CManipulator : CPlc
     private int MainStep110(int step)
     {
         Message = "Vysun 1: Centruj";
-        deltaRobot.MoveToXY(0,60);
+        deltaRobot.MoveToXY(0,140);
         deltaRobot.WaitForTargetReached(5000);
         return 120;
     }
@@ -325,7 +325,7 @@ public partial class CManipulator : CPlc
     private int MainStep120(int step)
     {
         Message = "Vysun 2: Vpred";
-        deltaRobot.MoveToXY(0,120);
+        deltaRobot.MoveToXY(0,200);
         deltaRobot.WaitForTargetReached(5000);
         return 130;
     }
@@ -333,7 +333,7 @@ public partial class CManipulator : CPlc
     private int MainStep130(int step)
     {
         Message = "Vysun 3: Vlavo";
-        deltaRobot.MoveToXY(-100,120);
+        deltaRobot.MoveToXY(-200,200);
         deltaRobot.WaitForTargetReached(5000);
         return 140;
     }
@@ -341,7 +341,7 @@ public partial class CManipulator : CPlc
     private int MainStep140(int step)
     {
         Message = "Vysun 4: Spat";
-        deltaRobot.MoveToXY(-100,0);
+        deltaRobot.MoveToXY(-200,140);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     }
@@ -349,7 +349,7 @@ public partial class CManipulator : CPlc
     private int MainStep150(int step)
     {
         Message = "Vysun 5: Finalizuj";
-        deltaRobot.MoveToXY(0,60);
+        deltaRobot.MoveToXY(0,140);
         deltaRobot.WaitForTargetReached(5000);
         return 160;
     }
@@ -373,7 +373,7 @@ public partial class CManipulator : CPlc
     private int MainStep180(int step)
     {
         Message = "Zasun 1: Centruj";
-        deltaRobot.MoveToXY(0,60);
+        deltaRobot.MoveToXY(0,140);
         deltaRobot.WaitForTargetReached(5000);
         return 190;
     }
@@ -381,7 +381,7 @@ public partial class CManipulator : CPlc
     private int MainStep190(int step)
     {
         Message = "Zasun 2: Vpred";
-        deltaRobot.MoveToXY(0,120);
+        deltaRobot.MoveToXY(0,200);
         deltaRobot.WaitForTargetReached(5000);
         return 200;
     }
@@ -389,7 +389,7 @@ public partial class CManipulator : CPlc
     private int MainStep200(int step)
     {
         Message = "Zasun 3: Vpravo";
-        deltaRobot.MoveToXY(100,120);
+        deltaRobot.MoveToXY(200,200);
         deltaRobot.WaitForTargetReached(5000);
         return 210;
     }
@@ -397,7 +397,7 @@ public partial class CManipulator : CPlc
     private int MainStep210(int step)
     {
         Message = "Zasun 4: Spat";
-        deltaRobot.MoveToXY(100,0);
+        deltaRobot.MoveToXY(200,140);
         deltaRobot.WaitForTargetReached(5000);
         return 220;
     }
@@ -405,7 +405,7 @@ public partial class CManipulator : CPlc
     private int MainStep220(int step)
     {
         Message = "Zasun 5: Finalizuj";
-        deltaRobot.MoveToXY(0,60);
+        deltaRobot.MoveToXY(0,140);
         deltaRobot.WaitForTargetReached(5000);
         return 230;
     }
@@ -694,25 +694,3 @@ public partial class CManipulator : CPlc
         }
     }
 }
-/* 
-# AI Context: CManipulator.cs (PLC Orchestrator)
-
-## Overview
-This class acts as the main "PLC" (Programmable Logic Controller) for the manipulator station. It inherits from `CPlc` and manages the physical hardware connections (CANopen nodes) and the high-level operational logic (Step/State Machine).
-
-## Core Responsibilities
-1. **Hardware Management:**
-   - Owns the physical EPOS4 motor controllers (`MotorUp`, `MotorDown`, `MotorJaws`, `MotorZ`).
-   - Handles the CANopen initialization sequence (`ConnectAsync`, `ResetNodes`, `StartNodes`).
-2. **Kinematic Integration (`deltaRobot`):**
-   - Instantiates and owns the `CoaxialDelta2D` kinematic engine.
-   - Delegates all complex movement commands (X/Y/Polar) to `deltaRobot`.
-   - **Parameter Delegation:** It no longer manages its own delta parameters. It instructs `deltaRobot` to load/save its own parameters (`ParametersDelta.json`).
-3. **Step Machine (RunStep):**
-   - Executes the machine's sequence in discrete steps.
-   - **Initialization Phase (Steps 1-99):** 
-     - Step 10: **Crucial Step.** Instructs the `deltaRobot` to load its active offsets (`LoadOffsets`) and calculates the cold-start absolute positions for the EPOS drives based on current raw encoder data.
-     - Step 20-30: Clears faults, enables drives, and homes secondary axes (Z, Jaws).
-     - Step 40: Homes the main Delta arms using the absolute positions calculated in Step 10 and sets up motion profiles.
-   - **Main Cycle Phase (Steps 100+):** Contains the production logic (e.g., parking, moving to pick/place coordinates, opening/closing jaws).
-*/
