@@ -84,6 +84,7 @@ public partial class CLis : CPlcEpos
         Message = "Mazanie chyb a nastav enable";
         ClearAllFaults();
         EnableAllMotors();
+        
 
         foreach (var motor in Motors)
         {
