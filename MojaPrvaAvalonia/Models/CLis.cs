@@ -20,6 +20,12 @@ public partial class CLis : CPlcEpos
     public CParametersLis ParametersLis { get; set; } = new();
 
     [ObservableProperty] private double _stepSize = 1.0;
+    
+    // --- Limity pre manuálny pohyb ---
+    [ObservableProperty] private double _limitStredUp = -90.0;
+    [ObservableProperty] private double _limitStredDown = -14.0;
+    [ObservableProperty] private double _limitLisUp = 0.0;
+    [ObservableProperty] private double _limitLisDown = -220.0;
 
     public CLis(string name) : base(name)
     {
@@ -241,7 +247,24 @@ public partial class CLis : CPlcEpos
     {
         try
         {
-            await Task.Run(() => MotorStred?.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true));
+            await Task.Run(() =>
+            {
+                if (MotorStred?.Data == null) return;
+                
+                double current = MotorStred.Data.PositionActualGear;
+                double future = current - StepSize; // Smer UP odoberá (otočená os)
+                
+                double min = Math.Min(LimitStredUp, LimitStredDown);
+                double max = Math.Max(LimitStredUp, LimitStredDown);
+
+                if (future < min || future > max)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Pohyb Stred UP zrušený. Budúca poloha {future:F2} prekračuje povolený rozsah <{min}, {max}>.");
+                    return;
+                }
+                
+                MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true);
+            });
         }
         catch (Exception ex)
         {
@@ -255,7 +278,23 @@ public partial class CLis : CPlcEpos
         try
         {
             await Task.Run(() =>
-                MotorStred?.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true));
+            {
+                if (MotorStred?.Data == null) return;
+                
+                double current = MotorStred.Data.PositionActualGear;
+                double future = current + StepSize; // Smer DOWN pridáva (otočená os)
+                
+                double min = Math.Min(LimitStredUp, LimitStredDown);
+                double max = Math.Max(LimitStredUp, LimitStredDown);
+
+                if (future < min || future > max)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Pohyb Stred DOWN zrušený. Budúca poloha {future:F2} prekračuje povolený rozsah <{min}, {max}>.");
+                    return;
+                }
+
+                MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true);
+            });
         }
         catch (Exception ex)
         {
@@ -304,7 +343,23 @@ public partial class CLis : CPlcEpos
         try
         {
             await Task.Run(() =>
-                MotorMaster?.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true));
+            {
+                if (MotorMaster?.Data == null) return;
+                
+                double current = MotorMaster.Data.PositionActualGear;
+                double future = current + StepSize; // UP smeruje k 0
+                
+                double min = Math.Min(LimitLisUp, LimitLisDown);
+                double max = Math.Max(LimitLisUp, LimitLisDown);
+
+                if (future < min || future > max)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Pohyb Lis UP zrušený. Budúca poloha {future:F2} prekračuje povolený rozsah <{min}, {max}>.");
+                    return;
+                }
+
+                MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true);
+            });
         }
         catch (Exception ex)
         {
@@ -318,7 +373,23 @@ public partial class CLis : CPlcEpos
         try
         {
             await Task.Run(() =>
-                MotorMaster?.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true));
+            {
+                if (MotorMaster?.Data == null) return;
+                
+                double current = MotorMaster.Data.PositionActualGear;
+                double future = current - StepSize; // DOWN smeruje k -220
+                
+                double min = Math.Min(LimitLisUp, LimitLisDown);
+                double max = Math.Max(LimitLisUp, LimitLisDown);
+
+                if (future < min || future > max)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Pohyb Lis DOWN zrušený. Budúca poloha {future:F2} prekračuje povolený rozsah <{min}, {max}>.");
+                    return;
+                }
+
+                MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true);
+            });
         }
         catch (Exception ex)
         {
