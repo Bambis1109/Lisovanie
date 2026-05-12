@@ -17,8 +17,8 @@ public class CMainProgram
 
     public CMainProgram()
     {
-        ZoznamPlc.Add(new CManipulator("Linka 1"));
-        ZoznamPlc.Add(new CLis("Linka 2"));
+        ZoznamPlc.Add(new CManipulator("Manipulator"));
+        ZoznamPlc.Add(new CLis("Lis"));
     }
 
     public async Task<bool> Connect()
@@ -28,51 +28,50 @@ public class CMainProgram
         {
             if (!CreateCanConector(0, 0)) return false;
 
-            // Nájdeme náš manipulátor
-            CManipulator manipulator = null;
-            foreach (var plc in ZoznamPlc)
-            {
-                if (plc is CManipulator m)
-                {
-                    manipulator = m;
-                    break;
-                }
-            }
+            CManipulator? manipulator = ZoznamPlc[0] as CManipulator;
+            CLis? lis = ZoznamPlc[1] as CLis;
 
-            if (manipulator != null)
-            {
-                manipulator.MotorUp = CreateDevices(DeviceManagerCO, 11, "Up", 729.4278, 262144.0);
-                manipulator.MotorDown = CreateDevices(DeviceManagerCO, 12, "Down", 729.4278, 262144.0);
-                manipulator.MotorJaws = CreateDevices(DeviceManagerCO, 13, "Jaws", 165, 500);
-                manipulator.MotorZ = CreateDevices(DeviceManagerCO, 14, "Z", 1755, 500);
+            lis.MotorStred = CreateDevices(DeviceManagerCO, 1, "Sred", 1000, 2048);
+            lis.MotorSlave = CreateDevices(DeviceManagerCO, 2, "Slave", 12417.34737, 16384);
+            lis.MotorMaster = CreateDevices(DeviceManagerCO, 3, "Master", 12417.34737, 16384);
+            manipulator.MotorUp = CreateDevices(DeviceManagerCO, 11, "Up", 729.4278, 262144.0);
+            manipulator.MotorDown = CreateDevices(DeviceManagerCO, 12, "Down", 729.4278, 262144.0);
+            manipulator.MotorJaws = CreateDevices(DeviceManagerCO, 13, "Jaws", 165, 500);
+            manipulator.MotorZ = CreateDevices(DeviceManagerCO, 14, "Z", 1755, 500);
 
-                manipulator.Motors.Clear();
-                manipulator.Motors.Add(manipulator.MotorUp);
-                manipulator.Motors.Add(manipulator.MotorDown);
-                manipulator.Motors.Add(manipulator.MotorJaws);
-                manipulator.Motors.Add(manipulator.MotorZ);
 
-                if (manipulator.MotorViewModels.Count == 4)
-                {
-                    manipulator.MotorViewModels[0].AssignDevice(manipulator.MotorUp);
-                    manipulator.MotorViewModels[1].AssignDevice(manipulator.MotorDown);
-                    manipulator.MotorViewModels[2].AssignDevice(manipulator.MotorJaws);
-                    manipulator.MotorViewModels[3].AssignDevice(manipulator.MotorZ);
-                    
-                    foreach (var vm in manipulator.MotorViewModels)
-                    {
-                        vm.StartRefresh();
-                    }
-                }
-                else
-                {
-                     Log.Error("MainProgram: Expected 4 MotorViewModels but found different count.");
-                }
+            manipulator.Motors.Clear();
+            manipulator.Motors.Add(manipulator.MotorUp);
+            manipulator.Motors.Add(manipulator.MotorDown);
+            manipulator.Motors.Add(manipulator.MotorJaws);
+            manipulator.Motors.Add(manipulator.MotorZ);
 
+            lis.Motors.Clear();
+            lis.Motors.Add(lis.MotorStred);
+            lis.Motors.Add(lis.MotorSlave);
+            lis.Motors.Add(lis.MotorMaster);
+
+
+            manipulator.MotorViewModels[0].AssignDevice(manipulator.MotorUp);
+            manipulator.MotorViewModels[1].AssignDevice(manipulator.MotorDown);
+            manipulator.MotorViewModels[2].AssignDevice(manipulator.MotorJaws);
+            manipulator.MotorViewModels[3].AssignDevice(manipulator.MotorZ);
             
-                
-                Log.Information("MainProgram: CManipulator motors initialized.");
+            lis.MotorViewModels[0].AssignDevice(lis.MotorStred);
+            lis.MotorViewModels[1].AssignDevice(lis.MotorSlave);
+            lis.MotorViewModels[2].AssignDevice(lis.MotorMaster);
+        
+
+            foreach (var vm in manipulator.MotorViewModels)
+            {
+                vm.StartRefresh();
             }
+            
+            foreach (var vm in lis.MotorViewModels)
+            {
+                vm.StartRefresh();
+            }
+
 
             return true;
         }
@@ -117,7 +116,8 @@ public class CMainProgram
         }
     }
 
-    private CDeviceEpos4 CreateDevices(CDeviceManagerCO deviceManagerCO, byte nodeId, string name, double gear, double pulse)
+    private CDeviceEpos4 CreateDevices(CDeviceManagerCO deviceManagerCO, byte nodeId, string name, double gear,
+        double pulse)
     {
         var motor = new CDeviceEpos4(deviceManagerCO._keyHandle, nodeId, name, gear, pulse);
         DeviceManagerCO.AddDevice(motor);
