@@ -152,7 +152,7 @@ public partial class CoaxialDelta2D : ObservableObject
         }
 
         // Hranica pre LD: +315° (Všetko fyzicky za +315° je považované za záporné natočenie, max je +275°)
-        // Umožňuje dolnému ramenu ísť do záporu maximálne po -45°.
+        // Umožňuje dolnému ramenu jít do záporu maximálně po -45°.
         double boundaryLD = _encoderResolution * (315.0 / 360.0); // 917 504 pulzov
         if (actualLD > boundaryLD)
         {
@@ -444,53 +444,6 @@ public partial class CoaxialDelta2D : ObservableObject
         catch (Exception ex)
         {
             Log.Error($"Delta2D Orientuj Error: {ex.Message}");
-        }
-    }
-
-    [RelayCommand]
-    public void SaveParameters()
-    {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = Path.Combine(directory, "ParametersDelta.json");
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(ParametersDelta, options);
-            File.WriteAllText(path, json);
-            Log.Information($"Delta2D: Parameters saved to: {path}");
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Delta2D: Error saving parameters: {ex.Message}");
-        }
-    }
-
-    [RelayCommand]
-    public void LoadParameters()
-    {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = Path.Combine(directory, "ParametersDelta.json");
-            if (File.Exists(path))
-            {
-                var json = File.ReadAllText(path);
-                var loaded = JsonSerializer.Deserialize<CParameters>(json);
-                if (loaded != null)
-                {
-                    ParametersDelta.RawLH = loaded.RawLH;
-                    ParametersDelta.RawLD = loaded.RawLD;
-                    ParametersDelta.EposLH = loaded.EposLH;
-                    ParametersDelta.EposLD = loaded.EposLD;
-                    ParametersDelta.OffsetArm = loaded.OffsetArm;
-                    ParametersDelta.OffsetSystem = loaded.OffsetSystem;
-                    Log.Information($"Delta2D: Parameters loaded from: {path}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Delta2D: Error loading parameters: {ex.Message}");
         }
     }
 }

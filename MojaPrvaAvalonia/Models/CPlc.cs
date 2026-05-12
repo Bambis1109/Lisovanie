@@ -190,6 +190,62 @@ public partial class CPlc : ObservableObject
     }
 
     // ==========================================
+    // SPRÁVA PARAMETROV (Generic s reflexiou)
+    // ==========================================
+
+    public void LoadParametersFromFile<T>(string fileName, T target) where T : class
+    {
+        try
+        {
+            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var path = System.IO.Path.Combine(directory, fileName);
+            if (System.IO.File.Exists(path))
+            {
+                var json = System.IO.File.ReadAllText(path);
+                var loaded = System.Text.Json.JsonSerializer.Deserialize<T>(json);
+                if (loaded != null)
+                {
+                    var properties = typeof(T).GetProperties();
+                    foreach (var property in properties)
+                    {
+                        if (property.CanWrite)
+                        {
+                            var value = property.GetValue(loaded);
+                            property.SetValue(target, value);
+                        }
+                    }
+                    Log.Logger.ForContext("Name", Name).Information($"Parametre načítané zo súboru: {fileName}");
+                }
+            }
+            else
+            {
+                Log.Logger.ForContext("Name", Name).Warning($"Súbor s parametrami neexistuje: {fileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.ForContext("Name", Name).Error(ex, $"Chyba pri načítavaní parametrov zo súboru {fileName}");
+        }
+    }
+
+    public void SaveParametersToFile<T>(string fileName, T source) where T : class
+    {
+        try
+        {
+            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var path = System.IO.Path.Combine(directory, fileName);
+            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+            var json = System.Text.Json.JsonSerializer.Serialize(source, options);
+            System.IO.File.WriteAllText(path, json);
+            Log.Logger.ForContext("Name", Name).Information($"Parametre uložené do súboru: {fileName}");
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.ForContext("Name", Name).Error(ex, $"Chyba pri ukladaní parametrov do súboru {fileName}");
+        }
+    }
+
+    // ==========================================
     // HLAVNÁ SLUČKA
     // ==========================================
 

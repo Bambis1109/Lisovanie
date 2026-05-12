@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
@@ -22,7 +23,7 @@ public partial class CManipulator : CPlcEpos
 
     public CManipulator(string name) : base(name)
     {
-        deltaRobot.LoadParameters();
+        LoadParameters();
         MotorViewModels.Add(new UcMotorViewModel(null, "Up"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
@@ -98,7 +99,7 @@ public partial class CManipulator : CPlcEpos
         Message = "Vypocet polohy ramena";
         
         // DÔLEŽITÁ OPRAVA: Načítame aktívne offsety z uložených parametrov do kinematiky (ako vo funkčnej verzii)
-        deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
+        deltaRobot.LoadOffsets(Parameters.OffsetSystem, Parameters.OffsetArm);
 
         double eposPositionLH;
         double eposPositionLD;
@@ -107,8 +108,8 @@ public partial class CManipulator : CPlcEpos
             MotorDown.Data.PositionActualSensor2, out eposPositionLH,
             out eposPositionLD);
             
-        deltaRobot.ParametersDelta.EposLH = (int)eposPositionLH;
-        deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
+        Parameters.EposLH = (int)eposPositionLH;
+        Parameters.EposLD = (int)eposPositionLD;
         
         return 20;
     }
@@ -157,9 +158,9 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Inicializacia ramien";
 
-        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLD,
+        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLD,
             EHomingMethod.HmActualPosition);
-        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLH,
+        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLH,
             EHomingMethod.HmActualPosition);
 
         MotorDown.Operation.HomingMode.FindHome();
@@ -323,7 +324,7 @@ public partial class CManipulator : CPlcEpos
     }
 
     // Dodatočné metódy z CDelta
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task Kalibruj()
     {
         try
@@ -350,7 +351,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task OrientujAsync()
     {
         try
@@ -387,7 +388,7 @@ public partial class CManipulator : CPlcEpos
                 $"SSI  In:({actualSSIUp})({actualUp})({actualUpGear:F4}) Out:({actualSSIDown})({actualDown})({actualDownGear:F4}) )");
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task DisableMotorsAsync()
     {
         try
@@ -409,7 +410,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task EnableMotorsAsync()
     {
         try
@@ -431,55 +432,23 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public void SaveParameters()
     {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = System.IO.Path.Combine(directory, "Parameters.json");
-            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
-            var json = System.Text.Json.JsonSerializer.Serialize(Parameters, options);
-            System.IO.File.WriteAllText(path, json);
-            Log.Information($"Manipulator: Parameters saved to: {path}");
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Manipulator: Error saving parameters: {ex.Message}");
-        }
+        SaveParametersToFile("Parameters.json", Parameters);
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public void LoadParameters()
     {
-        try
-        {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
-            var path = System.IO.Path.Combine(directory, "Parameters.json");
-            if (System.IO.File.Exists(path))
-            {
-                var json = System.IO.File.ReadAllText(path);
-                var loaded = System.Text.Json.JsonSerializer.Deserialize<CParameters>(json);
-                if (loaded != null)
-                {
-                    Parameters.RawLH = loaded.RawLH;
-                    Parameters.RawLD = loaded.RawLD;
-                    Parameters.EposLH = loaded.EposLH;
-                    Parameters.EposLD = loaded.EposLD;
-                    Parameters.OffsetArm = loaded.OffsetArm;
-                    Parameters.OffsetSystem = loaded.OffsetSystem;
-                    Log.Information($"Manipulator: Parameters loaded from: {path}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Manipulator: Error loading parameters: {ex.Message}");
-        }
+        LoadParametersFromFile("Parameters.json", Parameters);
+        
+        // NABINDOVANIE NA AI (Aktualizácia kinematiky)
+        deltaRobot.LoadOffsets(Parameters.OffsetSystem, Parameters.OffsetArm);
     }
 
     // Movement methods
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveRightAsync()
     {
         try
@@ -492,7 +461,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveLeftAsync()
     {
         try
@@ -505,7 +474,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveUpAsync()
     {
         try
@@ -518,7 +487,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveDownAsync()
     {
         try
@@ -531,7 +500,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task JawsOpenAsync()
     {
         try
@@ -544,7 +513,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task JawsCloseAsync()
     {
         try
@@ -557,7 +526,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveZUpAsync()
     {
         try
@@ -570,7 +539,7 @@ public partial class CManipulator : CPlcEpos
         }
     }
 
-    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    [RelayCommand]
     public async Task MoveZDownAsync()
     {
         try

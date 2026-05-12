@@ -99,10 +99,10 @@
                         <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
                         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,2*">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="OffsetArm:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding deltaRobot.ParametersDelta.OffsetArm}" Margin="0,2"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Parameters.OffsetArm}" Margin="0,2"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="OffsetSystem:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding deltaRobot.ParametersDelta.OffsetSystem}" Margin="0,2"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Parameters.OffsetSystem}" Margin="0,2"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -117,12 +117,12 @@
                                 <Button Grid.Column="1" Content="Disable" Command="{Binding DisableMotorsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="5,0,0,0"/>
                             </Grid>
                             <Grid ColumnDefinitions="*,*">
-                                <Button Grid.Column="0" Content="Kalibruj" Command="{Binding deltaRobot.KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
-                                <Button Grid.Column="1" Content="Orientuj" Command="{Binding deltaRobot.OrientujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
+                                <Button Grid.Column="0" Content="Kalibruj" Command="{Binding KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
+                                <Button Grid.Column="1" Content="Orientuj" Command="{Binding OrientujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
                             </Grid>
                             <Grid ColumnDefinitions="*,*">
-                                <Button Grid.Column="0" Content="Save Params" Command="{Binding deltaRobot.SaveParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
-                                <Button Grid.Column="1" Content="Load Params" Command="{Binding deltaRobot.LoadParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
+                                <Button Grid.Column="0" Content="Save Params" Command="{Binding SaveParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
+                                <Button Grid.Column="1" Content="Load Params" Command="{Binding LoadParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
                             </Grid>
                         </StackPanel>
                     </Border>

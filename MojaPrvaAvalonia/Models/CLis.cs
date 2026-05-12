@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
@@ -19,6 +20,7 @@ public partial class CLis : CPlcEpos
 
     public CLis(string name) : base(name)
     {
+        LoadParameters();
         MotorViewModels.Add(new UcMotorViewModel(null, "Stred"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Slave"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Master"));
@@ -164,5 +166,17 @@ public partial class CLis : CPlcEpos
     {
         Message = "Lis: Cyklus dokončený";
         return 100;
+    }
+
+    [RelayCommand]
+    public void SaveParameters()
+    {
+        SaveParametersToFile("ParametersLis.json", ParametersLis);
+    }
+
+    [RelayCommand]
+    public void LoadParameters()
+    {
+        LoadParametersFromFile("ParametersLis.json", ParametersLis);
     }
 }
