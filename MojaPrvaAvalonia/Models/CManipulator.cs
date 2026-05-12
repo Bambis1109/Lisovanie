@@ -11,7 +11,7 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CManipulator : CPlc
+public partial class CManipulator : CPlcEpos
 {
     public CDeviceEpos4 MotorDown { get; set; }
     public CDeviceEpos4 MotorUp { get; set; }
@@ -19,10 +19,6 @@ public partial class CManipulator : CPlc
     public CDeviceEpos4 MotorZ { get; set; }
     public CParameters Parameters { get; set; } = new();
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
-    public List<CDeviceEpos4> Motors { get; } = new();
-
-    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } =
-        new ObservableCollection<UcMotorViewModel>();
 
     public CManipulator(string name) : base(name)
     {
@@ -36,111 +32,12 @@ public partial class CManipulator : CPlc
     public override async Task ConnectAsync()
     {
         await base.ConnectAsync();
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Connect");
-
-        if (StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)
+        
+        if (Connection == EnStatusConnection.Connected)
         {
-            if (StatusPlc == EnStatusPlc.Ready)
-            {
-                Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
-            }
-
-            StatusPlc = EnStatusPlc.NotInit;
+            deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
+            deltaRobot.StartMonitoring();
         }
-
-        Connection = EnStatusConnection.WaitToConnect;
-        Message = "Pripájam zariadenia...";
-
-        ResetCommunication();
-        await Task.Delay(50);
-        ResetNodes();
-        await Task.Delay(50);
-
-        var resetResult = await WaitForResetAllNodeAsync();
-        if (resetResult == enmError.Error)
-        {
-            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neodpovedajú.");
-            StatusPlc = EnStatusPlc.Error;
-            Connection = EnStatusConnection.Disconnect;
-            Message = "Chyba: Zariadenia neodpovedajú.";
-            return;
-        }
-
-        StartNodes();
-
-        deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
-        deltaRobot.StartMonitoring();
-
-        Connection = EnStatusConnection.Connected;
-        Message = "Pripojené. Čaká na Init.";
-    }
-
-    public void ResetCommunication()
-    {
-        foreach (var motor in Motors)
-        {
-            motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetCommunication);
-        }
-    }
-
-    public void ResetNodes()
-    {
-        foreach (var motor in Motors)
-        {
-            motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetNode);
-        }
-    }
-
-    public void StartNodes()
-    {
-        foreach (var motor in Motors)
-        {
-            motor.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
-        }
-    }
-
-    private async Task<enmError> WaitForResetAllNodeAsync()
-    {
-        var tasks = Motors.Select(async item =>
-        {
-            enmError resultNode = enmError.Error;
-
-            for (int i = 0; i < 10; i++)
-            {
-                await Task.Delay(100);
-                try
-                {
-                    if (item.Operation?.MotionInfo == null) continue;
-
-                    var fw = item.Operation.MotionInfo.GetFwVersion();
-                    Log.Logger.ForContext("Name", Name).Information(
-                        $"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) FW:[{fw}] has been reset");
-                    resultNode = enmError.NoError;
-                    break;
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            if (resultNode == enmError.Error)
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
-            }
-
-            return resultNode;
-        });
-
-        var results = await Task.WhenAll(tasks);
-
-        if (results.Length == 0)
-        {
-            Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
-            return enmError.Error;
-        }
-
-        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
     public override int RunStep(int step)
@@ -219,17 +116,8 @@ public partial class CManipulator : CPlc
     private int InitStep20(int step)
     {
         Message = "Mazanie chyb a nastav enable";
-        foreach (var motor in Motors)
-        {
-            if (motor.Operation?.StateMachine == null) continue;
-            motor.Operation.StateMachine.ClearFault();
-        }
-
-        foreach (var motor in Motors)
-        {
-            if (motor.Operation?.StateMachine == null) continue;
-            motor.Operation.StateMachine.SetEnableState();
-        }
+        ClearAllFaults();
+        EnableAllMotors();
 
         foreach (var motor in Motors)
         {
@@ -239,6 +127,7 @@ public partial class CManipulator : CPlc
 
         return 30;
     }
+
 
     private int InitStep30(int step)
     {
@@ -694,3 +583,4 @@ public partial class CManipulator : CPlc
         }
     }
 }
+
