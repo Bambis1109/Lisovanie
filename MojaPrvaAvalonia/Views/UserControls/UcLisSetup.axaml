@@ -4,9 +4,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:MojaPrvaAvalonia.Models"
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
+             xmlns:converters="using:MojaPrvaAvalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcLisSetup"
              x:DataType="models:CLis">
+
+    <UserControl.Resources>
+        <converters:BargraphColorConverter x:Key="BargraphColorConverter" />
+        <converters:NegateConverter x:Key="NegateConverter" />
+    </UserControl.Resources>
 
     <Border BorderBrush="Black" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10" Background="#E0F0FF">
         <StackPanel Spacing="15">
@@ -43,22 +49,49 @@
                 <!-- Stred Controls -->
                 <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,10,0">
                     <TextBlock Text="Stred" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
-                        <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveStredUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveStredDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="65" VerticalAlignment="Center"
+                                     Minimum="{Binding LimitStredDown, Converter={StaticResource NegateConverter}}" 
+                                     Maximum="{Binding LimitStredUp, Converter={StaticResource NegateConverter}}"
+                                     Value="{Binding MotorViewModels[0].MotorData.ActualGearPosition, Converter={StaticResource NegateConverter}}">
+                            <ProgressBar.Foreground>
+                                <MultiBinding Converter="{StaticResource BargraphColorConverter}">
+                                    <Binding Path="MotorViewModels[0].MotorData.ActualGearPosition" />
+                                    <Binding Path="LimitStredUp" />
+                                    <Binding Path="LimitStredDown" />
+                                </MultiBinding>
+                            </ProgressBar.Foreground>
+                        </ProgressBar>
+                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                            <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveStredUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveStredDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                        </Grid>
                     </Grid>
                 </StackPanel>
 
                 <!-- Lis Controls -->
                 <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
                     <TextBlock Text="Lis" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
-                        <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveLisUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
-                        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveLisDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="65" VerticalAlignment="Center"
+                                     Minimum="{Binding LimitLisDown}" Maximum="{Binding LimitLisUp}"
+                                     Value="{Binding MotorViewModels[2].MotorData.ActualGearPosition}">
+                            <ProgressBar.Foreground>
+                                <MultiBinding Converter="{StaticResource BargraphColorConverter}">
+                                    <Binding Path="MotorViewModels[2].MotorData.ActualGearPosition" />
+                                    <Binding Path="LimitLisDown" />
+                                    <Binding Path="LimitLisUp" />
+                                </MultiBinding>
+                            </ProgressBar.Foreground>
+                        </ProgressBar>
+                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                            <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveLisUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveLisDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                        </Grid>
                     </Grid>
                 </StackPanel>
             </Grid>
