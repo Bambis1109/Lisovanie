@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:MojaPrvaAvalonia.Models"
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
-             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcLisSetup"
              x:DataType="models:CLis">
 
@@ -21,7 +21,7 @@
             <ItemsControl ItemsSource="{Binding MotorViewModels}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
@@ -30,6 +30,49 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center" Margin="0,10,0,0">
+                <!-- Step Size Selection -->
+                <TextBlock Text="Step size:" VerticalAlignment="Center" FontWeight="Bold"/>
+                <RadioButton Content="0.1" GroupName="StepSize" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=0.1}"/>
+                <RadioButton Content="1" GroupName="StepSize" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=1.0}"/>
+                <RadioButton Content="10" GroupName="StepSize" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=10.0}"/>
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,*" Margin="0,10,0,0">
+                <!-- Stred Controls -->
+                <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,10,0">
+                    <TextBlock Text="Stred" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                        <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveStredUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveStredDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Lis Controls -->
+                <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
+                    <TextBlock Text="Lis" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                        <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveLisUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveLisDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <Separator Height="1" Background="Gray" Margin="0,10"/>
+
+            <!-- Parametre a Akcie -->
+            <StackPanel Spacing="10" HorizontalAlignment="Center">
+                <TextBlock Text="Parameters" FontWeight="Bold" HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Content="Save Parameters" Command="{Binding SaveParametersCommand}" Width="150" HorizontalContentAlignment="Center"/>
+                    <Button Content="Load Parameters" Command="{Binding LoadParametersCommand}" Width="150" HorizontalContentAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
             
         </StackPanel>
     </Border>

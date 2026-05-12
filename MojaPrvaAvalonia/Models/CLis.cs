@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using MojaPrvaAvalonia.ViewModels;
@@ -18,12 +19,27 @@ public partial class CLis : CPlcEpos
     public CDeviceEpos4 MotorMaster { get; set; }
     public CParametersLis ParametersLis { get; set; } = new();
 
+    [ObservableProperty] private double _stepSize = 1.0;
+
     public CLis(string name) : base(name)
     {
         LoadParameters();
         MotorViewModels.Add(new UcMotorViewModel(null, "Stred"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Slave"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Master"));
+    }
+
+    public override async Task ConnectAsync()
+    {
+        await base.ConnectAsync();
+
+        if (Connection == EnStatusConnection.Connected)
+        {
+            // Aktualizácia ViewModelov po pripojení
+            MotorViewModels[0].AssignDevice(MotorStred);
+            MotorViewModels[1].AssignDevice(MotorSlave);
+            MotorViewModels[2].AssignDevice(MotorMaster);
+        }
     }
 
     public override int RunStep(int step)
@@ -81,24 +97,36 @@ public partial class CLis : CPlcEpos
 
     private int InitStep20(int step)
     {
-        Message = "Lis: Kontrola bezpečnostných bariér";
-        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+        Message = "Lis: Hladanie horneho dorazu";
+        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 10000, 2000, 0,
             EHomingMethod.HmCurrentThresholdPositiveSpeed);
-        MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+        MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 10000, 2000, 0,
             EHomingMethod.HmCurrentThresholdPositiveSpeed);
+        MotorMaster.Operation.HomingMode.FindHome();
+        MotorSlave.Operation.HomingMode.FindHome();
+        MotorMaster.Operation.MotionInfo.WaitForHomingAttained(100000);
+        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(100000);
+        
+        MotorSlave.Operation.StateMachine.SetDisableState();
+        MotorMaster.Operation.StateMachine.SetDisableState();
+        Thread.Sleep(2000);
+        MotorSlave.Operation.StateMachine.SetEnableState();
+        MotorMaster.Operation.StateMachine.SetEnableState();
         return 30;
     }
 
     private int InitStep30(int step)
     {
-        Message = "Lis: Nastavenie lisovacej sily";
+        Message = "Lis: Nulovanie polohy";
+        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+            EHomingMethod.HmActualPosition);
+        MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+            EHomingMethod.HmActualPosition);
         MotorMaster.Operation.HomingMode.FindHome();
         MotorSlave.Operation.HomingMode.FindHome();
         MotorMaster.Operation.MotionInfo.WaitForHomingAttained(100000);
         MotorSlave.Operation.MotionInfo.WaitForHomingAttained(100000);
-
-        MotorSlave.Operation.StateMachine.SetDisableState();
-        MotorMaster.Operation.StateMachine.SetDisableState();
+        
         return 40;
     }
 
@@ -178,5 +206,122 @@ public partial class CLis : CPlcEpos
     public void LoadParameters()
     {
         LoadParametersFromFile("ParametersLis.json", ParametersLis);
+    }
+
+    // --- Ovládanie Stred ---
+    [RelayCommand]
+    public async Task EnableStredAsync()
+    {
+        try
+        {
+            await Task.Run(() => MotorStred?.Operation?.StateMachine?.SetEnableState());
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"EnableStred Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task DisableStredAsync()
+    {
+        try
+        {
+            await Task.Run(() => MotorStred?.Operation?.StateMachine?.SetDisableState());
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"DisableStred Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task MoveStredUpAsync()
+    {
+        try
+        {
+            await Task.Run(() => MotorStred?.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true));
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"MoveStredUp Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task MoveStredDownAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+                MotorStred?.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true));
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"MoveStredDown Error: {ex.Message}");
+        }
+    }
+
+    // --- Ovládanie Lis ---
+    [RelayCommand]
+    public async Task EnableLisAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorMaster?.Operation?.StateMachine?.SetEnableState();
+                MotorSlave?.Operation?.StateMachine?.SetEnableState();
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"EnableLis Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task DisableLisAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+            {
+                MotorMaster?.Operation?.StateMachine?.SetDisableState();
+                MotorSlave?.Operation?.StateMachine?.SetDisableState();
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"DisableLis Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task MoveLisUpAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+                MotorMaster?.Operation?.ProfilePositionMode?.MoveToPositionGear(StepSize, false, true));
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"MoveLisUp Error: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task MoveLisDownAsync()
+    {
+        try
+        {
+            await Task.Run(() =>
+                MotorMaster?.Operation?.ProfilePositionMode?.MoveToPositionGear(-StepSize, false, true));
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"MoveLisDown Error: {ex.Message}");
+        }
     }
 }

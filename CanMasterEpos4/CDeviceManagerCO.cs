@@ -166,7 +166,9 @@ namespace EposCmd.Net
             switch (sync)
             {
                 case ESync.NcsEnable:
+                    res = COP_DefSyncObj(_keyHandle, 5, 5, 0);
                     res = COP_EnableSync(_keyHandle, COP_k_SINGLE_LINE);
+                    
                     break;
                 case ESync.NcsDisable:
                     res = COP_DisableSync(_keyHandle, COP_k_SINGLE_LINE);

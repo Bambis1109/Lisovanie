@@ -35,22 +35,32 @@ public partial class CPlcEpos : CPlc
         Connection = EnStatusConnection.WaitToConnect;
         Message = "Pripájam zariadenia...";
 
-        ResetCommunication();
-        await Task.Delay(50);
-        ResetNodes();
-        await Task.Delay(50);
+        // Vykonanie CAN/Sériovej komunikácie na pozadí, aby sa neblokovalo UI vlákno
+        await Task.Run(async () =>
+        {
+            ResetCommunication();
+            await Task.Delay(50);
+            ResetNodes();
+            await Task.Delay(50);
+        });
 
         var resetResult = await WaitForResetAllNodeAsync();
         if (resetResult == enmError.Error)
         {
             Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neodpovedajú.");
+            
+            // Dispatcher sa nepoužíva, keďže CPlc property používajú štandardný INotifyPropertyChanged
+            // avšak Avalonia dokáže niektoré property viazať z iného vlákna. Pre istotu nastavíme
+            // UI premenné vonku z Task.Run
             StatusPlc = EnStatusPlc.Error;
             Connection = EnStatusConnection.Disconnect;
             Message = "Chyba: Zariadenia neodpovedajú.";
             return;
         }
 
-        StartNodes();
+        // Opäť na pozadí
+        await Task.Run(() => StartNodes());
+
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
     }
