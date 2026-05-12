@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EposCmd.Net;
 using MojaPrvaAvalonia.ViewModels;
@@ -16,14 +17,17 @@ public partial class CLis : CPlc
     public CDeviceEpos4 MotorMaster { get; set; }
     public CParametersLis ParametersLis { get; set; } = new();
     public List<CDeviceEpos4> Motors { get; } = new();
-    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } = new ObservableCollection<UcMotorViewModel>();
- 
+
+    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } =
+        new ObservableCollection<UcMotorViewModel>();
+
     public CLis(string name) : base(name)
     {
         MotorViewModels.Add(new UcMotorViewModel(null, "Stred"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Slave"));
         MotorViewModels.Add(new UcMotorViewModel(null, "Master"));
     }
+
     public override async Task ConnectAsync()
     {
         await base.ConnectAsync();
@@ -61,6 +65,7 @@ public partial class CLis : CPlc
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
     }
+
     public void ResetCommunication()
     {
         foreach (var motor in Motors)
@@ -168,26 +173,67 @@ public partial class CLis : CPlc
 
     private int InitStep10(int step)
     {
-        Message = "Lis: Kontrola hydrauliky";
+        Message = "Mazanie chyb a nastav enable";
+        foreach (var motor in Motors)
+        {
+            if (motor.Operation?.StateMachine == null) continue;
+            motor.Operation.StateMachine.ClearFault();
+        }
+
+        foreach (var motor in Motors)
+        {
+            if (motor.Operation?.StateMachine == null) continue;
+            motor.Operation.StateMachine.SetEnableState();
+        }
+
+        foreach (var motor in Motors)
+        {
+            if (motor.Operation?.StateMachine == null) continue;
+            motor.Operation.HomingMode?.ActivateHomingMode();
+        }
+
         return 20;
     }
 
     private int InitStep20(int step)
     {
         Message = "Lis: Kontrola bezpečnostných bariér";
+        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+            EHomingMethod.HmCurrentThresholdPositiveSpeed);
+        MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
+            EHomingMethod.HmCurrentThresholdPositiveSpeed);
         return 30;
     }
 
     private int InitStep30(int step)
     {
         Message = "Lis: Nastavenie lisovacej sily";
+        MotorMaster.Operation.HomingMode.FindHome();
+        MotorSlave.Operation.HomingMode.FindHome();
+        MotorMaster.Operation.MotionInfo.WaitForHomingAttained(100000);
+        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(100000);
+
+        MotorSlave.Operation.StateMachine.SetDisableState();
+        MotorMaster.Operation.StateMachine.SetDisableState();
         return 40;
     }
 
     private int InitStep40(int step)
     {
         Message = "Lis: Pripravený";
-        return 99; 
+        MotorSlave.Operation.ProfilePositionMode.SetPositionProfile(1600, 2000, 2000);
+        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 2000, 2000);
+        MotorMaster.Operation.ProfilePositionMode.ActivateProfilePositionMode();
+        MotorSlave.Operation.CyclicSynPositionMode.ActivateCyclicSynPositionMode();
+
+        Thread.Sleep(100);
+        MotorMaster.Operation.StateMachine.SetEnableState();
+        MotorSlave.Operation.StateMachine.SetEnableState();
+
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        MotorStred.Operation.ProfilePositionMode.ActivateProfilePositionMode();
+        MotorStred.Operation.StateMachine.SetEnableState();
+        return 99;
     }
 
     // ==========================================
@@ -235,6 +281,6 @@ public partial class CLis : CPlc
     private int MainStep150(int step)
     {
         Message = "Lis: Cyklus dokončený";
-        return 100; 
+        return 100;
     }
 }
