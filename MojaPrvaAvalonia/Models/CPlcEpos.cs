@@ -29,6 +29,7 @@ public partial class CPlcEpos : CPlc
             {
                 Log.Logger.ForContext("Name", Name).Warning("Vyžiadaný Reconnect. Stroj stráca stav Ready.");
             }
+
             StatusPlc = EnStatusPlc.NotInit;
         }
 
@@ -48,7 +49,7 @@ public partial class CPlcEpos : CPlc
         if (resetResult == enmError.Error)
         {
             Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neodpovedajú.");
-            
+
             // Dispatcher sa nepoužíva, keďže CPlc property používajú štandardný INotifyPropertyChanged
             // avšak Avalonia dokáže niektoré property viazať z iného vlákna. Pre istotu nastavíme
             // UI premenné vonku z Task.Run
@@ -106,13 +107,17 @@ public partial class CPlcEpos : CPlc
                     resultNode = enmError.NoError;
                     break;
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                }
             }
 
             if (resultNode == enmError.Error)
             {
-                Log.Logger.ForContext("Name", Name).Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
             }
+
             return resultNode;
         });
 
@@ -122,6 +127,7 @@ public partial class CPlcEpos : CPlc
             Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
             return enmError.Error;
         }
+
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
@@ -129,7 +135,19 @@ public partial class CPlcEpos : CPlc
     {
         foreach (var motor in Motors)
         {
-            motor.Operation?.StateMachine?.SetEnableState();
+            try
+            {
+                motor.Operation?.StateMachine?.SetEnableState();
+            }
+            catch (CDeviceException dex)
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.ForContext("Name", Name).Fatal(ex, $"EnableAllMotors Node:{motor.NodeId}");
+            }
         }
     }
 
@@ -137,7 +155,39 @@ public partial class CPlcEpos : CPlc
     {
         foreach (var motor in Motors)
         {
-            motor.Operation?.StateMachine?.SetDisableState();
+            try
+            {
+                motor.Operation?.StateMachine?.SetDisableState();
+            }
+            catch (CDeviceException dex)
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.ForContext("Name", Name).Fatal(ex, $"DisableAllMotors Node:{motor.NodeId}");
+            }
+        }
+    }
+
+    public void StopAllMotors()
+    {
+        foreach (var motor in Motors)
+        {
+            try
+            {
+                motor.Operation?.StateMachine?.SetQuickStopState();
+            }
+            catch (CDeviceException dex)
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.ForContext("Name", Name).Fatal(ex, $"StopAllMotors Node:{motor.NodeId}");
+            }
         }
     }
 
@@ -145,7 +195,67 @@ public partial class CPlcEpos : CPlc
     {
         foreach (var motor in Motors)
         {
-            motor.Operation?.StateMachine?.ClearFault();
+            try
+            {
+                motor.Operation?.StateMachine?.ClearFault();
+            }
+            catch (CDeviceException dex)
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.ForContext("Name", Name).Fatal(ex, $"ClearAllFaults Node:{motor.NodeId}");
+            }
         }
+    }
+
+    internal void LogErrors()
+    {
+        foreach (var item in Motors)
+        {
+            ShowErrorsEpos4(item);
+        }
+    }
+
+    public void ShowErrorsEpos4(CDeviceEpos4 deviceEpos4)
+    {
+        try
+        {
+            // 1. Zisti počet chýb uložených v zariadení (Objekt 0x1003:00)
+            byte errorCount = deviceEpos4.Operation.DeviceErrorHandling.GetNbOfDeviceError();
+            if (errorCount == 0) return;
+
+            // 2. Prejdi všetky chyby (indexy 1 až errorCount, max 5)
+            for (byte i = 1; i <= errorCount && i <= 5; i++)
+            {
+                // Načítaj 16-bitový kód chyby
+                ushort errorCode = deviceEpos4.Operation.DeviceErrorHandling.GetDeviceErrorCode(i);
+
+                // Získaj textový popis z vašej switch procedúry
+                string description = deviceEpos4.Operation.DeviceErrorHandling.GetErrorDescription(errorCode);
+
+                // Výpis do logu: NodeId, poradie v histórii, hex kód a popis
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal($"Node:{deviceEpos4.NodeId}, Error #{i}: [0x{errorCode:X4}] - {description}");
+            }
+        }
+        catch (Exception ea)
+        {
+            Log.Logger.ForContext("Name", Name).Error($"Node:{deviceEpos4.NodeId}, ShowErrors failed => {ea.Message}");
+        }
+    }
+
+    public override void FinishNOKHandle()
+    {
+        base.FinishNOKHandle();
+        DisableAllMotors();
+        LogErrors();
+    }
+
+    public override void FinishOKHandle()
+    {
+        base.FinishOKHandle();
     }
 }

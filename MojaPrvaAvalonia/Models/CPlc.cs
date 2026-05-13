@@ -251,6 +251,7 @@ public partial class CPlc : ObservableObject
 
     protected async Task ProgramLoopAsync(CancellationToken token)
     {
+        bool success = false;
         Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka ProgramLoopAsync odštartovaná.");
 
         Dispatcher.UIThread.Post(() =>
@@ -314,10 +315,13 @@ public partial class CPlc : ObservableObject
                     await Task.Delay(10, token);
                 }
             }
+
+            success = true;
         }
         catch (TaskCanceledException)
         {
             Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka bola zrušená cez CancellationToken.");
+            success = true;
         }
         catch (Exception ex)
         {
@@ -326,9 +330,13 @@ public partial class CPlc : ObservableObject
                 Log.Logger.ForContext("Name", Name).Fatal(ex, "Kritická chyba v slučke!");
                 StatusPlc = EnStatusPlc.Error;
             });
+            success = false;
         }
         finally
         {
+            if (success) FinishOKHandle();
+            else FinishNOKHandle();
+
             Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka vstupuje do bloku finally (Ukončovanie).");
 
             Dispatcher.UIThread.Post(() =>
@@ -347,8 +355,18 @@ public partial class CPlc : ObservableObject
                 }
 
                 Step = 0;
-                Log.Logger.ForContext("Name", Name).Information("Slučka úspešne skončila.");
+                Log.Logger.ForContext("Name", Name)
+                    .Information(success ? "Slučka úspešne skončila." : "Slučka skončila s chybou.");
             });
         }
+    }
+    
+    public virtual void FinishOKHandle()
+    {            
+        Log.Logger.ForContext("Name", Name).Debug($"=>FinishOKHandle Step:{Step}  ");
+    }
+    public virtual void FinishNOKHandle()
+    {
+        Log.Logger.ForContext("Name", Name).Fatal($"=>FinishNokHandle Step:{Step}  ");
     }
 }
