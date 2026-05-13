@@ -7,10 +7,10 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MojaPrvaAvalonia.Views.frmLisSetup"
         x:DataType="models:CLis"
-        Title="Lis Setup"
         Width="780" Height="900"
         WindowStartupLocation="CenterOwner"
-        Topmost="True">
+        Topmost="True"
+        ExtendClientAreaToDecorationsHint="True" SystemDecorations="None" Background="#1E1E1E">
     
     <Grid RowDefinitions="*, Auto">
         <uc:UcLisSetup Name="UcSetup" Grid.Row="0" />

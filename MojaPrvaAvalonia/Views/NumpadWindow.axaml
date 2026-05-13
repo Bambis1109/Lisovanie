@@ -1,11 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MojaPrvaAvalonia.Views.NumpadWindow"
-        Title="Numpad" Width="280" Height="400"
+        Width="280" Height="400"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         WindowDecorations="BorderOnly"
-        Topmost="True">
+        Topmost="True"
+        ExtendClientAreaToDecorationsHint="True" Background="#1E1E1E">
     
     <Window.Styles>
         <Style Selector="Button">
@@ -17,7 +18,7 @@
             <Setter Property="Margin" Value="2"/>
         </Style>
         <Style Selector="Button.action">
-            <Setter Property="Background" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="#444444"/>
         </Style>
         <Style Selector="Button.ok">
             <Setter Property="Background" Value="ForestGreen"/>
@@ -30,7 +31,7 @@
     </Window.Styles>
 
     <Grid RowDefinitions="Auto, Auto, *">
-        <Grid Grid.Row="0" Background="#F0F0F0" ColumnDefinitions="*, Auto">
+        <Grid Grid.Row="0" Background="#2D2D30" ColumnDefinitions="*, Auto">
             <TextBlock x:Name="TitleBlock" Text="Zadajte hodnotu" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <Button Grid.Column="1" Content="X" Click="BtnCancel_OnClick" Classes="cancel" Width="40" Height="40" Margin="5" FontSize="14"/>
         </Grid>

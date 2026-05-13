@@ -9,8 +9,8 @@
         x:Class="MojaPrvaAvalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Multi-PLC Ovládanie"
-        Width="760" Height="900">
+        Width="760" Height="900"
+        ExtendClientAreaToDecorationsHint="True" SystemDecorations="None" Background="#1E1E1E">
     
     <Window.Resources>
         <conv:LogColorConverter x:Key="LogColorConv"/>

@@ -16,7 +16,7 @@ class Program
     public static void Main(string[] args)
     {
         // Tvoja pôvodná šablóna z WinForms
-        string outputTemplate = "[{Timestamp:HH:mm:ss.fff}][{Level:u3}][{Name}][{Message}][{Measure}]{NewLine}";
+        string outputTemplate = "[{Timestamp:HH:mm:ss.fff}][{Level:u3}][{Name}][{Message}][{Measure}]{NewLine}{Exception}";
         
         // Inicializácia nášho UI Sinku pre zoznam v aplikácii
         UiSink = new ObservableCollectionSink(outputTemplate);
