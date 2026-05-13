@@ -22,4 +22,13 @@ public partial class frmLisSetup : Window
     {
         Close();
     }
+
+    private void BtnSettings_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is CLis lis)
+        {
+            var frm = new frmLisSettingsPar(lis);
+            frm.ShowDialog(this);
+        }
+    }
 }

@@ -50,7 +50,7 @@
                 <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,10,0">
                     <TextBlock Text="Stred" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
-                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="65" VerticalAlignment="Center"
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="35" VerticalAlignment="Center"
                                      Minimum="{Binding LimitStredDown, Converter={StaticResource NegateConverter}}" 
                                      Maximum="{Binding LimitStredUp, Converter={StaticResource NegateConverter}}"
                                      Value="{Binding MotorViewModels[0].MotorData.ActualGearPosition, Converter={StaticResource NegateConverter}}">
@@ -62,11 +62,17 @@
                                 </MultiBinding>
                             </ProgressBar.Foreground>
                         </ProgressBar>
-                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto">
                             <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
                             <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableStredCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
                             <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveStredUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
                             <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveStredDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,*" Margin="2">
+                                <Button Grid.Column="0" Content="-84" Command="{Binding MoveStredPos84Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="1" Content="-60" Command="{Binding MoveStredPos60Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="2" Content="-37" Command="{Binding MoveStredPos37Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="3" Content="-14" Command="{Binding MoveStredPos14Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </StackPanel>
@@ -75,7 +81,7 @@
                 <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
                     <TextBlock Text="Lis" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
-                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="65" VerticalAlignment="Center"
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="35" VerticalAlignment="Center"
                                      Minimum="{Binding LimitLisDown}" Maximum="{Binding LimitLisUp}"
                                      Value="{Binding MotorViewModels[2].MotorData.ActualGearPosition}">
                             <ProgressBar.Foreground>
@@ -86,26 +92,23 @@
                                 </MultiBinding>
                             </ProgressBar.Foreground>
                         </ProgressBar>
-                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                        <Grid Grid.Column="1" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto">
                             <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
                             <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableLisCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
                             <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Up" Command="{Binding MoveLisUpCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
                             <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Move Down" Command="{Binding MoveLisDownCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,*" Margin="2">
+                                <Button Grid.Column="0" Content="0" Command="{Binding MoveMasterPos0Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="1" Content="-100" Command="{Binding MoveMasterPosMinus100Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="2" Content="-160" Command="{Binding MoveMasterPosMinus160Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                                <Button Grid.Column="3" Content="-220" Command="{Binding MoveMasterPosMinus220Command}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Padding="2" Margin="1" Foreground="Black"/>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </StackPanel>
             </Grid>
 
             <Separator Height="1" Background="Gray" Margin="0,10"/>
-
-            <!-- Parametre a Akcie -->
-            <StackPanel Spacing="10" HorizontalAlignment="Center">
-                <TextBlock Text="Parameters" FontWeight="Bold" HorizontalAlignment="Center"/>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button Content="Save Parameters" Command="{Binding SaveParametersCommand}" Width="150" HorizontalContentAlignment="Center"/>
-                    <Button Content="Load Parameters" Command="{Binding LoadParametersCommand}" Width="150" HorizontalContentAlignment="Center"/>
-                </StackPanel>
-            </StackPanel>
             
         </StackPanel>
     </Border>

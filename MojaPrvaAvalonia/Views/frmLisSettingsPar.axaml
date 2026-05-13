@@ -1,0 +1,209 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:MojaPrvaAvalonia.Models"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="700"
+        x:Class="MojaPrvaAvalonia.Views.frmLisSettingsPar"
+        x:DataType="models:CParametersLis"
+        Title="Lis Settings Parameters"
+        Width="500" Height="650"
+        WindowStartupLocation="CenterOwner"
+        Topmost="True">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Width" Value="150"/>
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+    </Window.Styles>
+
+    <DockPanel Margin="10">
+        <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
+                <Button Content="Save Parameters" Click="BtnSave_OnClick" Width="150" HorizontalContentAlignment="Center"/>
+                <Button Content="Load Parameters" Click="BtnLoad_OnClick" Width="150" HorizontalContentAlignment="Center"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="Zavrieť" Click="BtnClose_OnClick" Width="100" HorizontalContentAlignment="Center" Background="#B22222" Foreground="White"/>
+            </StackPanel>
+        </Grid>
+
+        <TabControl>
+            <!-- Lis Tab -->
+            <TabItem Header="Lis">
+                <ScrollViewer>
+                    <StackPanel Spacing="5" Margin="10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Výška násypacia:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaNasypacia}" FormatString="F2" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Výška priblíženie:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaPriblizenie}" FormatString="F2" Width="150"/>
+                        </StackPanel>
+                        <Separator Height="1" Background="LightGray" Margin="0,10"/>
+                        <TextBlock Text="Kalibrácia" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Výška kalibra:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaKalibra}" FormatString="F3" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="VyskaSenAbsolut 1:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaSenAbsolut1}" FormatString="F3" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="SilaKalib 1:"/>
+                            <NumericUpDown Value="{Binding ParLis.SilaKalib1}" FormatString="F0" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="VyskaSenAbsolut 2:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaSenAbsolut2}" FormatString="F3" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="SilaKalib 2:"/>
+                            <NumericUpDown Value="{Binding ParLis.SilaKalib2}" FormatString="F0" Width="150"/>
+                        </StackPanel>
+                        <Button Content="Prepočítať kalibráciu" Click="BtnRecalculate_OnClick" HorizontalAlignment="Stretch" Margin="0,5" Background="SteelBlue" Foreground="White"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Smernica K:"/>
+                            <NumericUpDown Value="{Binding ParLis.SmernicaK}" IsReadOnly="True" FormatString="F8" Width="200"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Konštanta B:"/>
+                            <NumericUpDown Value="{Binding ParLis.KonstantaB}" IsReadOnly="True" FormatString="F4" Width="200"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="VyskaSenPulz:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaSenPulz}" FormatString="F2" Width="150"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Výška čistenia:"/>
+                            <NumericUpDown Value="{Binding ParLis.VyskaCistenia}" FormatString="F2" Width="150"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Konzola Tab -->
+            <TabItem Header="Konzola">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška odoberacia:"/>
+                        <NumericUpDown Value="{Binding ParKonzola.VyskaOdoberacia}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška násypacia:"/>
+                        <NumericUpDown Value="{Binding ParKonzola.VyskaNasypacia}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška lisovacia:"/>
+                        <NumericUpDown Value="{Binding ParKonzola.VyskaLisovacia}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška čistenia:"/>
+                        <NumericUpDown Value="{Binding ParKonzola.VyskaCistenia}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Cyklov čistenia:"/>
+                        <NumericUpDown Value="{Binding ParKonzola.CyklovCistenia}" FormatString="F0" Width="150" Minimum="0"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Výrobok Tab -->
+            <TabItem Header="Výrobok">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Názov:"/>
+                        <TextBox Text="{Binding ParVyrobok.Name}" Width="200"/>
+                    </StackPanel>
+                    <Separator Height="1" Background="LightGray" Margin="0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška Max:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.VyskaMax}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška Min:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.VyskaMin}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Výška Požadovaná:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.VyskaPozadovana}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <Separator Height="1" Background="LightGray" Margin="0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Sila Max:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.SilaMax}" FormatString="F0" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Sila Min:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.SilaMin}" FormatString="F0" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Sila Požadovaná:"/>
+                        <NumericUpDown Value="{Binding ParVyrobok.SilaPozadovana}" FormatString="F0" Width="150"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Váha Tab -->
+            <TabItem Header="Váha">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Váha Požadovaná:"/>
+                        <NumericUpDown Value="{Binding ParVaha.VahaPozadovana}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Váha Max:"/>
+                        <NumericUpDown Value="{Binding ParVaha.VahaMax}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Váha Min:"/>
+                        <NumericUpDown Value="{Binding ParVaha.VahaMin}" FormatString="F2" Width="150"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Systém Tab -->
+            <TabItem Header="Systém">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="CAN Line:"/>
+                        <NumericUpDown Value="{Binding CanLine}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Board Line:"/>
+                        <NumericUpDown Value="{Binding BoardLine}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                    <Separator Height="1" Background="LightGray" Margin="0,10"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="ID Váha 1:"/>
+                        <NumericUpDown Value="{Binding IDVaha1}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="ID Váha 2:"/>
+                        <NumericUpDown Value="{Binding IDVaha2}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="ID Váha 3:"/>
+                        <NumericUpDown Value="{Binding IDVaha3}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="ID Box:"/>
+                        <NumericUpDown Value="{Binding IDBox}" FormatString="F0" Width="100"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

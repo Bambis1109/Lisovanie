@@ -14,8 +14,13 @@
     
     <Grid RowDefinitions="*, Auto">
         <uc:UcLisSetup Name="UcSetup" Grid.Row="0" />
-        <Button Grid.Row="1" Content="Exit" Click="BtnExit_OnClick" 
-                HorizontalAlignment="Right" Margin="15" Padding="20,10" 
-                Background="#B22222" Foreground="White" FontWeight="Bold" CornerRadius="5"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
+            <Button Content="Settings" Click="BtnSettings_OnClick" 
+                    Padding="20,10" Background="SteelBlue" Foreground="White" 
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Exit" Click="BtnExit_OnClick" 
+                    Padding="20,10" Background="#B22222" Foreground="White" 
+                    FontWeight="Bold" CornerRadius="5"/>
+        </StackPanel>
     </Grid>
 </Window>

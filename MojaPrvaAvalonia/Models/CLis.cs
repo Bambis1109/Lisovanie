@@ -396,4 +396,61 @@ public partial class CLis : CPlcEpos
             Log.Error($"MoveLisDown Error: {ex.Message}");
         }
     }
+
+    // --- Priame presuny na polohy ---
+    [RelayCommand]
+    public async Task MoveStredPos84Async()
+    {
+        try { await Task.Run(() => MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(-84, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveStredPos84 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveStredPos60Async()
+    {
+        try { await Task.Run(() => MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(-60, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveStredPos60 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveStredPos37Async()
+    {
+        try { await Task.Run(() => MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(-37, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveStredPos37 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveStredPos14Async()
+    {
+        try { await Task.Run(() => MotorStred.Operation?.ProfilePositionMode?.MoveToPositionGear(-14, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveStredPos14 Error: {ex.Message}"); }
+    }
+
+    [RelayCommand]
+    public async Task MoveMasterPos0Async()
+    {
+        try { await Task.Run(() => MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(0, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveMasterPos0 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveMasterPosMinus100Async()
+    {
+        try { await Task.Run(() => MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(-100, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveMasterPosMinus100 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveMasterPosMinus160Async()
+    {
+        try { await Task.Run(() => MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(-160, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveMasterPosMinus160 Error: {ex.Message}"); }
+    }
+    
+    [RelayCommand]
+    public async Task MoveMasterPosMinus220Async()
+    {
+        try { await Task.Run(() => MotorMaster.Operation?.ProfilePositionMode?.MoveToPositionGear(-220, true, true)); }
+        catch (Exception ex) { Log.Error($"MoveMasterPosMinus220 Error: {ex.Message}"); }
+    }
 }

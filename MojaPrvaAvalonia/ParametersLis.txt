@@ -1,0 +1,164 @@
+﻿ public class CParametersLis : CBase
+ {
+     [TypeConverter(typeof(ExpandableObjectConverter)), DisplayName("Lis"),  Description("Parametre lisu.")]
+     public CParLis ParLis { get; set; } = new CParLis();
+     [TypeConverter(typeof(ExpandableObjectConverter))]
+     public CParKonzola ParKonzola { get; set; } = new CParKonzola();
+     [TypeConverter(typeof(ExpandableObjectConverter))]
+     public CParVyrobok ParVyrobok { get; set; } = new CParVyrobok();
+     
+  
+     private int canLine; public int CanLine { get => canLine; set => canLine = value; }
+     private int boardLine; public int BoardLine { get => boardLine; set => boardLine = value; }
+    
+
+     public CParametersLis()
+     {
+
+
+        public class CParVyrobok : CBase
+    {
+        private Double vyskaMax; public Double VyskaMax { get => vyskaMax; set => SetProperty(ref vyskaMax, value, nameof(VyskaMax)); }
+        private Double vyskaMin; public Double VyskaMin { get => vyskaMin; set => SetProperty(ref vyskaMin, value, nameof(VyskaMin)); }
+        private Double vyskaPozadovana; public Double VyskaPozadovana { get => vyskaPozadovana; set => SetProperty(ref vyskaPozadovana, value, nameof(VyskaPozadovana)); }
+
+        private Double silaMax; public Double SilaMax { get => silaMax; set => SetProperty(ref silaMax, value, nameof(SilaMax)); }
+        private Double silaMin; public Double SilaMin { get => silaMin; set => SetProperty(ref silaMin, value, nameof(SilaMin)); }
+        private Double silaPozadovana; public Double SilaPozadovana { get => silaPozadovana; set => SetProperty(ref silaPozadovana, value, nameof(SilaPozadovana)); }
+       
+        public CParVyrobok() 
+        {
+            
+        }
+    }
+     }
+  public class CParStred:CBase
+ {
+     private Double vyskaOdoberacia; public Double VyskaOdoberacia { get => vyskaOdoberacia; set => SetProperty(ref vyskaOdoberacia, value, nameof(VyskaOdoberacia)); }
+     private Double vyskaNasypacia; public Double VyskaNasypacia { get => vyskaNasypacia; set => SetProperty(ref vyskaNasypacia, value, nameof(VyskaNasypacia)); }
+     private Double vyskaLisovacia; public Double VyskaLisovacia { get => vyskaLisovacia; set => SetProperty(ref vyskaLisovacia, value, nameof(VyskaLisovacia)); }
+     private Double vyskaCistenia; public Double VyskaCistenia { get => vyskaCistenia; set => SetProperty(ref vyskaCistenia, value, nameof(VyskaCistenia)); }
+     private int cyklovCistenia; public int CyklovCistenia { get => cyklovCistenia; set => SetProperty(ref cyklovCistenia, value, nameof(CyklovCistenia)); }
+     public CParKonzola() 
+     {
+         
+     }
+ }
+    private Double vyskaNasypacia;
+    [Category("Výšky"), DisplayName("Násypacia"), Description("Výška násypacej polohy [mm]")]
+    public Double VyskaNasypacia { get => vyskaNasypacia; set => SetProperty(ref vyskaNasypacia, value, nameof(VyskaNasypacia)); }
+    private Double vyskaPriblizenie; public Double VyskaPriblizenie { get => vyskaPriblizenie; set => SetProperty(ref vyskaPriblizenie, value, nameof(VyskaPriblizenie)); }
+    private Double vyskaKalibra; public Double VyskaKalibra { get => vyskaKalibra; set => SetProperty(ref vyskaKalibra, value, nameof(VyskaKalibra)); }
+    private Double vyskaSenAbsolut1; public Double VyskaSenAbsolut1 { get => vyskaSenAbsolut1; set => SetProperty(ref vyskaSenAbsolut1, value, nameof(VyskaSenAbsolut1)); }
+    private Double vyskaSenAbsolut2; public Double VyskaSenAbsolut2 { get => vyskaSenAbsolut2; set => SetProperty(ref vyskaSenAbsolut2, value, nameof(VyskaSenAbsolut2)); }
+    private Double silaKalib1; public Double SilaKalib1 { get => silaKalib1; set => SetProperty(ref silaKalib1, value, nameof(SilaKalib1)); }
+    private Double silaKalib2; public Double SilaKalib2 { get => silaKalib2; set => SetProperty(ref silaKalib2, value, nameof(SilaKalib2)); }
+    private Double vyskaSenPulz; public Double VyskaSenPulz { get => vyskaSenPulz; set => SetProperty(ref vyskaSenPulz, value, nameof(VyskaSenPulz)); }
+    private Double vyskaCistenia; public Double VyskaCistenia { get => vyskaCistenia; set => SetProperty(ref vyskaCistenia, value, nameof(VyskaCistenia)); }
+
+    // NOVÉ PROPERTIES – koeficienty lineárneho modelu (už so zahrnutou výškou kalibra v definícii y)
+
+    private double smernicaK;
+    [ReadOnly(true), DisplayName("Smernik"), Description("Smernik linearnej interpolacie.")]
+    public double SmernicaK { get => smernicaK; set => SetProperty(ref smernicaK, value, nameof(SmernicaK)); }
+    private double konstantaB;
+    [ReadOnly(true), DisplayName("Offset"), Description("Posun linearnej interpolacie.")]
+    public double KonstantaB { get => konstantaB; set => SetProperty(ref konstantaB, value, nameof(KonstantaB)); }
+
+    // VÝPOČET KOEFICIENTOV Z DVOCH KALIBRAČNÝCH BODOV
+    public void RecalculateCalibration()
+    {
+        // y = VyskaKalibra - VyskaSenAbsolut (predĺženie; kladné pri klesajúcej vzdialenosti senzora so silou)
+        double y1 = VyskaKalibra - VyskaSenAbsolut1;
+        double y2 = VyskaKalibra - VyskaSenAbsolut2;
+
+        double dx = SilaKalib2 - SilaKalib1;
+        if (Math.Abs(dx) < 1e-12)
+            throw new ArgumentException("SilaKalib1 a SilaKalib2 musia byť rôzne.");
+
+        // Smernica a konštanta priamky y = K*F + B
+        double K = (y2 - y1) / dx;
+        double B = y1 - K * SilaKalib1;
+
+        SmernicaK = K;
+        KonstantaB = B;
+    }
+
+    // PREDPOVEDANÉ PREDĽŽENIE PRE ĽUBOVOĽNÚ SILU (voliteľná pomocná metóda)
+    public double PredictElongation(double sila)
+    {
+        return SmernicaK * sila + KonstantaB; // y(F)
+    }
+
+    // PREPOČÍTANÁ VZDIALENOSŤ (odľahčená/normalizovaná na „bez sily“)
+    public double RecomputedDistance(double sila, double senAbsolut)
+    {
+        // senAbsolut ... aktuálna absolútna vzdialenosť senzora pri sile 'sila'
+        // y = predĺženie; meraná vzdialenosť klesá o y, preto bezzaťažová ~ senAbsolut + y
+        double y = PredictElongation(sila);
+        double s0 = senAbsolut + y;
+        return Math.Round(s0, 2); // zaokrúhlenie na 2 desatinné miesta
+    }
+
+
+
+    public CParLis()
+    {
+        VyskaNasypacia = 33;
+        VyskaPriblizenie = 13;
+
+        VyskaKalibra = 11.8;
+        VyskaSenAbsolut1 = 20.793;
+        SilaKalib1 = 1000;
+        VyskaSenAbsolut2 = 20.488;
+        SilaKalib2 = 5000;
+        VyskaSenPulz = 200;
+       
+    }
+}
+
+Default hodnoty
+
+<?xml version="1.0" encoding="utf-8"?>
+<CPaManipulator xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ParLis>
+    <VyskaNasypacia>-50</VyskaNasypacia>
+    <VyskaPriblizenie>-140</VyskaPriblizenie>
+    <VyskaKalibra>12.08</VyskaKalibra>
+    <VyskaSenAbsolut1>20.326</VyskaSenAbsolut1>
+    <VyskaSenAbsolut2>20.028</VyskaSenAbsolut2>
+    <SilaKalib1>1000</SilaKalib1>
+    <SilaKalib2>5000</SilaKalib2>
+    <VyskaSenPulz>200</VyskaSenPulz>
+    <VyskaCistenia>0</VyskaCistenia>
+    <SmernicaK>7.4500000000000456E-05</SmernicaK>
+    <KonstantaB>-8.3205000000000009</KonstantaB>
+  </ParLis>
+  <ParKonzola>
+    <VyskaOdoberacia>-18</VyskaOdoberacia>
+    <VyskaNasypacia>-48</VyskaNasypacia>
+    <VyskaLisovacia>-30</VyskaLisovacia>
+    <VyskaCistenia>-70</VyskaCistenia>
+    <CyklovCistenia>9</CyklovCistenia>
+  </ParKonzola>
+  <ParVyrobok>
+    <Name>KV4</Name>
+    <VyskaMax>13.5</VyskaMax>
+    <VyskaMin>11</VyskaMin>
+    <VyskaPozadovana>13</VyskaPozadovana>
+    <SilaMax>4800</SilaMax>
+    <SilaMin>4300</SilaMin>
+    <SilaPozadovana>3800</SilaPozadovana>
+  </ParVyrobok>
+  <ParVaha>
+    <VahaPozadovana>5.5</VahaPozadovana>
+    <VahaMax>5.55</VahaMax>
+    <VahaMin>5.45</VahaMin>
+  </ParVaha>
+  <CanLine>0</CanLine>
+  <BoardLine>0</BoardLine>
+  <IDVaha1>4</IDVaha1>
+  <IDVaha2>7</IDVaha2>
+  <IDVaha3>8</IDVaha3>
+  <IDBox>10</IDBox>
+</CPaManipulator>
