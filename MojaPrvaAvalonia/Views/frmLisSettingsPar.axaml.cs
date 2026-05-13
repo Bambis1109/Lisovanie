@@ -4,16 +4,16 @@ using MojaPrvaAvalonia.Models;
 
 namespace MojaPrvaAvalonia.Views;
 
-public partial class frmLisSettingsPar : Window
+public partial class FrmLisSettingsPar : Window
 {
     private CLis? _lis;
 
-    public frmLisSettingsPar()
+    public FrmLisSettingsPar()
     {
         InitializeComponent();
     }
 
-    public frmLisSettingsPar(CLis lis)
+    public FrmLisSettingsPar(CLis lis)
     {
         InitializeComponent();
         _lis = lis;

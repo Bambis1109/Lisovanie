@@ -27,7 +27,7 @@ public partial class frmLisSetup : Window
     {
         if (DataContext is CLis lis)
         {
-            var frm = new frmLisSettingsPar(lis);
+            var frm = new FrmLisSettingsPar(lis);
             frm.ShowDialog(this);
         }
     }
