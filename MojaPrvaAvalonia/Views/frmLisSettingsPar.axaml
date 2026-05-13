@@ -21,9 +21,12 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="Margin" Value="0,2"/>
         </Style>
-        <Style Selector="TextBox">
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Margin" Value="0,2"/>
+        <Style Selector="Button.numpad">
+            <Setter Property="BorderBrush" Value="LightGray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,0"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
     </Window.Styles>
 
@@ -45,7 +48,8 @@
                     <StackPanel Spacing="5" Margin="10">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Classes="label" Text="Výška násypacia:"/>
-                            <NumericUpDown Value="{Binding ParLis.VyskaNasypacia}" FormatString="F2" Width="150"/>
+                            <!-- <NumericUpDown Value="{Binding ParLis.VyskaNasypacia}" FormatString="F2" Width="150"/> -->
+                            <Button Classes="numpad" Content="{Binding ParLis.VyskaNasypacia, StringFormat={}{0:F2}}" Click="BtnVyskaNasypacia_OnClick" Width="150" HorizontalContentAlignment="Right"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Classes="label" Text="Výška priblíženie:"/>

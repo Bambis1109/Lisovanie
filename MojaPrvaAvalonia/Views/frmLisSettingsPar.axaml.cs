@@ -42,4 +42,17 @@ public partial class FrmLisSettingsPar : Window
             p.ParLis.RecalculateCalibration();
         }
     }
+
+    private async void BtnVyskaNasypacia_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is CParametersLis p)
+        {
+            var numpad = new NumpadWindow("Výška násypacia", p.ParLis.VyskaNasypacia);
+            var result = await numpad.ShowDialog<bool>(this);
+            if (result)
+            {
+                p.ParLis.VyskaNasypacia = numpad.ResultValue;
+            }
+        }
+    }
 }

@@ -7,7 +7,7 @@
              Width="150"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotorReduced"
              x:DataType="vm:UcMotorViewModel">
-    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2" Background="White" TextElement.Foreground="Black">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="5">
             <!-- 1. riadok: Name a Node bez popisu -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">

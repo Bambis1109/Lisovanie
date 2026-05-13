@@ -4,7 +4,7 @@
              xmlns:local="using:MojaPrvaAvalonia"
              xmlns:converters="using:MojaPrvaAvalonia.Converters"
              xmlns:models="using:MojaPrvaAvalonia.Models"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Resources>

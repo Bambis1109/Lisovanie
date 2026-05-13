@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="280"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotor"
              x:DataType="vm:UcMotorViewModel">
-    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2" Background="White" TextElement.Foreground="Black">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="5">
             <TextBlock Text="{Binding MotorData.MotorName}" FontWeight="Bold" HorizontalAlignment="Center"/>
             
