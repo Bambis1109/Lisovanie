@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,14 +18,16 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         _device = device;
     }
     
-    [ObservableProperty]
-    private CDataMotor _motorData;
+    [ObservableProperty] private CDataMotor _motorData;
 
-    [ObservableProperty] private string _modeShorthand = "Unknown";
-    [ObservableProperty] private string _statusText = "Unknown";
-    [ObservableProperty] private IBrush _modeColor = Brushes.Brown;
-    [ObservableProperty] private IBrush _statusColor = Brushes.Brown;
-    [ObservableProperty] private IBrush _remoteColor = Brushes.Red;
+    [ObservableProperty] private string _modeShorthand = "---";
+    [ObservableProperty] private string _statusText = "OFFLINE";
+    [ObservableProperty] private string _nmtText = "UNKNOWN"; // Nová property pre NMT stav
+    
+    [ObservableProperty] private IBrush _modeColor = Brushes.DarkGray;
+    [ObservableProperty] private IBrush _statusColor = Brushes.DarkGray;
+    [ObservableProperty] private IBrush _remoteColor = Brushes.DarkGray;
+    [ObservableProperty] private IBrush _nmtColor = Brushes.DarkGray; // Farba pre NMT
 
     public UcMotorViewModel(CDeviceEpos4? device, string motorName)
     {
@@ -45,8 +45,6 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         };
         _refreshTimer.Tick += OnRefreshTick;
         _refreshTimer.Start();
-        
-        Log.Debug($"UcMotorViewModel [{MotorData.MotorName}]: Refresh started.");
     }
 
     public void StopRefresh()
@@ -56,17 +54,26 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
             _refreshTimer.Stop();
             _refreshTimer.Tick -= OnRefreshTick;
             _refreshTimer = null;
-            Log.Debug($"UcMotorViewModel [{MotorData.MotorName}]: Refresh stopped.");
         }
     }
 
     private void OnRefreshTick(object? sender, EventArgs e)
     {
-        if (_device?.Operation == null) return;
+        if (_device?.Operation == null || _device.LowLayer?.Can == null) return;
 
         try
         {
-            // Pull data from the thread-safe CDataCO object
+            // 1. NAJDÔLEŽITEJŠÍ KROK: Zistenie fyzického stavu komunikácie
+            ENmtStatus nmtState = _device.LowLayer.Can.GetNMTState();
+
+            if (nmtState == ENmtStatus.NcsDISCONNECTED || nmtState == ENmtStatus.NcsUNKNOWN)
+            {
+                // Motor je mŕtvy / odpojený. Ignorujeme staré dáta a ukážeme OFFLINE.
+                SetOfflineState();
+                return;
+            }
+
+            // 2. Motor žije, ťaháme aktuálne dáta
             MotorData.NodeId = _device.NodeId;
             MotorData.ActualGearPosition = _device.Data.PositionActualGear;
             MotorData.ActualPositionSensor2Float = _device.Data.PositionActualSensor2Float;
@@ -74,7 +81,7 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
             MotorData.ActualCurrent = _device.Data.CurrentActualAveragePercentage;
             MotorData.ActualAnalog1 = _device.Data.AnalogInput1Weight;
 
-            UpdateStatusAndColors();
+            UpdateStatusAndColors(nmtState);
         }
         catch (Exception ex)
         {
@@ -82,91 +89,92 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void UpdateStatusAndColors()
+    private void SetOfflineState()
     {
-        if (_device == null) return;
+        NmtText = "OFFLINE";
+        NmtColor = Brushes.Red;
+        
+        StatusText = "---";
+        StatusColor = Brushes.DarkGray;
+        
+        ModeShorthand = "---";
+        ModeColor = Brushes.DarkGray;
+        
+        RemoteColor = Brushes.DarkGray;
+    }
 
-        // 1. Mode of Operation Logic
-        var mode = _device.Data.ModeOfOperationDisplay;
-        switch (mode)
+    private void UpdateStatusAndColors(ENmtStatus nmtState)
+    {
+        // 1. NMT Status Logic (Zobrazenie stavu zbernice)
+        switch (nmtState)
         {
-            case EOperationMode.OmdProfilePositionMode:
-                ModeShorthand = "PPM";
-                ModeColor = Brushes.Blue;
+            case ENmtStatus.NcsOPERATIONAL:
+                NmtText = "OP";
+                NmtColor = Brushes.Green;
                 break;
-            case EOperationMode.OmdProfileVelocityMode:
-                ModeShorthand = "PVM";
-                ModeColor = Brushes.YellowGreen;
+            case ENmtStatus.NcsPREOPERATIONAL:
+                NmtText = "PRE-OP";
+                NmtColor = Brushes.Orange;
                 break;
-            case EOperationMode.OmdHomingMode:
-                ModeShorthand = "HM";
-                ModeColor = Brushes.Magenta;
-                break;
-            case EOperationMode.OmdCyclicSynchronousPositionMode:
-                ModeShorthand = "CSPM";
-                ModeColor = Brushes.Coral;
-                break;
-            case EOperationMode.OmdCyclicSynchronousVelocityMode:
-                ModeShorthand = "CSVM";
-                ModeColor = Brushes.DarkOrange;
-                break;
-            case EOperationMode.OmdCyclicSyncronicTorqueMode:
-                ModeShorthand = "CSTM";
-                ModeColor = Brushes.RosyBrown;
+            case ENmtStatus.NcsSTOPPED:
+                NmtText = "STOP";
+                NmtColor = Brushes.Red;
                 break;
             default:
-                ModeShorthand = "Unknown";
-                ModeColor = Brushes.Brown;
+                NmtText = nmtState.ToString();
+                NmtColor = Brushes.Gray;
                 break;
         }
 
-        // 2. Statusword Logic
-        ushort sw = _device.Data.Statusword;
-        bool foundStatus = false;
-
-        if ((sw & 0x0437) == 0x0037)
+        // 2. Mode of Operation Logic
+        var mode = _device!.Data.ModeOfOperationDisplay;
+        switch (mode)
         {
-            StatusText = "Movement";
-            StatusColor = Brushes.Orange;
-            foundStatus = true;
+            case EOperationMode.OmdProfilePositionMode: ModeShorthand = "PPM"; ModeColor = Brushes.Blue; break;
+            case EOperationMode.OmdProfileVelocityMode: ModeShorthand = "PVM"; ModeColor = Brushes.YellowGreen; break;
+            case EOperationMode.OmdHomingMode: ModeShorthand = "HM"; ModeColor = Brushes.Magenta; break;
+            case EOperationMode.OmdCyclicSynchronousPositionMode: ModeShorthand = "CSPM"; ModeColor = Brushes.Coral; break;
+            case EOperationMode.OmdCyclicSynchronousVelocityMode: ModeShorthand = "CSVM"; ModeColor = Brushes.DarkOrange; break;
+            case EOperationMode.OmdCyclicSyncronicTorqueMode: ModeShorthand = "CSTM"; ModeColor = Brushes.RosyBrown; break;
+            default: ModeShorthand = "Unknown"; ModeColor = Brushes.Brown; break;
         }
-        else if ((sw & 0x006f) == 0x0008)
+
+        // 3. Statusword Logic (CiA 402)
+        ushort sw = _device.Data.Statusword;
+        
+        if ((sw & 0x0008) == 0x0008) // Bit 3 = Fault
         {
             StatusText = "Fault";
             StatusColor = Brushes.Red;
-            foundStatus = true;
         }
-        else if ((sw & 0x006f) == 0x0007)
+        else if ((sw & 0x0437) == 0x0037) // Enable + Target NOT Reached
         {
-            StatusText = "Quick stop";
-            StatusColor = Brushes.Yellow;
-            foundStatus = true;
+            StatusText = "Movement";
+            StatusColor = Brushes.Orange;
         }
-        else if ((sw & 0x0040) == 0x0040)
-        {
-            StatusText = "Disable";
-            StatusColor = Brushes.BlueViolet;
-            foundStatus = true;
-        }
-        else if ((sw & 0x0437) == 0x0437)
+        else if ((sw & 0x0437) == 0x0437) // Enable + Target Reached
         {
             StatusText = "Enable";
             StatusColor = Brushes.LimeGreen;
-            foundStatus = true;
         }
-
-        if (!foundStatus)
+        else if ((sw & 0x006F) == 0x0007) // Quick Stop Active
         {
-            StatusText = "Unknown";
-            StatusColor = Brushes.Brown;
-            ModeColor = Brushes.Brown;
-            RemoteColor = Brushes.Brown;
+            StatusText = "Quick stop";
+            StatusColor = Brushes.Yellow;
+        }
+        else if ((sw & 0x004F) == 0x0040) // Switch On Disabled
+        {
+            StatusText = "Disable";
+            StatusColor = Brushes.BlueViolet;
         }
         else
         {
-            // 3. Remote Status
-            RemoteColor = _device.Data.RemoteStatus ? Brushes.Green : Brushes.Red;
+            StatusText = "Ready"; // Alebo iný prechodný stav
+            StatusColor = Brushes.Gray;
         }
+
+        // 4. Remote Status (Bit 9)
+        RemoteColor = _device.Data.RemoteStatus ? Brushes.Green : Brushes.Red;
     }
 
     public void Dispose()

@@ -141,7 +141,7 @@ public class CMainProgram
                 motor.Data.LastEmergency.err_value == 0x81FD)
             {
                 Log.Fatal($"Kritická chyba CAN zbernice na uzle {motor.NodeId}! Skontroluj káble.");
-                // Shutdown(); 
+                 Shutdown(); 
             }
         }
     }

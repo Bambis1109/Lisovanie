@@ -36,42 +36,37 @@ public partial class CPlcEpos : CPlc
         Connection = EnStatusConnection.WaitToConnect;
         Message = "Pripájam zariadenia...";
 
-        // Vykonanie CAN/Sériovej komunikácie na pozadí, aby sa neblokovalo UI vlákno
+        // Vykonanie CAN/Sériovej komunikácie na pozadí
         await Task.Run(async () =>
         {
-            ResetCommunication();
-            await Task.Delay(50);
-            ResetNodes();
-            await Task.Delay(50);
+            ResetNodes(); // Tvrdý reštart všetkých EPOS4
+            await Task.Delay(500);
         });
-
+           
+        // 1. Čakanie na Boot-up (Pre-Operational)
         var resetResult = await WaitForResetAllNodeAsync();
         if (resetResult == enmError.Error)
         {
-            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neodpovedajú.");
-
-            // Dispatcher sa nepoužíva, keďže CPlc property používajú štandardný INotifyPropertyChanged
-            // avšak Avalonia dokáže niektoré property viazať z iného vlákna. Pre istotu nastavíme
-            // UI premenné vonku z Task.Run
+            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory nenabootovali.");
             StatusPlc = EnStatusPlc.Error;
             Connection = EnStatusConnection.Disconnect;
-            Message = "Chyba: Zariadenia neodpovedajú.";
+            Message = "Chyba: Zariadenia neodpovedajú po resete.";
             return;
         }
 
-        // Opäť na pozadí
-        await Task.Run(() => StartNodes());
+        // 2. Spustenie uzlov a overenie stavu Operational
+        var startResult = await StartNodesAsync();
+        if (startResult == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neprešli do stavu OPERATIONAL.");
+            StatusPlc = EnStatusPlc.Error;
+            Connection = EnStatusConnection.Disconnect;
+            Message = "Chyba: Zariadenia neštartujú.";
+            return;
+        }
 
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
-    }
-
-    public void ResetCommunication()
-    {
-        foreach (var motor in Motors)
-        {
-            motor.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsResetCommunication);
-        }
     }
 
     public void ResetNodes()
@@ -82,12 +77,36 @@ public partial class CPlcEpos : CPlc
         }
     }
 
-    public void StartNodes()
+    // Vylepšená metóda: Nielen pošle príkaz, ale aj overí, či sa motory naozaj spustili
+    public async Task<enmError> StartNodesAsync()
     {
         foreach (var motor in Motors)
         {
             motor.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
         }
+
+        var tasks = Motors.Select(async item =>
+        {
+            for (int i = 0; i < 10; i++) // Prechod do Operational je rýchly, stačí 10x50ms
+            {
+                await Task.Delay(50);
+                try
+                {
+                    if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                    {
+                        Log.Logger.ForContext("Name", Name).Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
+                        return enmError.NoError;
+                    }
+                }
+                catch (Exception) { /* Ignorujeme dočasné chyby API */ }
+            }
+            
+            Log.Logger.ForContext("Name", Name).Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL!");
+            return enmError.Error;
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
     protected async Task<enmError> WaitForResetAllNodeAsync()
@@ -95,33 +114,52 @@ public partial class CPlcEpos : CPlc
         var tasks = Motors.Select(async item =>
         {
             enmError resultNode = enmError.Error;
-            for (int i = 0; i < 10; i++)
+            
+            // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
+            for (int i = 0; i < 30; i++)
             {
                 await Task.Delay(100);
                 try
                 {
-                    if (item.Operation?.MotionInfo == null) continue;
-                    var fw = item.Operation.MotionInfo.GetFwVersion();
-                    Log.Logger.ForContext("Name", Name).Information(
-                        $"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) FW:[{fw}] has been reset");
-                    resultNode = enmError.NoError;
-                    break;
+                    if (item.LowLayer?.Can == null) continue;
+
+                    // Pýtame sa Ixxat API na aktuálny NMT stav uzla (nevyvoláva SDO komunikáciu)
+                    ENmtStatus status = item.LowLayer.Can.GetNMTState();
+
+                    // Akonáhle EPOS4 dokončí bootovanie, sám odošle Boot-up správu a prejde do Pre-Operational
+                    if (status == ENmtStatus.NcsPREOPERATIONAL)
+                    {
+                        // Teraz môžeme bezpečne vyčítať FW verziu cez SDO
+                        int fw = 0;
+                        if (item.Operation?.MotionInfo != null)
+                        {
+                            fw = item.Operation.MotionInfo.GetFwVersion();
+                        }
+
+                        Log.Logger.ForContext("Name", Name).Information(
+                            $"Node {item.NodeId} ({item.Name}) úspešne nabootoval. FW:[0x{fw:X4}]");
+                        
+                        resultNode = enmError.NoError;
+                        break;
+                    }
                 }
                 catch (Exception)
                 {
+                    // Ignorujeme výnimky počas bootovania
                 }
             }
 
             if (resultNode == enmError.Error)
             {
                 Log.Logger.ForContext("Name", Name)
-                    .Fatal($"Node {item.NodeId} The device Node:{item.NodeId} ({item.Name}) has not been reset");
+                    .Fatal($"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)!");
             }
 
             return resultNode;
         });
 
         var results = await Task.WhenAll(tasks);
+        
         if (results.Length == 0)
         {
             Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
@@ -137,12 +175,17 @@ public partial class CPlcEpos : CPlc
         {
             try
             {
+                // Ochrana: Ak motor nie je Operational, ignoruje PDO. Nemá zmysel posielať príkazy.
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
+                {
+                    Log.Logger.ForContext("Name", Name).Warning($"Node:{motor.NodeId} nie je Operational. Preskakujem Enable.");
+                    continue;
+                }
                 motor.Operation?.StateMachine?.SetEnableState();
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name).Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -157,12 +200,12 @@ public partial class CPlcEpos : CPlc
         {
             try
             {
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
                 motor.Operation?.StateMachine?.SetDisableState();
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name).Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -177,12 +220,12 @@ public partial class CPlcEpos : CPlc
         {
             try
             {
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
                 motor.Operation?.StateMachine?.SetQuickStopState();
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name).Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -197,12 +240,12 @@ public partial class CPlcEpos : CPlc
         {
             try
             {
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
                 motor.Operation?.StateMachine?.ClearFault();
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name).Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -244,7 +287,7 @@ public partial class CPlcEpos : CPlc
         catch (CDeviceException dex)
         {
             Log.Logger.ForContext("Name", Name)
-                .Fatal($"ClearAllFaults DeEx Node:{deviceEpos4.NodeId}  {dex.ErrorMessage}");
+                .Fatal($"ShowErrorsEpos4 DeEx Node:{deviceEpos4.NodeId}  {dex.ErrorMessage}");
         }
         catch (Exception ea)
         {
