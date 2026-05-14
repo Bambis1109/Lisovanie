@@ -18,8 +18,7 @@ public partial class CManipulator : CPlcEpos
     public CDeviceEpos4 MotorUp { get; set; }
     public CDeviceEpos4 MotorJaws { get; set; }
     public CDeviceEpos4 MotorZ { get; set; }
-    public CParameters Parameters { get; set; } = new();
-    public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
+   public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
 
     public CManipulator(string name) : base(name)
     {
@@ -99,7 +98,7 @@ public partial class CManipulator : CPlcEpos
         Message = "Vypocet polohy ramena";
         
         // DÔLEŽITÁ OPRAVA: Načítame aktívne offsety z uložených parametrov do kinematiky (ako vo funkčnej verzii)
-        deltaRobot.LoadOffsets(Parameters.OffsetSystem, Parameters.OffsetArm);
+        deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
 
         double eposPositionLH;
         double eposPositionLD;
@@ -108,8 +107,8 @@ public partial class CManipulator : CPlcEpos
             MotorDown.Data.PositionActualSensor2, out eposPositionLH,
             out eposPositionLD);
             
-        Parameters.EposLH = (int)eposPositionLH;
-        Parameters.EposLD = (int)eposPositionLD;
+        deltaRobot.ParametersDelta.EposLH = (int)eposPositionLH;
+        deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
         
         return 20;
     }
@@ -158,9 +157,9 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Inicializacia ramien";
 
-        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLD,
+        MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLD,
             EHomingMethod.HmActualPosition);
-        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, Parameters.EposLH,
+        MotorUp.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLH,
             EHomingMethod.HmActualPosition);
 
         MotorDown.Operation.HomingMode.FindHome();
@@ -325,25 +324,12 @@ public partial class CManipulator : CPlcEpos
 
     // Dodatočné metódy z CDelta
     [RelayCommand]
-    public async Task Kalibruj()
+    public async Task KalibrujAsync()
     {
         try
         {
-            await Task.Run(() =>
-            {
-                if (MotorUp != null && MotorUp.Operation != null)
-                {
-                    Parameters.RawLH = MotorUp.Operation.HomingMode.GetSSiEncoderActualPositionA();
-                }
+            await deltaRobot.KalibrujAsync();
 
-                if (MotorDown != null && MotorDown.Operation != null)
-                {
-                    Parameters.RawLD = MotorDown.Operation.HomingMode.GetSSiEncoderActualPositionA();
-                }
-
-                Log.Information(
-                    $"Manipulator: Kalibruj dokončené. RawLH: {Parameters.RawLH}, RawLD: {Parameters.RawLD}");
-            });
         }
         catch (Exception ex)
         {
@@ -356,16 +342,7 @@ public partial class CManipulator : CPlcEpos
     {
         try
         {
-            await Task.Run(() =>
-            {
-                deltaRobot.OrientSystem();
-                
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    Parameters.OffsetSystem = (int)deltaRobot.OffsetSystem;
-                    Log.Information($"Manipulator: Orientuj dokončené. Nový OffsetSystem: {Parameters.OffsetSystem}");
-                });
-            });
+            await deltaRobot.OrientujAsync();
         }
         catch (Exception ex)
         {
@@ -435,16 +412,16 @@ public partial class CManipulator : CPlcEpos
     [RelayCommand]
     public void SaveParameters()
     {
-        SaveParametersToFile("Parameters.json", Parameters);
+        SaveParametersToFile("ParametersDelta.json", deltaRobot.ParametersDelta);
     }
 
     [RelayCommand]
     public void LoadParameters()
     {
-        LoadParametersFromFile("Parameters.json", Parameters);
+        LoadParametersFromFile("ParametersDelta.json", deltaRobot.ParametersDelta);
         
         // NABINDOVANIE NA AI (Aktualizácia kinematiky)
-        deltaRobot.LoadOffsets(Parameters.OffsetSystem, Parameters.OffsetArm);
+        deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
     }
 
     // Movement methods

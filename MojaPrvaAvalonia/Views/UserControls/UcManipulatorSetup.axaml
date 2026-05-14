@@ -99,10 +99,10 @@
                         <TextBlock Text="Parameters" FontWeight="Bold" Margin="0,0,0,5"/>
                         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,2*">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="OffsetArm:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Parameters.OffsetArm}" Margin="0,2"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding deltaRobot.ParametersDelta.OffsetArm}" Margin="0,2"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="OffsetSystem:" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Parameters.OffsetSystem}" Margin="0,2"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding deltaRobot.ParametersDelta.OffsetSystem}" Margin="0,2"/>
                         </Grid>
                     </StackPanel>
                 </Border>
