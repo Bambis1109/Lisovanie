@@ -1,0 +1,21 @@
+# Ignoruj všetky grafické a mediálne súbory
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+
+# Ignoruj zložku s assetmi pre Avaloniu (ak ju máš)
+Assets/
+
+# Ignoruj veľké dátové súbory
+*.csv
+*.xml
+# appsettings.json si zváž, ak tam máš heslá k DB, určite ho ignoruj
+
+# Ignoruj dokumentáciu, ktorá nesúvisí s kódom
+*.md
+*.txt
+LICENSE
+
