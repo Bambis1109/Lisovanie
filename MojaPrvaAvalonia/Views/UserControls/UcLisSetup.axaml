@@ -50,7 +50,7 @@
                 <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,10,0">
                     <TextBlock Text="Stred" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
-                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="35" VerticalAlignment="Center"
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" VerticalAlignment="Center"
                                      Minimum="{Binding LimitStredDown, Converter={StaticResource NegateConverter}}" 
                                      Maximum="{Binding LimitStredUp, Converter={StaticResource NegateConverter}}"
                                      Value="{Binding MotorViewModels[0].MotorData.ActualGearPosition, Converter={StaticResource NegateConverter}}">
@@ -81,7 +81,7 @@
                 <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
                     <TextBlock Text="Lis" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
-                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" Height="35" VerticalAlignment="Center"
+                        <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" VerticalAlignment="Center"
                                      Minimum="{Binding LimitLisDown}" Maximum="{Binding LimitLisUp}"
                                      Value="{Binding MotorViewModels[2].MotorData.ActualGearPosition}">
                             <ProgressBar.Foreground>
