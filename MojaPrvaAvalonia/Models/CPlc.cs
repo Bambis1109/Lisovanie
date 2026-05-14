@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EposCmd.Net;
 using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
@@ -323,12 +324,24 @@ public partial class CPlc : ObservableObject
             Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka bola zrušená cez CancellationToken.");
             success = true;
         }
-        catch (Exception ex)
+        catch (CDeviceException devEx)
         {
             Dispatcher.UIThread.Post(() =>
             {
-                Log.Logger.ForContext("Name", Name).Fatal(ex, "Kritická chyba v slučke!");
+                Log.Logger.ForContext("Name", Name).Fatal($"Step:{Step}: {devEx.ErrorMessage}");
                 StatusPlc = EnStatusPlc.Error;
+                Message = $"Error step:{Step}";
+            });
+            success = false;
+        }
+        catch (Exception ex)
+        {
+            
+            Dispatcher.UIThread.Post(() =>
+            {
+                Log.Logger.ForContext("Name", Name).Fatal($"Step:{Step}: {ex.Message}");
+                StatusPlc = EnStatusPlc.Error;
+                Message = $"Error step:{Step}";
             });
             success = false;
         }

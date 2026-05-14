@@ -202,11 +202,11 @@ public partial class CPlcEpos : CPlc
             catch (CDeviceException dex)
             {
                 Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                    .Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(ex, $"ClearAllFaults Node:{motor.NodeId}");
+                Log.Logger.ForContext("Name", Name).Fatal($"ClearAllFaults Node:{motor.NodeId}");
             }
         }
     }
@@ -240,6 +240,11 @@ public partial class CPlcEpos : CPlc
                 Log.Logger.ForContext("Name", Name)
                     .Fatal($"Node:{deviceEpos4.NodeId}, Error #{i}: [0x{errorCode:X4}] - {description}");
             }
+        }
+        catch (CDeviceException dex)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Fatal($"ClearAllFaults DeEx Node:{deviceEpos4.NodeId}  {dex.ErrorMessage}");
         }
         catch (Exception ea)
         {
