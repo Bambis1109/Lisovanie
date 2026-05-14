@@ -4,9 +4,8 @@
         Width="280" Height="400"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
-        WindowDecorations="BorderOnly"
         Topmost="True"
-        ExtendClientAreaToDecorationsHint="True" Background="#1E1E1E">
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
     
     <Window.Styles>
         <Style Selector="Button">

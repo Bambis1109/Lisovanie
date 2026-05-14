@@ -10,11 +10,11 @@
         Width="780" Height="900"
         WindowStartupLocation="CenterOwner"
         Topmost="True"
-        ExtendClientAreaToDecorationsHint="True" SystemDecorations="None" Background="#1E1E1E">
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
     
     <Grid RowDefinitions="*, Auto">
         <uc:UcManipulatorSetup Name="UcSetup" Grid.Row="0" />
-        <Button Grid.Row="1" Content="Exit" Click="BtnExit_OnClick" 
+        <Button Grid.Row="1" Content="Zavrieť" Click="BtnClose_OnClick" 
                 HorizontalAlignment="Right" Margin="15" Padding="20,10" 
                 Background="#B22222" Foreground="White" FontWeight="Bold" CornerRadius="5"/>
     </Grid>

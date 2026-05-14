@@ -18,7 +18,7 @@ public partial class frmLisSetup : Window
         DataContext = lis;
     }
 
-    private void BtnExit_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void BtnClose_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         Close();
     }

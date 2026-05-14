@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Width="760" Height="900"
-        ExtendClientAreaToDecorationsHint="True" SystemDecorations="None" Background="#1E1E1E">
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
     
     <Window.Resources>
         <conv:LogColorConverter x:Key="LogColorConv"/>

@@ -9,7 +9,7 @@
         Width="500" Height="750"
         WindowStartupLocation="CenterOwner"
         Topmost="True"
-        ExtendClientAreaToDecorationsHint="True" SystemDecorations="None" Background="#1E1E1E">
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
 
     <Window.Styles>
         <Style Selector="TextBlock.label">
