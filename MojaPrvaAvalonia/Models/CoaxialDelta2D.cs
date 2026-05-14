@@ -413,9 +413,16 @@ public partial class CoaxialDelta2D : ObservableObject
                     ParametersDelta.RawLD = _motorDown.Operation.HomingMode.GetSSiEncoderActualPositionA();
                 }
 
+                // Vypočítaj offsety na základe prečítaných hodnôt
+                CalculateAndSetCalibrationOffsets(ParametersDelta.RawLH, ParametersDelta.RawLD);
+
+                // Ulož vypočítané offsety do parametrov (pretypovanie na int kvôli štruktúre json)
+                ParametersDelta.OffsetSystem = (int)this.OffsetSystem;
+                ParametersDelta.OffsetArm = (int)this.OffsetArm;
+
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    Log.Information($"Delta2D: Kalibruj dokončené. RawLH: {ParametersDelta.RawLH}, RawLD: {ParametersDelta.RawLD}");
+                    Log.Information($"Delta2D: Kalibruj dokončené. RawLH: {ParametersDelta.RawLH}, RawLD: {ParametersDelta.RawLD}, OffsetSystem: {ParametersDelta.OffsetSystem}, OffsetArm: {ParametersDelta.OffsetArm}");
                 });
             });
         }

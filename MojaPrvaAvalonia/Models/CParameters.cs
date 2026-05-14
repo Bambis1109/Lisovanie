@@ -14,10 +14,10 @@ public partial class CParameters : ObservableObject
     private int _rawLD;
  
     [ObservableProperty]
-    private int _offsetArm;
+    private int _offsetArm = 1940;
 
     [ObservableProperty]
-    private int _offsetSystem;
+    private int _offsetSystem = -109995;
     
     [ObservableProperty]
     private int _eposLH;
