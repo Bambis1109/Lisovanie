@@ -121,10 +121,30 @@ public class CMainProgram
     {
         var motor = new CDeviceEpos4(deviceManagerCO._keyHandle, nodeId, name, gear, pulse);
         DeviceManagerCO.AddDevice(motor);
+        motor.ReceiveEmergency += OnMotorEmergency;
         Log.Information($"Created device: {name} (ID: {nodeId})");
         return motor;
     }
+    private void OnMotorEmergency(object? sender, EventArgs e)
+    {
+        if (sender is CDeviceEpos4 motor)
+        {
+            // Získame textový popis chyby priamo z tvojej knižnice
+            string errorMsg = motor.GetLastEmergencyMsg();
+        
+            // Zalogujeme to ako Error (alebo Fatal) cez Serilog
+            Log.Error($"[EMCY ALARM] Motor {motor.Name} (Node {motor.NodeId}): {errorMsg}");
 
+            // Voliteľné: Ak ide o chybu zbernice (CAN passive / Bus off), 
+            // môžeš tu rovno zavolať napr. Shutdown() alebo zastaviť PLC cyklus.
+            if (motor.Data.LastEmergency.err_value == 0x8120 || 
+                motor.Data.LastEmergency.err_value == 0x81FD)
+            {
+                Log.Fatal($"Kritická chyba CAN zbernice na uzle {motor.NodeId}! Skontroluj káble.");
+                // Shutdown(); 
+            }
+        }
+    }
     public void Shutdown()
     {
         foreach (var plc in ZoznamPlc)
