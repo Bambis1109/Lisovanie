@@ -18,7 +18,7 @@ public partial class CManipulator : CPlcEpos
     public CDeviceEpos4 MotorUp { get; set; }
     public CDeviceEpos4 MotorJaws { get; set; }
     public CDeviceEpos4 MotorZ { get; set; }
-   public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
+    public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
 
     public CManipulator(string name) : base(name)
     {
@@ -32,7 +32,7 @@ public partial class CManipulator : CPlcEpos
     public override async Task ConnectAsync()
     {
         await base.ConnectAsync();
-        
+
         if (Connection == EnStatusConnection.Connected)
         {
             deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
@@ -57,7 +57,7 @@ public partial class CManipulator : CPlcEpos
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
-            
+
             // Vysun
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
@@ -96,20 +96,20 @@ public partial class CManipulator : CPlcEpos
     private int InitStep10(int step)
     {
         Message = "Vypocet polohy ramena";
-        
+
         // DÔLEŽITÁ OPRAVA: Načítame aktívne offsety z uložených parametrov do kinematiky (ako vo funkčnej verzii)
         deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
 
         double eposPositionLH;
         double eposPositionLD;
-        
+
         deltaRobot.CalculateColdStartPositions(MotorUp.Data.PositionActualSensor2,
             MotorDown.Data.PositionActualSensor2, out eposPositionLH,
             out eposPositionLD);
-            
+
         deltaRobot.ParametersDelta.EposLH = (int)eposPositionLH;
         deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
-        
+
         return 20;
     }
 
@@ -147,7 +147,7 @@ public partial class CManipulator : CPlcEpos
         MotorZ.Operation.ProfilePositionMode.ActivateProfilePositionMode();
 
         MotorJaws.Operation.ProfilePositionMode.SetPositionProfile(4000, 20000, 20000);
-        MotorZ.Operation.ProfilePositionMode.SetPositionProfile(6000, 60000, 60000);
+        MotorZ.Operation.ProfilePositionMode.SetPositionProfile(4000, 10000, 10000);
 
 
         return 40;
@@ -171,15 +171,15 @@ public partial class CManipulator : CPlcEpos
         uint velocity = 30;
         uint acceleration = 300;
         uint deceleration = 300;
-        
+
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorDown.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorUp.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
-        deltaRobot.MoveToXY(0,140);
-       deltaRobot.WaitForTargetReached(3000);
+        deltaRobot.MoveToXY(0, 140);
+        deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
 
@@ -206,7 +206,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep110(int step)
     {
         Message = "Vysun 1: Centruj";
-        deltaRobot.MoveToXY(0,140);
+        deltaRobot.MoveToXY(0, 140);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 120;
     }
@@ -214,7 +218,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep120(int step)
     {
         Message = "Vysun 2: Vpred";
-        deltaRobot.MoveToXY(0,200);
+        deltaRobot.MoveToXY(0, 180);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 130;
     }
@@ -222,7 +230,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep130(int step)
     {
         Message = "Vysun 3: Vlavo";
-        deltaRobot.MoveToXY(-200,200);
+        deltaRobot.MoveToXY(-200, 180);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 140;
     }
@@ -230,7 +242,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep140(int step)
     {
         Message = "Vysun 4: Spat";
-        deltaRobot.MoveToXY(-200,140);
+        deltaRobot.MoveToXY(-200, 140);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     }
@@ -238,15 +254,25 @@ public partial class CManipulator : CPlcEpos
     private int MainStep150(int step)
     {
         Message = "Vysun 5: Finalizuj";
-        deltaRobot.MoveToXY(0,140);
+        deltaRobot.MoveToXY(0, 140);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 160;
     }
 
+    private double x1 = 0;
+    private double x2 = -5;
+
     private int MainStep160(int step)
     {
         Message = "Z-axis dole";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-10, true, true);
+        
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
     }
@@ -262,7 +288,12 @@ public partial class CManipulator : CPlcEpos
     private int MainStep180(int step)
     {
         Message = "Zasun 1: Centruj";
-        deltaRobot.MoveToXY(0,140);
+        deltaRobot.MoveToXY(0, 140);
+
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 190;
     }
@@ -270,7 +301,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep190(int step)
     {
         Message = "Zasun 2: Vpred";
-        deltaRobot.MoveToXY(0,200);
+        deltaRobot.MoveToXY(0, 180);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 200;
     }
@@ -278,7 +313,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep200(int step)
     {
         Message = "Zasun 3: Vpravo";
-        deltaRobot.MoveToXY(200,200);
+        deltaRobot.MoveToXY(200, 180);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 210;
     }
@@ -286,7 +325,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep210(int step)
     {
         Message = "Zasun 4: Spat";
-        deltaRobot.MoveToXY(200,140);
+        deltaRobot.MoveToXY(200, 140);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
         return 220;
     }
@@ -294,16 +337,14 @@ public partial class CManipulator : CPlcEpos
     private int MainStep220(int step)
     {
         Message = "Zasun 5: Finalizuj";
-        deltaRobot.MoveToXY(0,140);
-        deltaRobot.WaitForTargetReached(5000);
+       
         return 230;
     }
 
     private int MainStep230(int step)
     {
         Message = "Z hore";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+
         return 240;
     }
 
@@ -318,7 +359,7 @@ public partial class CManipulator : CPlcEpos
     private int MainStep250(int step)
     {
         Message = "Vychodiskova poloha";
-        deltaRobot.WaitForTargetReached(5000);
+
         return 100;
     }
 
@@ -329,7 +370,6 @@ public partial class CManipulator : CPlcEpos
         try
         {
             await deltaRobot.KalibrujAsync();
-
         }
         catch (Exception ex)
         {
@@ -419,7 +459,7 @@ public partial class CManipulator : CPlcEpos
     public void LoadParameters()
     {
         LoadParametersFromFile("ParametersDelta.json", deltaRobot.ParametersDelta);
-        
+
         // NABINDOVANIE NA AI (Aktualizácia kinematiky)
         deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
     }
@@ -482,7 +522,10 @@ public partial class CManipulator : CPlcEpos
     {
         try
         {
-            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true); });
+            await Task.Run(() =>
+            {
+                MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true);
+            });
         }
         catch (Exception ea)
         {
@@ -495,7 +538,10 @@ public partial class CManipulator : CPlcEpos
     {
         try
         {
-            await Task.Run(() => { MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true); });
+            await Task.Run(() =>
+            {
+                MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true);
+            });
         }
         catch (Exception ea)
         {
@@ -508,7 +554,10 @@ public partial class CManipulator : CPlcEpos
     {
         try
         {
-            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true); });
+            await Task.Run(() =>
+            {
+                MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true);
+            });
         }
         catch (Exception ea)
         {
@@ -521,7 +570,10 @@ public partial class CManipulator : CPlcEpos
     {
         try
         {
-            await Task.Run(() => { MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true); });
+            await Task.Run(() =>
+            {
+                MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true);
+            });
         }
         catch (Exception ea)
         {
@@ -529,4 +581,3 @@ public partial class CManipulator : CPlcEpos
         }
     }
 }
-
