@@ -20,9 +20,7 @@ public partial class CPlcEpos : CPlc
 
     public override async Task ConnectAsync()
     {
-        await base.ConnectAsync();
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Connect");
-
+       
         if (StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)
         {
             if (StatusPlc == EnStatusPlc.Ready)
@@ -42,7 +40,7 @@ public partial class CPlcEpos : CPlc
             ResetNodes(); // Tvrdý reštart všetkých EPOS4
             await Task.Delay(500);
         });
-           
+
         // 1. Čakanie na Boot-up (Pre-Operational)
         var resetResult = await WaitForResetAllNodeAsync();
         if (resetResult == enmError.Error)
@@ -58,7 +56,8 @@ public partial class CPlcEpos : CPlc
         var startResult = await StartNodesAsync();
         if (startResult == enmError.Error)
         {
-            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory neprešli do stavu OPERATIONAL.");
+            Log.Logger.ForContext("Name", Name)
+                .Error("Pripojenie zlyhalo: Niektoré motory neprešli do stavu OPERATIONAL.");
             StatusPlc = EnStatusPlc.Error;
             Connection = EnStatusConnection.Disconnect;
             Message = "Chyba: Zariadenia neštartujú.";
@@ -87,21 +86,26 @@ public partial class CPlcEpos : CPlc
 
         var tasks = Motors.Select(async item =>
         {
-            for (int i = 0; i < 10; i++) // Prechod do Operational je rýchly, stačí 10x50ms
+            for (int i = 0; i < 100; i++) // Prechod do Operational je rýchly, stačí 10x50ms
             {
                 await Task.Delay(50);
                 try
                 {
                     if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
                     {
-                        Log.Logger.ForContext("Name", Name).Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
+                        Log.Logger.ForContext("Name", Name)
+                            .Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
                         return enmError.NoError;
                     }
                 }
-                catch (Exception) { /* Ignorujeme dočasné chyby API */ }
+                catch (Exception)
+                {
+                    /* Ignorujeme dočasné chyby API */
+                }
             }
-            
-            Log.Logger.ForContext("Name", Name).Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL!");
+
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL!");
             return enmError.Error;
         });
 
@@ -114,7 +118,7 @@ public partial class CPlcEpos : CPlc
         var tasks = Motors.Select(async item =>
         {
             enmError resultNode = enmError.Error;
-            
+
             // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
             for (int i = 0; i < 30; i++)
             {
@@ -138,7 +142,7 @@ public partial class CPlcEpos : CPlc
 
                         Log.Logger.ForContext("Name", Name).Information(
                             $"Node {item.NodeId} ({item.Name}) úspešne nabootoval. FW:[0x{fw:X4}]");
-                        
+
                         resultNode = enmError.NoError;
                         break;
                     }
@@ -159,7 +163,7 @@ public partial class CPlcEpos : CPlc
         });
 
         var results = await Task.WhenAll(tasks);
-        
+
         if (results.Length == 0)
         {
             Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
@@ -178,14 +182,17 @@ public partial class CPlcEpos : CPlc
                 // Ochrana: Ak motor nie je Operational, ignoruje PDO. Nemá zmysel posielať príkazy.
                 if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
                 {
-                    Log.Logger.ForContext("Name", Name).Warning($"Node:{motor.NodeId} nie je Operational. Preskakujem Enable.");
+                    Log.Logger.ForContext("Name", Name)
+                        .Warning($"Node:{motor.NodeId} nie je Operational. Preskakujem Enable.");
                     continue;
                 }
+
                 motor.Operation?.StateMachine?.SetEnableState();
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -205,7 +212,8 @@ public partial class CPlcEpos : CPlc
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -225,7 +233,8 @@ public partial class CPlcEpos : CPlc
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
@@ -245,7 +254,8 @@ public partial class CPlcEpos : CPlc
             }
             catch (CDeviceException dex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {

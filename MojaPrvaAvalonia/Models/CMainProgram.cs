@@ -71,7 +71,7 @@ public class CMainProgram
             {
                 vm.StartRefresh();
             }
-            DeviceManagerCO.Sync(ESync.NcsEnable);
+      //      DeviceManagerCO.Sync(ESync.NcsEnable);
 
             return true;
         }
