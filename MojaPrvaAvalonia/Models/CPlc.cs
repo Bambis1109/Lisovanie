@@ -176,7 +176,14 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStopProgramImmediately))]
     public virtual void StopProgramImmediately()
     {
-        //    Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Stop Immediately");
+        // OPRAVA: Ak nie sme v UI vlákne, pošleme to tam a skončíme
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(StopProgramImmediately);
+            return;
+        }
+
+        // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Stop Immediately");
         StopImmediately = true;
         StatusPlc = EnStatusPlc.WaitForStoping;
         _cancellationTokenSource?.Cancel();

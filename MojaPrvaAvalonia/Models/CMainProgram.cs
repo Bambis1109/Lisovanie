@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EposCmd.Net;
 using IXXAT;
 using Serilog;
+using Avalonia.Threading;
 
 namespace MojaPrvaAvalonia.Models;
 
@@ -131,27 +132,42 @@ public class CMainProgram
         {
             // Získame textový popis chyby priamo z tvojej knižnice
             string errorMsg = motor.GetLastEmergencyMsg();
-        
+    
             // Zalogujeme to ako Error (alebo Fatal) cez Serilog
             Log.Error($"[EMCY ALARM] Motor {motor.Name}: {errorMsg}");
 
-            // Voliteľné: Ak ide o chybu zbernice (CAN passive / Bus off), 
-            // môžeš tu rovno zavolať napr. Shutdown() alebo zastaviť PLC cyklus.
+            // Ak ide o chybu zbernice (CAN passive / Bus off)
             if (motor.Data.LastEmergency.err_value == 0x8120 || 
                 motor.Data.LastEmergency.err_value == 0x81FD)
             {
                 Log.Fatal($"Kritická chyba CAN zbernice na uzle {motor.NodeId}! Skontroluj káble.");
-                 Shutdown(); 
+            
+                // OPRAVA: Presun volania Shutdown do UI vlákna!
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Shutdown(); 
+                });
             }
         }
     }
     public void Shutdown()
     {
+        Log.Information("Vykonávam núdzový Shutdown systému...");
+
+        // 1. Zastavenie PLC slučiek
         foreach (var plc in ZoznamPlc)
         {
-            plc.StopProgramImmediately();
+            try
+            {
+                plc.StopProgramImmediately();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Chyba pri zastavovaní PLC {plc.Name}: {ex.Message}");
+            }
         }
 
+        // 2. Vypnutie motorov (ak zbernica žije)
         if (DeviceManagerCO != null)
         {
             foreach (var plc in ZoznamPlc)
@@ -160,10 +176,35 @@ public class CMainProgram
                 {
                     foreach (var motor in m.Motors)
                     {
-                        motor.Operation?.StateMachine?.SetDisableState();
+                        try
+                        {
+                            // Ak je zbernica skratovaná alebo motor vo Fault, toto vyhodí výnimku.
+                            // Musíme ju zachytiť, inak spadne celá aplikácia!
+                            motor.Operation?.StateMachine?.SetDisableState();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning($"Ignorovaná chyba pri vypínaní motora {motor.Name} (Manipulator): {ex.Message}");
+                        }
+                    }
+                }
+                else if (plc is CLis l)
+                {
+                    foreach (var motor in l.Motors)
+                    {
+                        try
+                        {
+                            motor.Operation?.StateMachine?.SetDisableState();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning($"Ignorovaná chyba pri vypínaní motora {motor.Name} (Lis): {ex.Message}");
+                        }
                     }
                 }
             }
         }
+    
+        Log.Information("Shutdown dokončený.");
     }
 }
