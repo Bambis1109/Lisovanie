@@ -7,11 +7,24 @@ using EposCmd.Net;
 using IXXAT;
 using Serilog;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MojaPrvaAvalonia.Models;
 
-public class CMainProgram
+public partial class CMainProgram : ObservableObject
 {
+    [ObservableProperty]
+    private EnIxxatState _ixxatState = EnIxxatState.Disconnected;
+
+    partial void OnIxxatStateChanged(EnIxxatState oldValue, EnIxxatState newValue)
+    {
+        // Notifikujeme každé PLC, aby prehodnotilo CanExecute pre ConnectCommand
+        foreach (var plc in ZoznamPlc)
+        {
+            plc.ConnectCommand.NotifyCanExecuteChanged();
+        }
+    }
+
     public ObservableCollection<CPlc> ZoznamPlc { get; } = new ObservableCollection<CPlc>();
     public CDeviceManagerCO DeviceManagerCO { get; set; }
     public string ConnectionInfo { get; set; }
@@ -25,9 +38,14 @@ public class CMainProgram
     public async Task<bool> Connect()
     {
         Log.Information("MainProgram: Connecting to CAN...");
+        IxxatState = EnIxxatState.Connecting;
         try
         {
-            if (!CreateCanConector(0, 0)) return false;
+            if (!CreateCanConector(0, 0)) 
+            {
+                IxxatState = EnIxxatState.Disconnected;
+                return false;
+            }
 
             CManipulator? manipulator = ZoznamPlc[0] as CManipulator;
             CLis? lis = ZoznamPlc[1] as CLis;
@@ -74,11 +92,13 @@ public class CMainProgram
             }
            DeviceManagerCO.Sync(ESync.NcsEnable);
 
+            IxxatState = EnIxxatState.Connected;
             return true;
         }
         catch (Exception ex)
         {
             Log.Fatal($"MainProgram Connect Error: {ex.Message}");
+            IxxatState = EnIxxatState.Disconnected;
             return false;
         }
     }
@@ -153,6 +173,7 @@ public class CMainProgram
     public void Shutdown()
     {
         Log.Information("Vykonávam núdzový Shutdown systému...");
+        IxxatState = EnIxxatState.BusFault;
 
         // 1. Zastavenie PLC slučiek
         foreach (var plc in ZoznamPlc)

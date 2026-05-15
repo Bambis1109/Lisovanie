@@ -22,6 +22,9 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Set the global MainProgram instance here so that CPlc and other classes can access it statically
+        typeof(Program).GetProperty(nameof(Program.MainProgram))?.SetValue(null, _mainProgram);
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // 2. Odovzdáme (vložíme) náš _mainProgram priamo do ViewModelu pre hlavné okno

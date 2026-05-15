@@ -1,6 +1,7 @@
 ﻿namespace MojaPrvaAvalonia.Models;
 
 public enum EnStatusPlc { Ready, Running, StepMode, Pause, NotInit, WaitingToFinish, Error, Initializing, WaitForStoping }
+public enum EnIxxatState { Disconnected, Connecting, Connected, BusFault }
 public enum EnStatusConnection { WaitToConnect, Connected, Disconnect }
 public enum EnStatusCycle { WaitForStart, WaitForInit, Moving, Inspecting, WaitingForLock, WaitForStep, WaitForPause, Error }
 public enum EnModePlc { Auto, Manual }

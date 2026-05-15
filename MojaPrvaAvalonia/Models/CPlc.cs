@@ -103,10 +103,11 @@ public partial class CPlc : ObservableObject
     }
 
     private bool CanConnect() =>
-        (Connection == EnStatusConnection.Disconnect &&
+        Program.MainProgram?.IxxatState == EnIxxatState.Connected &&
+        ((Connection == EnStatusConnection.Disconnect &&
          (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Error)) ||
         (Connection == EnStatusConnection.Connected &&
-         (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error));
+         (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)));
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
     public virtual async Task ConnectAsync()

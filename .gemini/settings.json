@@ -7,7 +7,7 @@
         },
         "modelConfig": {
           "generateContentConfig": {
-            "temperature": 0.2
+            "temperature": 0
           }
         }
       }

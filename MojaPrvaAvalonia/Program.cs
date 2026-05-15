@@ -1,26 +1,29 @@
-﻿using System;
+using System;
 using Avalonia;
 using Serilog;
 using Serilog.Core;
 using MojaPrvaAvalonia.Logging; // Nezabudni pridať cestu k nášmu novému Sinku
+using MojaPrvaAvalonia.Models;
 
 namespace MojaPrvaAvalonia;
 
 class Program
 {
-    // 1. Vytvoríme statickú premennú pre náš Sink. 
+    // 1. Vytvoríme statickú premennú pre náš Sink.
     // Vďaka tomu si náš ViewModel bude vedieť neskôr vytiahnuť tie "LogEvents" a zobraziť ich.
     public static ObservableCollectionSink UiSink { get; private set; }
+
+    // Sprístupníme MainProgram globálne, aby k nemu mali prístup PLCčka pre kontrolu hardvérového stavu.
+    public static CMainProgram MainProgram { get; private set; }
 
     [STAThread]
     public static void Main(string[] args)
     {
         // Tvoja pôvodná šablóna z WinForms
         string outputTemplate = "[{Timestamp:HH:mm:ss.fff}][{Level:u3}][{Name}][{Message}][{Measure}]{NewLine}{Exception}";
-        
+
         // Inicializácia nášho UI Sinku pre zoznam v aplikácii
-        UiSink = new ObservableCollectionSink(outputTemplate);
-        
+        UiSink = new ObservableCollectionSink(outputTemplate);        
         var levelSwitch = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Verbose);
         Serilog.Debugging.SelfLog.Enable(Console.Error);
 
