@@ -71,7 +71,7 @@ public class CMainProgram
             {
                 vm.StartRefresh();
             }
-      //      DeviceManagerCO.Sync(ESync.NcsEnable);
+           DeviceManagerCO.Sync(ESync.NcsEnable);
 
             return true;
         }
@@ -133,7 +133,7 @@ public class CMainProgram
             string errorMsg = motor.GetLastEmergencyMsg();
         
             // Zalogujeme to ako Error (alebo Fatal) cez Serilog
-            Log.Error($"[EMCY ALARM] Motor {motor.Name} (Node {motor.NodeId}): {errorMsg}");
+            Log.Error($"[EMCY ALARM] Motor {motor.Name}: {errorMsg}");
 
             // Voliteľné: Ak ide o chybu zbernice (CAN passive / Bus off), 
             // môžeš tu rovno zavolať napr. Shutdown() alebo zastaviť PLC cyklus.

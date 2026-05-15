@@ -33,12 +33,8 @@ public partial class CPlc : ObservableObject
 
     [ObservableProperty] private EnStatusCycle _statusCycle = EnStatusCycle.WaitForInit;
     [ObservableProperty] private EnModePlc _modeMachine = EnModePlc.Auto;
-
     [ObservableProperty] private string _message = "Stroj vypnutý";
-
-    // OPRAVA: Odstránený NotifyCanExecuteChangedFor. Zabraňuje to pádu na background vlákne.
     [ObservableProperty] private int _step;
-
     [ObservableProperty] private bool _requestToNextStep;
     [ObservableProperty] private bool _requestToEnd;
     [ObservableProperty] private bool _stopImmediately;
@@ -70,7 +66,7 @@ public partial class CPlc : ObservableObject
 
     partial void OnStepChanged(int oldValue, int newValue)
     {
-        Log.Logger.ForContext("Name", Name).Debug($"[KROK ZMENENÝ] Step: {oldValue} -> {newValue}");
+        // Log.Logger.ForContext("Name", Name).Debug($"[KROK ZMENENÝ] Step: {oldValue} -> {newValue}");
     }
 
     // ==========================================
@@ -91,8 +87,7 @@ public partial class CPlc : ObservableObject
     {
         IsStepMode = !IsStepMode;
         OnPropertyChanged(nameof(ModeText));
-        Log.Logger.ForContext("Name", Name).Information($"Volič režimu prepnutý na: {(IsStepMode ? "KROK" : "AUTO")}");
-
+        //  Log.Logger.ForContext("Name", Name).Information($"Volič režimu prepnutý na: {(IsStepMode ? "KROK" : "AUTO")}");
         if (StatusPlc == EnStatusPlc.Running && IsStepMode)
         {
             Log.Logger.ForContext("Name", Name).Information("Stroj pozastavený (Prepnuté do krokového režimu).");
@@ -108,7 +103,8 @@ public partial class CPlc : ObservableObject
     }
 
     private bool CanConnect() =>
-        (Connection == EnStatusConnection.Disconnect && (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Error)) ||
+        (Connection == EnStatusConnection.Disconnect &&
+         (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Error)) ||
         (Connection == EnStatusConnection.Connected &&
          (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error));
 
@@ -126,9 +122,7 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanInit))]
     public virtual void Init()
     {
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Init");
-
-        // OPRAVA: Najprv nastavíme krok, až potom StatusPlc, aby UI prepočítalo tlačidlá so správnym krokom
+        // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Init");
         Step = 1;
         StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Initializing;
 
@@ -141,9 +135,7 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStartProgram))]
     public virtual void StartProgram()
     {
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Start");
-
-        // OPRAVA: Najprv nastavíme krok, až potom StatusPlc
+        // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Start");
         Step = 100;
         StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Running;
 
@@ -158,7 +150,7 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanNextStepProgram))]
     public virtual void NextStepProgram()
     {
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: NextStep");
+        // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: NextStep");
         RequestToNextStep = true;
     }
 
@@ -169,7 +161,7 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStopProgramOnEnd))]
     public virtual void StopProgramOnEnd()
     {
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Parkovať (StopOnEnd)");
+        //   Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Parkovať (StopOnEnd)");
         RequestToEnd = true;
         StatusPlc = EnStatusPlc.WaitingToFinish;
         NextStepProgramCommand.NotifyCanExecuteChanged();
@@ -184,7 +176,7 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStopProgramImmediately))]
     public virtual void StopProgramImmediately()
     {
-        Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Stop Immediately");
+        //    Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Stop Immediately");
         StopImmediately = true;
         StatusPlc = EnStatusPlc.WaitForStoping;
         _cancellationTokenSource?.Cancel();
@@ -215,6 +207,7 @@ public partial class CPlc : ObservableObject
                             property.SetValue(target, value);
                         }
                     }
+
                     Log.Logger.ForContext("Name", Name).Information($"Parametre načítané zo súboru: {fileName}");
                 }
             }
@@ -305,7 +298,7 @@ public partial class CPlc : ObservableObject
 
                 if (!shouldWait || RequestToNextStep)
                 {
-                    Log.Logger.ForContext("Name", Name).Debug($"[LOOP] Vykonávam RunStep({Step})");
+                    //  Log.Logger.ForContext("Name", Name).Debug($"[LOOP] Vykonávam RunStep({Step})");
                     Step = RunStep(Step);
                     RequestToNextStep = false;
                     await Task.Delay(10, token);
@@ -336,7 +329,6 @@ public partial class CPlc : ObservableObject
         }
         catch (Exception ex)
         {
-            
             Dispatcher.UIThread.Post(() =>
             {
                 Log.Logger.ForContext("Name", Name).Fatal($"Step:{Step}: {ex.Message}");
@@ -373,11 +365,12 @@ public partial class CPlc : ObservableObject
             });
         }
     }
-    
+
     public virtual void FinishOKHandle()
-    {            
+    {
         Log.Logger.ForContext("Name", Name).Debug($"=>FinishOKHandle Step:{Step}  ");
     }
+
     public virtual void FinishNOKHandle()
     {
         Log.Logger.ForContext("Name", Name).Fatal($"=>FinishNokHandle Step:{Step}  ");

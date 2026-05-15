@@ -217,7 +217,7 @@ public partial class CoaxialDelta2D : ObservableObject
 
         double alpha = CalculateAlphaFromR(rTcp);
 
-        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: GCP-R:{r:F1}mm (TCP-R:{rTcp:F1}), Phi:{phi:F2}° (Alpha:{alpha:F2})");
+    //    Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: GCP-R:{r:F1}mm (TCP-R:{rTcp:F1}), Phi:{phi:F2}° (Alpha:{alpha:F2})");
 
         // MotorDown = stred + alpha, MotorUp = stred - alpha
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alpha, true, true);
@@ -256,7 +256,7 @@ public partial class CoaxialDelta2D : ObservableObject
         // Použijeme Atan2(x, y) namiesto štandardného (y, x)
         double phiDeg = Math.Atan2(x, y) * 180.0 / Math.PI;
 
-        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
+       // Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
 
         MoveToPolar(r, phiDeg);
     }

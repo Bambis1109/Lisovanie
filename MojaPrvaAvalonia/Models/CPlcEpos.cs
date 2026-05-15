@@ -20,7 +20,6 @@ public partial class CPlcEpos : CPlc
 
     public override async Task ConnectAsync()
     {
-       
         if (StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)
         {
             if (StatusPlc == EnStatusPlc.Ready)
@@ -34,10 +33,10 @@ public partial class CPlcEpos : CPlc
         Connection = EnStatusConnection.WaitToConnect;
         Message = "Pripájam zariadenia...";
 
-        // Vykonanie CAN/Sériovej komunikácie na pozadí
+        // Vykonanie CAN/Sériovej komunikácie na pozadí - Reset
         await Task.Run(async () =>
         {
-            ResetNodes(); // Tvrdý reštart všetkých EPOS4
+            ResetNodes(); // Tvrdý reštart všetkých EPOS4 (NMT Reset Node)
             await Task.Delay(500);
         });
 
@@ -52,8 +51,15 @@ public partial class CPlcEpos : CPlc
             return;
         }
 
-        // 2. Spustenie uzlov a overenie stavu Operational
-        var startResult = await StartNodesAsync();
+        // 2. Odoslanie povelu na štart uzlov (NMT Start Remote Node)
+        await Task.Run(async () =>
+        {
+            StartNodes(); // Odoslanie príkazu na prechod do Operational
+            await Task.Delay(500); // Poskytnutie času zbernici a meničom na spracovanie
+        });
+
+        // 3. Čakanie na overenie stavu Operational
+        var startResult = await WaitForStartNodeAsync();
         if (startResult == enmError.Error)
         {
             Log.Logger.ForContext("Name", Name)
@@ -76,17 +82,21 @@ public partial class CPlcEpos : CPlc
         }
     }
 
-    // Vylepšená metóda: Nielen pošle príkaz, ale aj overí, či sa motory naozaj spustili
-    public async Task<enmError> StartNodesAsync()
+    // Nová metóda: Iba odošle NMT príkaz na štart (CS = 0x01)
+    public void StartNodes()
     {
         foreach (var motor in Motors)
         {
             motor.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
         }
+    }
 
+    // Upravená metóda: Iba asynchrónne čaká na potvrdenie stavu Operational
+    protected async Task<enmError> WaitForStartNodeAsync()
+    {
         var tasks = Motors.Select(async item =>
         {
-            for (int i = 0; i < 100; i++) // Prechod do Operational je rýchly, stačí 10x50ms
+            for (int i = 0; i < 100; i++) // Prechod do Operational je rýchly, stačí 100x50ms (5 sekúnd)
             {
                 await Task.Delay(50);
                 try
@@ -100,12 +110,12 @@ public partial class CPlcEpos : CPlc
                 }
                 catch (Exception)
                 {
-                    /* Ignorujeme dočasné chyby API */
+                    /* Ignorujeme dočasné chyby API počas dopytovania */
                 }
             }
 
             Log.Logger.ForContext("Name", Name)
-                .Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL!");
+                .Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL v časovom limite!");
             return enmError.Error;
         });
 
@@ -173,97 +183,139 @@ public partial class CPlcEpos : CPlc
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
-    public void EnableAllMotors()
+    
+    
+    /// <summary>
+    /// Skontroluje, či sú všetky motory v stave OPERATIONAL.
+    /// Pri prvej chybe okamžite preruší kontrolu a vyhodí výnimku.
+    /// </summary>
+    public void TestOperationModeAllMotor()
     {
         foreach (var motor in Motors)
         {
-            try
+            // Ak motor nie je Operational, okamžite končíme (Fail-Fast)
+            if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
             {
-                // Ochrana: Ak motor nie je Operational, ignoruje PDO. Nemá zmysel posielať príkazy.
-                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
-                {
-                    Log.Logger.ForContext("Name", Name)
-                        .Warning($"Node:{motor.NodeId} nie je Operational. Preskakujem Enable.");
-                    continue;
-                }
-
-                motor.Operation?.StateMachine?.SetEnableState();
-            }
-            catch (CDeviceException dex)
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"EnableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
-            }
-            catch (Exception ex)
-            {
-                Log.Logger.ForContext("Name", Name).Fatal(ex, $"EnableAllMotors Node:{motor.NodeId}");
+                Log.Logger.ForContext("Name", Name).Error($"TestOperationMode zlyhal: Node:{motor.NodeId} nie je OPERATIONAL.");
+                throw new InvalidOperationException("Zbernica nie je pripravená. Jeden alebo viacero motorov nie je v stave OPERATIONAL.");
             }
         }
     }
 
-    public void DisableAllMotors()
+    public void EnableAllMotors()
     {
+        // 1. PRE-FLIGHT CHECK: Ak zlyhá, okamžite vyhodí výnimku a metóda končí.
+        TestOperationModeAllMotor();
+
+        // 2. AKCIA: Zapínanie motorov
         foreach (var motor in Motors)
         {
             try
             {
-                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
-                motor.Operation?.StateMachine?.SetDisableState();
-            }
-            catch (CDeviceException dex)
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"DisableAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
+                motor.Operation?.StateMachine?.SetEnableState();
             }
             catch (Exception ex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(ex, $"DisableAllMotors Node:{motor.NodeId}");
+                // Ak zlyhá samotný príkaz Enable (napr. motor je vo Fault stave),
+                // zalogujeme to a okamžite prerušíme cyklus (Fail-Fast).
+                Log.Logger.ForContext("Name", Name).Error($"Enable zlyhal na Node:{motor.NodeId}");
+                throw new InvalidOperationException("EnableAllMotors zlyhalo. Akcia bola prerušená.");
             }
+        }
+    }
+
+    
+     public void DisableAllMotors()
+    {
+        bool hasError = false;
+
+        foreach (var motor in Motors)
+        {
+            try
+            {
+                // Kontrolujeme stav priamo tu, aby sme neprerušili cyklus pre ostatné motory
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Disable zlyhal: Node:{motor.NodeId} nie je OPERATIONAL.");
+                    hasError = true;
+                    continue; // Preskočíme tento motor, ale POKRAČUJEME na ďalší!
+                }
+
+                motor.Operation?.StateMachine?.SetDisableState();
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.ForContext("Name", Name).Error($"Disable zlyhal na Node:{motor.NodeId}");
+                hasError = true; // Zaznamenáme chybu, ale POKRAČUJEME na ďalší motor!
+            }
+        }
+
+        // Výnimku vyhodíme až keď sme sa pokúsili vypnúť VŠETKY motory
+        if (hasError)
+        {
+            throw new InvalidOperationException("DisableAllMotors zlyhalo na jednom alebo viacerých uzloch.");
         }
     }
 
     public void StopAllMotors()
     {
+        bool hasError = false;
+
         foreach (var motor in Motors)
         {
             try
             {
-                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
+                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
+                {
+                    Log.Logger.ForContext("Name", Name).Error($"Stop zlyhal: Node:{motor.NodeId} nie je OPERATIONAL.");
+                    hasError = true;
+                    continue; // Preskočíme tento motor, ale POKRAČUJEME na ďalší!
+                }
+
                 motor.Operation?.StateMachine?.SetQuickStopState();
-            }
-            catch (CDeviceException dex)
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal(dex, $"StopAllMotors DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal(ex, $"StopAllMotors Node:{motor.NodeId}");
+                Log.Logger.ForContext("Name", Name).Error($"Stop zlyhal na Node:{motor.NodeId}");
+                hasError = true; // Zaznamenáme chybu, ale POKRAČUJEME na ďalší motor!
             }
         }
+
+        // Výnimku vyhodíme až keď sme sa pokúsili zastaviť VŠETKY motory
+        if (hasError)
+        {
+            throw new InvalidOperationException("StopAllMotors zlyhalo na jednom alebo viacerých uzloch.");
+        }
     }
+    
+    
+    
 
     public void ClearAllFaults()
     {
+        TestOperationModeAllMotor();
+
         foreach (var motor in Motors)
         {
             try
             {
-                if (motor.LowLayer?.Can?.GetNMTState() != ENmtStatus.NcsOPERATIONAL) continue;
                 motor.Operation?.StateMachine?.ClearFault();
-            }
-            catch (CDeviceException dex)
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal($"ClearAllFaults DeEx Node:{motor.NodeId}  {dex.ErrorMessage}");
             }
             catch (Exception ex)
             {
-                Log.Logger.ForContext("Name", Name).Fatal($"ClearAllFaults Node:{motor.NodeId}");
+                Log.Logger.ForContext("Name", Name).Error($"ClearFault zlyhal na Node:{motor.NodeId}");
+                throw new InvalidOperationException("ClearAllFaults zlyhalo. Akcia bola prerušená.");
             }
         }
     }
-
+    
+    
+    
+    
+    
+    
+    
+    
     internal void LogErrors()
     {
         foreach (var item in Motors)
@@ -279,7 +331,8 @@ public partial class CPlcEpos : CPlc
             // 1. Zisti počet chýb uložených v zariadení (Objekt 0x1003:00)
             byte errorCount = deviceEpos4.Operation.DeviceErrorHandling.GetNbOfDeviceError();
             if (errorCount == 0) return;
-
+            Log.Logger.ForContext("Name", Name)
+                .Fatal($"Node:{deviceEpos4.NodeId}, *********** List errors *************");
             // 2. Prejdi všetky chyby (indexy 1 až errorCount, max 5)
             for (byte i = 1; i <= errorCount && i <= 5; i++)
             {
