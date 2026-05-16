@@ -94,9 +94,10 @@ namespace EposCmd
                         }
                     } while (res == COP_k_BSY && retries < maxRetries);
 
-                    if (Pdo == 4)
-                        if (COP_k_OK != res)
-                            throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{NodeId:d}] ({CopErrorString(res)}) ", (uint)res);
+                    if (COP_k_OK != res)
+                    {
+                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] ({CopErrorString(res)}) ", (uint)res);
+                    }
                 }
             }
             protected void SetControlword(ushort value)
@@ -124,7 +125,22 @@ namespace EposCmd
                 }
                 catch (CDeviceException e) { throw new CDeviceException($"SetControlWordSync:[{value:X02}] {e.ErrorMessage}", 0); }
             }
+            protected void SetCW_TP(ushort controlword, int targetPosition)
+            {
+                try
+                {
+                    var txData = new byte[8];
+                    BitConverter.GetBytes(controlword).CopyTo(txData, 0);
+                    BitConverter.GetBytes(targetPosition).CopyTo(txData, 2);
 
+                    WritePDO(1, txData);
+                }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetCW_TP:[CW:0x{controlword:X04}, TP:{targetPosition}] {e.ErrorMessage}", 0);
+                }
+            }
+            
             public void WritePDO3SetupOutput(UInt32 value)
             {
                 lock (Data.NodePdoLock)

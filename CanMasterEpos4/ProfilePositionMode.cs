@@ -49,18 +49,18 @@ namespace EposCmd
                         try
                         {
                             TestBeforSetPointPpm();
-                            SetTargetPosition(targetPosition);
+        
+                            ushort controlword = 0;
                             if (absolute)
                             {
-                                if (immediately) SetControlword(0x3f);
-                                else SetControlword(0x1f);
+                                controlword = immediately ? (ushort)0x003F : (ushort)0x001F;
                             }
                             else
                             {
-                                if (immediately) SetControlword(0x7f);
-                                else SetControlword(0x5f);
+                                controlword = immediately ? (ushort)0x007F : (ushort)0x005F;
                             }
 
+                            SetCW_TP(controlword, targetPosition);
                             WaitForACK();
                         }
                         catch (CDeviceException e)
@@ -94,19 +94,8 @@ namespace EposCmd
                     {
                         try
                         {
-                            TestBeforSetPointPpm();
-                            SetTargetPosition((int)(targetPosition * Data.Gear));
-                            if (absolute)
-                            {
-                                if (immediately) SetControlword(0x23f);
-                                else SetControlword(0x21f);
-                            }
-                            else
-                            {
-                                if (immediately) SetControlword(0x27f);
-                                else SetControlword(0x25f);
-                            }
-                            WaitForACK();
+                            int calculatedPosition = (int)(targetPosition * Data.Gear);
+                            MoveToPosition(calculatedPosition, absolute, immediately);
                         }
                         catch (CDeviceException e)
                         {
