@@ -44,11 +44,11 @@ namespace EposCmd
             private int _velocityActual;
 
 
-            public byte[] TxdataPDO1 { get; set; } = new byte[2];
+            public byte[] TxdataPDO1 { get; set; } = new byte[8];
             public byte[] TxdataPDO2 { get; set; } = new byte[2];
             public byte[] TxdataPDO3 { get; set; } = new byte[7];
             public byte[] TxdataPDO4 { get; set; } = new byte[4];
-
+     
             public double Gear;
             public double Pulse;
             private ushort _statusword;

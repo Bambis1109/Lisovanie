@@ -1,4 +1,5 @@
-﻿using static IXXAT.CANopenMasterAPI6;
+﻿using System.Buffers.Binary;
+using static IXXAT.CANopenMasterAPI6;
 
 
 namespace EposCmd
@@ -17,28 +18,27 @@ namespace EposCmd
                 {
                     short res;
                     uint abortcode = 0;
-                    var Txdata = new byte[Len];
-                    Txdata = BitConverter.GetBytes(Value);
-                    res = COP_WriteSDO(KeyHandle //  handle of CAN board
-                        , NodeId //  number of the node
-                        , COP_k_DEFAULT_SDO
-                        , COP_k_NO_BLOCKTRANSFER
-                        , Index //  index in OV
-                        , Subindex //  subindex in OV
-                        , Len //  length of transmit data
-                        , Txdata //  transmit data
-                        , out abortcode); //  abort code of SDO-transfer
+                    var Txdata = new byte[8];
+                    BinaryPrimitives.WriteUInt64LittleEndian(Txdata, Value);
+
+                    int retries = 0;
+                    var spinWait = new SpinWait();
+                    do
+                    {
+                        res = COP_WriteSDO(KeyHandle, NodeId, COP_k_DEFAULT_SDO, COP_k_NO_BLOCKTRANSFER, Index, Subindex, Len, Txdata, out abortcode);
+                        if (res == COP_k_SDO_RUNNING || res == COP_k_BSY)
+                        {
+                            spinWait.SpinOnce();
+                            retries++;
+                        }
+                    } while ((res == COP_k_SDO_RUNNING || res == COP_k_BSY) && retries < 1000);
+
                     if (COP_k_OK != res)
                     {
-                        var Message = string.Format("WriteSDO  Node {0:d}  [index:0x{1:X04} sub:0x{2:X02}]", NodeId,
-                            Index,
-                            Subindex);
-
+                        var Message = $"WriteSDO Node {NodeId:d} [index:0x{Index:X04} sub:0x{Subindex:X02}]";
                         if (COP_k_ABORT == res)
-                            throw new CDeviceException(Message + "  (" + CopAbortCodeString(abortcode) + ")",
-                                abortcode);
-
-                        throw new CDeviceException(Message + "  (" + CopErrorString(res) + ")", (uint)res);
+                            throw new CDeviceException($"{Message} ({CopAbortCodeString(abortcode)})", abortcode);
+                        throw new CDeviceException($"{Message} ({CopErrorString(res)})", (uint)res);
                     }
                 }
             }
@@ -117,22 +117,7 @@ namespace EposCmd
                 }
             }
 
-            protected void SetCW_TP(ushort controlword, int targetPosition)
-            {
-                try
-                {
-                    var txData = new byte[8];
-                    BitConverter.GetBytes(controlword).CopyTo(txData, 0);
-                    BitConverter.GetBytes(targetPosition).CopyTo(txData, 2);
-
-                    WritePDO(1, txData);
-                }
-                catch (CDeviceException e)
-                {
-                    throw new CDeviceException(
-                        $"SetCW_TP:[CW:0x{controlword:X04}, TP:{targetPosition}] {e.ErrorMessage}", 0);
-                }
-            }
+           
 
             public void WritePDO3SetupOutput(UInt32 value)
             {
@@ -152,13 +137,50 @@ namespace EposCmd
             {
                 lock (Data.NodePdoLock)
                 {
-                    var Txdata = new byte[1];
-                    Txdata = BitConverter.GetBytes((short)(byte)operationMode);
-                    Data.TxdataPDO3[4] = Txdata[0];
-                    WritePDO(3, Data.TxdataPDO3); // WritePDO3ModeOfOperation
+                    Data.TxdataPDO3[4] = (byte)operationMode;
+                    WritePDO(3, Data.TxdataPDO3);
+                }
+            }
+            
+            public void WritePDO4TargetPosition(int targetPosition)
+            {
+                lock (Data.NodePdoLock)
+                {
+                    // Zápis 4 bajtov (Int32) priamo do existujúceho poľa bez alokácie na halde
+                    BinaryPrimitives.WriteInt32LittleEndian(Data.TxdataPDO4.AsSpan(0, 4), targetPosition);
+                    WritePDO(4, Data.TxdataPDO4);
                 }
             }
 
+            public void WritePDO3TargetTorque(short targetTorque)
+            {
+                lock (Data.NodePdoLock)
+                {
+                   // Zápis 2 bajtov (Int16) priamo do existujúceho poľa PDO3 na pozíciu 5 a 6.
+                    BinaryPrimitives.WriteInt16LittleEndian(Data.TxdataPDO3.AsSpan(5, 2), targetTorque);
+                    WritePDO(3, Data.TxdataPDO3);
+                }
+            }
+
+            protected void SetCW_TP(ushort controlword, int targetPosition)
+            {
+                try
+                {
+                    lock (Data.NodePdoLock)
+                    {
+                        // Zápis Controlword (2 bajty) a Target Position (4 bajty) do existujúceho poľa
+                        BinaryPrimitives.WriteUInt16LittleEndian(Data.TxdataPDO1.AsSpan(0, 2), controlword);
+                        BinaryPrimitives.WriteInt32LittleEndian(Data.TxdataPDO1.AsSpan(2, 4), targetPosition);
+
+                        WritePDO(1, Data.TxdataPDO1);
+                    }
+                }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetCW_TP:[CW:0x{controlword:X04}, TP:{targetPosition}] {e.ErrorMessage}", 0);
+                }
+            }
+/*
             public void WritePDO3TargetTorque(short targetTorque)
             {
                 lock (Data.NodePdoLock)
@@ -184,8 +206,9 @@ namespace EposCmd
                     WritePDO(4, Data.TxdataPDO4);
                 }
             }
-
-            protected void SetSwitchOnAndWait()
+*/
+    
+       protected void SetSwitchOnAndWait()
             {
                 try
                 {
@@ -227,29 +250,35 @@ namespace EposCmd
 
             protected void SetModeOfOperation(EOperationMode value)
             {
-                EOperationMode temp = value;
-
+                // Ak už sme v požadovanom režime, okamžitý návrat
                 if (Data.ModeOfOperationDisplay == value)
                     return;
 
+                // Reset asynchrónneho chybového príznaku pred novým príkazom
+                Data.ResetWpdoError();
+
+                // Odoslanie požiadavky na zmenu režimu
                 WritePDO3ModeOfOperation(value);
-                if (!SpinWait.SpinUntil(() => Data.ModeOfOperationDisplay == value, 1000))
+
+                // Exaktné čakanie na potvrdenie od EPOS4 (zmena v TxPDO1)
+                bool conditionMet = SpinWait.SpinUntil(() => 
+                    Data.ModeOfOperationDisplay == value || Data.WpdoError || Data.FaultState, 1000);
+
+                // Vyhodnotenie výsledku
+                if (!conditionMet)
                 {
-                    Thread.Sleep(1000);
-                    var message1 =
-                        $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
-                    Thread.Sleep(1000);
-                    WritePDO3ModeOfOperation(value);
-                    if (!SpinWait.SpinUntil(() => Data.ModeOfOperationDisplay == value, 1000))
-                    {
-                        Thread.Sleep(1000);
-                        var message2 =
-                            $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
-                        throw new CDeviceException($"{message1}---{message2}", 0);
-                    }
+                    throw new CDeviceException($"SetModeOfOperation Node:{NodeId}. Timeout waiting for mode {value}. Actual mode is {Data.ModeOfOperationDisplay}.", 0);
                 }
 
-                Thread.Sleep(1);
+                if (Data.WpdoError)
+                {
+                    throw new CDeviceException($"SetModeOfOperation Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                }
+
+                if (Data.FaultState)
+                {
+                    throw new CDeviceException($"SetModeOfOperation Node:{NodeId}. Device entered Fault state during mode change.", 0);
+                }
             }
 
             public void WaitForACK()

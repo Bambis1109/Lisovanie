@@ -45,6 +45,7 @@
                         return (short)ReadSdo(0x6077, 0x00, 2);
                     }
 
+/*
                     public void WaitToTorqueStopMovePercentage(int timeout, double torque)
                     {
                         SetCurrentMustPercentage(torque);
@@ -77,6 +78,39 @@
                                     $"Node:{NodeId}, Prud={currentActual} rychlost={velocityActual},Target TorLocal{torque}  Mode:{Data.ModeOfOperationDisplay} State: {GetStateCommand()}  nedosiahnuty doraz, WaitToCurrent timeout {timeout}");
                             }
                         } while (counter <= 2);
+                    }
+                    */
+                    public void WaitToTorqueStopMovePercentage(int timeout, double torque)
+                    {
+                        SetCurrentMustPercentage(torque);
+                        int counter = 0;
+                        int zero = 0;
+
+                        bool conditionMet = SpinWait.SpinUntil(() =>
+                        {
+                            double currentActual = Data.CurrentActualAveragePercentage;
+                            int velocityActual = Math.Abs(Data.VelocityActual);
+
+                            if (currentActual == torque && velocityActual < 5) counter++;
+                            else counter = 0;
+                            if (currentActual == 0 && velocityActual == 0) zero++;
+                            else zero = 0;
+
+                            if (zero > 5)
+                            {
+                                throw new CDeviceException(
+                                    $"Node:{NodeId}, Prud={currentActual}, rychlost={velocityActual}. ZERO ZERO");
+                            }
+
+                            return counter > 2 || Data.FaultState || Data.WpdoError;
+                        }, timeout);
+
+                        if (!conditionMet)
+                            throw new CDeviceException($"Node:{NodeId}, Timeout {timeout}ms. Nedosiahnuty doraz.");
+                        if (Data.FaultState)
+                            throw new CDeviceException($"Node:{NodeId}, Device Fault.");
+                        if (Data.WpdoError)
+                            throw new CDeviceException($"Node:{NodeId}, WPDO Error.");
                     }
                 }
             }
