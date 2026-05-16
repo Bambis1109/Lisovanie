@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Threading;
 using System.Xml.Linq;
 using static IXXAT.CANopenMasterAPI6;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace EposCmd.Net
 {
@@ -27,28 +29,166 @@ namespace EposCmd.Net
         public COP_t_EVENT_OBJ LastEventMsg;
         public COP_BOARD_INFO sp_info;
         public int BoardLine;
-        public string GetConnectionInfo { get => $"BoartLine:{BoardLine}, CanLine:{CanLine}, SN:{sp_info.serial_num}  FW:{sp_info.fw_version}  HW:{sp_info.hw_version} "; }
+
+        public byte BaudIndex { get; set; }
+        public uint Timeout { get; set; }
+        public event EventHandler ReceiveEmergency;
+        public event EventHandler ReceiveStatus;
+
+        private Channel<CanMessage> _messageChannel;
+        private CancellationTokenSource _cts;
+        private Task _readerTask;
+
+        public string GetConnectionInfo
+        {
+            get =>
+                $"BoartLine:{BoardLine}, CanLine:{CanLine}, SN:{sp_info.serial_num}  FW:{sp_info.fw_version}  HW:{sp_info.hw_version} ";
+        }
+/*
         public CDeviceManagerCO(string deviceName, string protocolStackName, string interfaceName, string portName)
         {
             DeviceList = new Dictionary<byte, CDeviceCO>();
             Name = deviceName;
         }
+
         public CDeviceManagerCO()
         {
             DeviceList = new Dictionary<byte, CDeviceCO>();
         }
-        public byte BaudIndex { get; set; }
-        public uint Timeout { get; set; }
-        public event EventHandler ReceiveEmergency;
-        public event EventHandler ReceiveStatus;
+*/
+
+        public CDeviceManagerCO()
+        {
+            DeviceList = new Dictionary<byte, CDeviceCO>();
+
+            _messageChannel = Channel.CreateUnbounded<CanMessage>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false
+            });
+            _cts = new CancellationTokenSource();
+            _readerTask = Task.Factory.StartNew(ProcessMessagesAsync, _cts.Token, TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+        }
+
+        public CDeviceManagerCO(string deviceName, string protocolStackName, string interfaceName,
+            string portName) : this()
+        {
+            Name = deviceName;
+        }
+/*
+        private async Task ProcessMessagesAsync()
+        {
+            try
+            {
+                while (await _messageChannel.Reader.WaitToReadAsync(_cts.Token))
+                {
+                    while (_messageChannel.Reader.TryRead(out var msg))
+                    {
+                        switch (msg.Type)
+                        {
+                            case ECanMessageType.Pdo:
+                                if (DeviceList.TryGetValue(msg.Pdo.node_no, out var devicePdo))
+                                {
+                                    devicePdo.ReadPdo(msg.Pdo);
+                                }
+
+                                break;
+
+                            case ECanMessageType.Emergency:
+                                if (DeviceList.TryGetValue(msg.Emergency.node_no, out var deviceEmcy))
+                                {
+                                    deviceEmcy.ReadEmergency(msg.Emergency);
+                                }
+
+                                break;
+
+                            case ECanMessageType.Event:
+                                switch (msg.Event.evt_type)
+                                {
+                                    case COP_k_NMT_EVT:
+                                    case COP_k_RPDO_EVT:
+                                    case COP_k_WPDO_EVT:
+                                        if (DeviceList.TryGetValue(msg.Event.evt_data2, out var deviceEvent))
+                                        {
+                                            deviceEvent.ReadStatus(msg.Event);
+                                        }
+
+                                        break;
+                                }
+
+                                break;
+                        }
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Vlákno bolo korektne ukončené
+            }
+        }
+*/
+private async Task ProcessMessagesAsync()
+{
+    try
+    {
+        while (await _messageChannel.Reader.WaitToReadAsync(_cts.Token))
+        {
+            while (_messageChannel.Reader.TryRead(out var msg))
+            {
+                switch (msg.Type)
+                {
+                    case ECanMessageType.Pdo:
+                        if (DeviceList.TryGetValue(msg.Pdo.node_no, out var devicePdo))
+                        {
+                            devicePdo.ReadPdo(msg.Pdo);
+                        }
+                        break;
+
+                    case ECanMessageType.Emergency:
+                        LastEmergencyMsg = msg.Emergency;
+                        if (DeviceList.TryGetValue(msg.Emergency.node_no, out var deviceEmcy))
+                        {
+                            deviceEmcy.ReadEmergency(msg.Emergency);
+                        }
+                        RecEmergency(EventArgs.Empty);
+                        break;
+
+                    case ECanMessageType.Event:
+                        LastEventMsg = msg.Event;
+                        switch (msg.Event.evt_type)
+                        {
+                            case COP_k_NMT_EVT:
+                            case COP_k_RPDO_EVT:
+                            case COP_k_WPDO_EVT:
+                                if (DeviceList.TryGetValue(msg.Event.evt_data2, out var deviceEvent))
+                                {
+                                    deviceEvent.ReadStatus(msg.Event);
+                                }
+                                break;
+                            case COP_k_DLL_EVT:
+                            case COP_k_QUEUE_OVRUN_EVT:
+                            case COP_k_FLY_EVT:
+                                break;
+                        }
+                        RecStatus(EventArgs.Empty);
+                        break;
+                }
+            }
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Vlákno bolo korektne ukončené
+    }
+}
         public void Init()
         {
-
             short result = 0;
-        //    result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine | (int)COP_VCI3GENERIC);   //Povolenie Cam medzi aolikaciami
-           result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine );
-           
-         
+            //    result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine | (int)COP_VCI3GENERIC);   //Povolenie Cam medzi aolikaciami
+            result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine);
+
+
             if (COP_k_OK != result) throw new CDeviceException("Error init DLL", (uint)result);
             _mPdoCallback = PDOCallback;
             _mEmcyCallback = EmcyCallback;
@@ -70,8 +210,8 @@ namespace EposCmd.Net
                 _keyHandle = 0;
                 throw new CDeviceException("Error init CAN interface", (uint)result);
             }
-            
         }
+
         public CDeviceCO CreateDevice(byte nodeId, string name)
         {
             if (DeviceList.ContainsKey(nodeId))
@@ -84,7 +224,7 @@ namespace EposCmd.Net
                 _keyHandle = 0;
                 throw new CDeviceException("Error add node:" + nodeId, (uint)result);
             }
-            
+
             //result = COP_SearchNode(_keyHandle, nodeId);
             //if (COP_k_OK != result)
             //{
@@ -96,6 +236,7 @@ namespace EposCmd.Net
             DeviceList.Add(nodeId, temp);
             return temp;
         }
+
         public void AddDevice(CDeviceCO device)
         {
             if (DeviceList.ContainsKey(device.NodeId))
@@ -111,43 +252,46 @@ namespace EposCmd.Net
 
             DeviceList.Add(device.NodeId, device);
         }
+
         protected void RecEmergency(EventArgs e)
         {
             ReceiveEmergency?.Invoke(this, e);
         }
+
         protected void RecStatus(EventArgs e)
         {
             ReceiveStatus?.Invoke(this, e);
         }
+
         public void SendNmtServiceForAllNodes(ECommandSpecifier commandSpecifier)
         {
             short res = 0;
             switch (commandSpecifier)
             {
                 case ECommandSpecifier.NcsStartRemoteNode:
-                    {
-                        res = COP_StartNode(_keyHandle, 0);
-                    }
+                {
+                    res = COP_StartNode(_keyHandle, 0);
+                }
                     break;
                 case ECommandSpecifier.NcsStopRemoteNode:
-                    {
-                        res = COP_StopNode(_keyHandle, 0);
-                    }
+                {
+                    res = COP_StopNode(_keyHandle, 0);
+                }
                     break;
                 case ECommandSpecifier.NcsEnterPreOperational:
-                    {
-                        res = COP_EnterPreOperational(_keyHandle, 0);
-                    }
+                {
+                    res = COP_EnterPreOperational(_keyHandle, 0);
+                }
                     break;
                 case ECommandSpecifier.NcsResetNode:
-                    {
-                        res = COP_ResetNode(_keyHandle, 0);
-                    }
+                {
+                    res = COP_ResetNode(_keyHandle, 0);
+                }
                     break;
                 case ECommandSpecifier.NcsResetCommunication:
-                    {
-                        res = COP_ResetComm(_keyHandle, 0);
-                    }
+                {
+                    res = COP_ResetComm(_keyHandle, 0);
+                }
                     break;
                 default:
                     break;
@@ -159,84 +303,107 @@ namespace EposCmd.Net
                 throw new CDeviceException(Message, (uint)res);
             }
         }
+
         public void Sync(ESync sync)
         {
-            
             short res = 0;
             switch (sync)
             {
                 case ESync.NcsEnable:
                     res = COP_DefSyncObj(_keyHandle, 5, 5, 0);
                     res = COP_EnableSync(_keyHandle, COP_k_SINGLE_LINE);
-                    
+
                     break;
                 case ESync.NcsDisable:
                     res = COP_DisableSync(_keyHandle, COP_k_SINGLE_LINE);
                     break;
                 case ESync.NcsOneSync:
-                    
+
                     lock (IL.LockSync)
                     {
                         if (!WaitForSync(500))
                         {
-                            Thread.Sleep(5); 
+                            Thread.Sleep(5);
                             if (!WaitForSync(500))
                             {
                                 throw new CDeviceException($"WaitForSync 2 opakovanie");
                             }
                         }
-
                     }
                     //  Thread.Sleep(20);
-                   
+
                     res = COP_DisableSync(_keyHandle, COP_k_SINGLE_LINE);
                     break;
                 default:
                     break;
             }
+
             if (COP_k_OK != res)
-            {                
+            {
                 throw new CDeviceException(sync + " - Remote Nodes : Abort " + CopErrorString(res), (uint)res);
             }
         }
+
         public bool WaitForSync(int timeout)
         {
             int timeoutLoc = timeout;
-            lock (SyncLock){SyncEvent = true; }
+            lock (SyncLock)
+            {
+                SyncEvent = true;
+            }
+
             short res = COP_EnableSync(_keyHandle, COP_k_SINGLE_LINE);
             if (COP_k_OK != res)
             {
                 throw new CDeviceException($"Wait for sync - COP_EnableSync {CopErrorString(res)}");
             }
+
             Thread.Sleep(3);
             bool wait = false;
             do
             {
-                lock (SyncLock) { wait = SyncEvent; }
+                lock (SyncLock)
+                {
+                    wait = SyncEvent;
+                }
+
                 Thread.Sleep(1);
                 if (timeoutLoc <= 0) break;
                 timeoutLoc = timeoutLoc - 1;
             } while (wait);
+
             Thread.Sleep(10);
-           res = COP_DisableSync(_keyHandle, COP_k_SINGLE_LINE);
+            res = COP_DisableSync(_keyHandle, COP_k_SINGLE_LINE);
             Thread.Sleep(10);
             if (COP_k_OK != res)
             {
                 return false;
                 throw new CDeviceException($"Wait for sync - COP_DisableSync {CopErrorString(res)}");
             }
+
             if (timeoutLoc <= 0)
             {
                 return false;
                 throw new CDeviceException($"WaitForSync  Timeout:{timeout}", 0);
             }
+
             return true;
             //Debug.WriteLine($"WaitForSync Timeout:{timeoutLoc},  name DM:{Name}");
         }
+
         protected override void Dispose(bool isDisposeByUser)
         {
+            if (isDisposeByUser)
+            {
+                _cts?.Cancel();
+                _readerTask?.Wait(500);
+                _cts?.Dispose();
+            }
         }
+
         #region CANopen Master API Callbacks
+
+/*
         public void PDOCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
         {
             short res;
@@ -247,16 +414,16 @@ namespace EposCmd.Net
                 switch (res)
                 {
                     case COP_k_OK:
+                    {
+                        try
                         {
-                            try
-                            {
-                                DeviceList[sp_pdo.node_no].ReadPdo(sp_pdo);
-                            }
-                            catch (Exception)
-                            {
-                                //  throw new DeviceException("Error init CAN interface", 0);
-                            }
+                            DeviceList[sp_pdo.node_no].ReadPdo(sp_pdo);
                         }
+                        catch (Exception)
+                        {
+                            //  throw new DeviceException("Error init CAN interface", 0);
+                        }
+                    }
                         break;
                     case COP_k_QUEUE_EMPTY:
                         break;
@@ -266,6 +433,7 @@ namespace EposCmd.Net
                 }
             } while (COP_k_QUEUE_EMPTY != res);
         }
+
         public void EmcyCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
         {
             short res = 0;
@@ -275,10 +443,10 @@ namespace EposCmd.Net
                 switch (res)
                 {
                     case COP_k_OK:
-                        {
-                            DeviceList[LastEmergencyMsg.node_no].ReadEmergency(LastEmergencyMsg);
-                            RecEmergency(EventArgs.Empty);
-                        }
+                    {
+                        DeviceList[LastEmergencyMsg.node_no].ReadEmergency(LastEmergencyMsg);
+                        RecEmergency(EventArgs.Empty);
+                    }
                         break;
                     case COP_k_QUEUE_EMPTY:
                         break;
@@ -288,104 +456,108 @@ namespace EposCmd.Net
                 }
             } while (COP_k_QUEUE_EMPTY != res);
         }
-     /*
-        public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
+
+       public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
         {
             short res = 0;
 
             do
             {
-                res = COP_GetEvent(_keyHandle, out LastEventMsg.evt_type, out LastEventMsg.evt_data1, out LastEventMsg.evt_data2, out LastEventMsg.evt_data3);
+                res = COP_GetEvent(_keyHandle, out LastEventMsg.evt_type, out LastEventMsg.evt_data1,
+                    out LastEventMsg.evt_data2, out LastEventMsg.evt_data3);
                 switch (res)
                 {
                     case COP_k_OK:
+                    {
+                        try
                         {
-                            try
+                            // OPRAVA: Vyhodnocuje sa evt_type, nie evt_data1
+                            switch (LastEventMsg.evt_type)
                             {
-                                switch (LastEventMsg.evt_data1)
+                                case COP_k_NMT_EVT:
+                                case COP_k_RPDO_EVT:
+                                case COP_k_WPDO_EVT:
                                 {
-                                    case COP_k_NMT_EVT:
-                                    case COP_k_RPDO_EVT:
-                                    case COP_k_WPDO_EVT:
-                                        {
-                                            DeviceList[LastEventMsg.evt_data2].ReadStatus(LastEventMsg);
-                                        }
-                                        break;
-                                    case COP_k_DLL_EVT:
-                                    case COP_k_QUEUE_OVRUN_EVT:
-                                    case COP_k_FLY_EVT:
-                                        {
-                                        }
-                                        break;
-                                    default:
-                                        break;
+                                    if (DeviceList.ContainsKey(LastEventMsg.evt_data2))
+                                    {
+                                        DeviceList[LastEventMsg.evt_data2].ReadStatus(LastEventMsg);
+                                    }
                                 }
+                                    break;
+                                case COP_k_DLL_EVT:
+                                case COP_k_QUEUE_OVRUN_EVT:
+                                case COP_k_FLY_EVT:
+                                {
+                                }
+                                    break;
+                                default:
+                                    break;
+                            }
 
-                                RecStatus(EventArgs.Empty);
-                            }
-                            catch (Exception)
-                            {
-                                //  throw new DeviceException("Read status queue  Error" + "  (" + CopErrorString(res) + ")", (uint)res);
-                            }
+                            RecStatus(EventArgs.Empty);
                         }
+                        catch (Exception)
+                        {
+                            // Ignorované podľa pôvodného kódu
+                        }
+                    }
                         break;
                     case COP_k_QUEUE_EMPTY:
                         break;
                 }
             } while (COP_k_QUEUE_EMPTY != res);
         }
-        */
-     public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
-     {
-         short res = 0;
+*/
+        public void PDOCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
+        {
+            short res;
+            COP_t_RX_PDO sp_pdo;
+            do
+            {
+                res = COP_ReadPDO_S(_keyHandle, out sp_pdo);
+                if (res == COP_k_OK)
+                {
+                    var msg = new CanMessage { Type = ECanMessageType.Pdo, Pdo = sp_pdo };
+                    _messageChannel.Writer.TryWrite(msg);
+                }
+            } while (COP_k_QUEUE_EMPTY != res);
+        }
 
-         do
-         {
-             res = COP_GetEvent(_keyHandle, out LastEventMsg.evt_type, out LastEventMsg.evt_data1, out LastEventMsg.evt_data2, out LastEventMsg.evt_data3);
-             switch (res)
-             {
-                 case COP_k_OK:
-                 {
-                     try
-                     {
-                         // OPRAVA: Vyhodnocuje sa evt_type, nie evt_data1
-                         switch (LastEventMsg.evt_type)
-                         {
-                             case COP_k_NMT_EVT:
-                             case COP_k_RPDO_EVT:
-                             case COP_k_WPDO_EVT:
-                             {
-                                 if (DeviceList.ContainsKey(LastEventMsg.evt_data2))
-                                 {
-                                     DeviceList[LastEventMsg.evt_data2].ReadStatus(LastEventMsg);
-                                 }
-                             }
-                                 break;
-                             case COP_k_DLL_EVT:
-                             case COP_k_QUEUE_OVRUN_EVT:
-                             case COP_k_FLY_EVT:
-                             {
-                             }
-                                 break;
-                             default:
-                                 break;
-                         }
+        public void EmcyCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
+        {
+            short res;
+            COP_t_EMERGENCY_OBJ emcy;
+            do
+            {
+                res = COP_GetEmergencyObj_S(_keyHandle, out emcy);
+                if (res == COP_k_OK)
+                {
+                    var msg = new CanMessage { Type = ECanMessageType.Emergency, Emergency = emcy };
+                    _messageChannel.Writer.TryWrite(msg);
+                }
+            } while (COP_k_QUEUE_EMPTY != res);
+        }
 
-                         RecStatus(EventArgs.Empty);
-                     }
-                     catch (Exception)
-                     {
-                         // Ignorované podľa pôvodného kódu
-                     }
-                 }
-                     break;
-                 case COP_k_QUEUE_EMPTY:
-                     break;
-             }
-         } while (COP_k_QUEUE_EMPTY != res);
-     }
+        public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
+        {
+            short res;
+            COP_t_EVENT_OBJ evt;
+            do
+            {
+                res = COP_GetEvent(_keyHandle, out evt.evt_type, out evt.evt_data1, out evt.evt_data2,
+                    out evt.evt_data3);
+                evt.evt_data4 = 0; // Inicializácia štruktúry
+
+                if (res == COP_k_OK)
+                {
+                    var msg = new CanMessage { Type = ECanMessageType.Event, Event = evt };
+                    _messageChannel.Writer.TryWrite(msg);
+                }
+            } while (COP_k_QUEUE_EMPTY != res);
+        }
+
         private void SyncCallback(ushort boardhdl, byte que_num, byte canline)
-        {          
+        {
             short res = 0;
             byte syncCounter = 0;
             bool resultOk = false;
@@ -396,90 +568,101 @@ namespace EposCmd.Net
                 {
                     resultOk = true;
                 }
+
                 if (BER_k_ERR == res)
-                {                   
+                {
                     throw new CDeviceException($"SyncCallback : COP_CheckSync {CopErrorString(res)}");
                 }
+
                 if (BER_k_PC_MC_COMM_ERR == res)
                 {
                     throw new CDeviceException($"SyncCallback : COP_CheckSync {CopErrorString(res)}");
                 }
             } while (COP_k_QUEUE_EMPTY != res);
-            if(resultOk) lock (SyncLock) { SyncEvent = false; }
+
+            if (resultOk)
+                lock (SyncLock)
+                {
+                    SyncEvent = false;
+                }
             //Debug.WriteLine($"Sync Callback:, t :{t}, name DM:{Name}");
         }
+
         #endregion
+
         #region EventMeassages
+
         public string GetLastEventMsg()
         {
             var description = " ";
             switch (LastEventMsg.evt_type)
             {
                 case COP_k_NMT_EVT:
-                    {
-                        description =
-                            $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
-                            $"({LastEventMsg.evt_data1:X02}h){EventNMTtoStringData1(LastEventMsg.evt_data1)}, " +
-                            $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
-                            $"({LastEventMsg.evt_data3:X02}h)Status:{EventNMTtoStringData3(LastEventMsg.evt_data3)}, ";
-                    }
+                {
+                    description =
+                        $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
+                        $"({LastEventMsg.evt_data1:X02}h){EventNMTtoStringData1(LastEventMsg.evt_data1)}, " +
+                        $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
+                        $"({LastEventMsg.evt_data3:X02}h)Status:{EventNMTtoStringData3(LastEventMsg.evt_data3)}, ";
+                }
                     break;
                 case COP_k_DLL_EVT:
+                {
+                    description =
+                        $" ({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
+
+
+                    for (var i = 0; i < 6; i++)
                     {
-                        description =
-                            $" ({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
-
-
-                        for (var i = 0; i < 6; i++)
-                        {
-                            var code = (byte)(1 << i);
-                            if ((LastEventMsg.evt_data1 & code) != 0)
-                                description += $"({code:X02}h){EventDLLtoStringData1(code)}, ";
-                        }
+                        var code = (byte)(1 << i);
+                        if ((LastEventMsg.evt_data1 & code) != 0)
+                            description += $"({code:X02}h){EventDLLtoStringData1(code)}, ";
                     }
+                }
                     break;
                 case COP_k_WPDO_EVT:
-                    {
-                        description =
-                            $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
-                            $"({LastEventMsg.evt_data1:X02}h){EventPDOtoStringData1(LastEventMsg.evt_data1)}, " +
-                            $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
-                            $"({LastEventMsg.evt_data3:X02}h)Number:{LastEventMsg.evt_data3}, ";
-                    }
+                {
+                    description =
+                        $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
+                        $"({LastEventMsg.evt_data1:X02}h){EventPDOtoStringData1(LastEventMsg.evt_data1)}, " +
+                        $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
+                        $"({LastEventMsg.evt_data3:X02}h)Number:{LastEventMsg.evt_data3}, ";
+                }
                     break;
                 case COP_k_RPDO_EVT:
-                    {
-                        description =
-                            $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
-                            $"({LastEventMsg.evt_data1:X02}h){EventPDOtoStringData1(LastEventMsg.evt_data1)}, " +
-                            $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
-                            $"({LastEventMsg.evt_data3:X02}h)Number:{LastEventMsg.evt_data3}, ";
-                    }
+                {
+                    description =
+                        $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
+                        $"({LastEventMsg.evt_data1:X02}h){EventPDOtoStringData1(LastEventMsg.evt_data1)}, " +
+                        $"({LastEventMsg.evt_data2:X02}h)Node:{LastEventMsg.evt_data2}, " +
+                        $"({LastEventMsg.evt_data3:X02}h)Number:{LastEventMsg.evt_data3}, ";
+                }
                     break;
                 case COP_k_QUEUE_OVRUN_EVT:
-                    {
-                        description =
-                            $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
-                            $"({LastEventMsg.evt_data1:X02}h)EMCY, " +
-                            $"({LastEventMsg.evt_data2:X02}h)RPDO{LastEventMsg.evt_data2}, " +
-                            $"({LastEventMsg.evt_data3:X02}h)Event{LastEventMsg.evt_data3}, ";
-                    }
+                {
+                    description =
+                        $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, " +
+                        $"({LastEventMsg.evt_data1:X02}h)EMCY, " +
+                        $"({LastEventMsg.evt_data2:X02}h)RPDO{LastEventMsg.evt_data2}, " +
+                        $"({LastEventMsg.evt_data3:X02}h)Event{LastEventMsg.evt_data3}, ";
+                }
                     break;
                 case COP_k_FLY_EVT:
-                    {
-                        description =
-                            $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
-                    }
+                {
+                    description =
+                        $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
+                }
                     break;
                 default:
-                    {
-                        description = $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
-                    }
+                {
+                    description = $"({LastEventMsg.evt_type:X02}h){CopEventTypeString(LastEventMsg.evt_type)}, ";
+                }
                     break;
             }
 
             return description;
         }
+
         private string EventNMTtoStringData1(byte errorCode)
         {
             string description;
@@ -501,6 +684,7 @@ namespace EposCmd.Net
 
             return description;
         }
+
         private string EventNMTtoStringData3(byte errorCode)
         {
             string description;
@@ -531,6 +715,7 @@ namespace EposCmd.Net
 
             return description;
         }
+
         private string EventDLLtoStringData1(byte errorCode)
         {
             string description;
@@ -565,6 +750,7 @@ namespace EposCmd.Net
 
             return description;
         }
+
         private string EventPDOtoStringData1(byte errorCode)
         {
             string description;
@@ -583,6 +769,7 @@ namespace EposCmd.Net
 
             return description;
         }
+
         #endregion
     }
 }

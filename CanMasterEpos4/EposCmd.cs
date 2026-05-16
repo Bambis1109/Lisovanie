@@ -1,11 +1,26 @@
 ﻿using System.Xml.Linq;
+using IXXAT;
 
 
 namespace EposCmd
 {
     namespace Net
     {
+        public enum ECanMessageType
+        {
+            Pdo,
+            Emergency,
+            Event
+        }
 
+        public struct CanMessage
+        {
+            public ECanMessageType Type;
+            public CANopenMasterAPI6.COP_t_RX_PDO Pdo;
+            public CANopenMasterAPI6.COP_t_EMERGENCY_OBJ Emergency;
+            public CANopenMasterAPI6.COP_t_EVENT_OBJ Event;
+        }
+        
         public enum EAnalogInputConfiguration
         {
             AicAnalogCurrentSetpoint = 0,
