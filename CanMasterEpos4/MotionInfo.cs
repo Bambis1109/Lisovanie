@@ -111,42 +111,8 @@ namespace EposCmd
                         }
                     }
                     // OPRAVA 2: Pridané odpočítavanie timeoutu a oprava logických operátorov
-                    public void WaitForPositionReachedGear(double waitPosition, bool bigger, uint timeout)
-                    {
-                        if (bigger && waitPosition < Data.PositionActualGear)
-                        {
-                            Debug.WriteLine($"Node:{NodeId} WaitForPositionReachedGear waitPosition:{waitPosition} is less to actualPosition:{Data.PositionActualGear} bigger:{bigger}");
-                        }
-                        else if (!bigger && waitPosition > Data.PositionActualGear)
-                        {
-                            Debug.WriteLine($"Node:{NodeId} WaitForPositionReachedGear waitPosition:{waitPosition} is bigger to actualPosition:{Data.PositionActualGear} bigger:{bigger}");
-                        }
-
-                        bool conditionMet = SpinWait.SpinUntil(() =>
-                        {
-                            bool resultEnable = !Data.EnableState;
-                            bool resultTargetReached = Data.TargetReached;
-                            bool resultPosition = bigger ? (Data.PositionActualGear > waitPosition) : (Data.PositionActualGear < waitPosition);
-                            
-                            return resultEnable || resultTargetReached || resultPosition;
-                        }, (int)timeout);
-
-                        if (!conditionMet)
-                        {
-                            throw new CDeviceException($"Node:{NodeId} WaitForPositionReachedGear waitPosition:{waitPosition} actualPosition:{Data.PositionActualGear} bigger:{bigger}. Timeout:{timeout}ms", 0);
-                        }
-                        
-                        if (!Data.EnableState)
-                        {
-                            throw new CDeviceException($"Node:{NodeId} WaitForPositionReachedGear waitPosition:{waitPosition} actualPosition:{Data.PositionActualGear} bigger:{bigger}. Is not Enable state", 0);
-                        }
-                        
-                        if (Data.TargetReached)
-                        {
-                            Debug.WriteLine($"Node:{NodeId} WaitForPositionReachedGear waitPosition:{waitPosition} actualPosition:{Data.PositionActualGear} bigger:{bigger}. Target reached was earlier");
-                        }
-                    }
-
+                 
+/*
                     public void WaitForHomingAttained(uint timeout)
                     {
                         bool conditionMet = SpinWait.SpinUntil(() => Data.Ack || Data.FaultState, (int)timeout);
@@ -159,6 +125,68 @@ namespace EposCmd
                         if (Data.FaultState)
                         {
                             throw new CDeviceException($"WaitFor homing attained Node:{NodeId}. Fault", 0);
+                        }
+                    }
+*/
+                    public void WaitForHomingAttained(uint timeout)
+                    {
+                        bool homingSuccessfullyCompleted = false;
+                        bool homingErrorOccurred = false;
+
+                        bool conditionMet = SpinWait.SpinUntil(() =>
+                        {
+                            // Kontrola straty stavu Enable, asynchrónnej chyby zápisu alebo globálneho Faultu
+                            if (!Data.EnableState || Data.WpdoError || Data.FaultState)
+                            {
+                                return true;
+                            }
+
+                            // Vetva B: Homing Error (Bit 13 == 1)
+                            if (Data.HomingError)
+                            {
+                                homingErrorOccurred = true;
+                                return true;
+                            }
+
+                            // Vetva A: Homing úspešne ukončený (Bit 13 == 0 && Bit 12 == 1 && Bit 10 == 1)
+                            if (!Data.HomingError && Data.HomingAttained && Data.TargetReached)
+                            {
+                                homingSuccessfullyCompleted = true;
+                                return true;
+                            }
+
+                            return false;
+                        }, (int)timeout);
+
+                        // Vyhodnotenie dôvodu ukončenia SpinWait
+                        if (!conditionMet)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Timeout:{timeout}ms.", 0);
+                        }
+
+                        if (Data.WpdoError)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                        }
+
+                        if (!Data.EnableState)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Device lost Enable state.", 0);
+                        }
+
+                        if (Data.FaultState)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Device is in Fault state.", 0);
+                        }
+
+                        if (homingErrorOccurred)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Homing Error occurred (Bit 13).", 0);
+                        }
+
+                        if (!homingSuccessfullyCompleted)
+                        {
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Unknown exit condition.", 0);
                         }
                     }
 

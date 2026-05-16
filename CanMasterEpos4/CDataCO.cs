@@ -189,7 +189,8 @@ namespace EposCmd
             public bool QuickStopState => (GetStatusWord() & 0x007F) == 0x0017;
             public bool ReadyToSwitchOn => (GetStatusWord() & 0x007F) == 0x0021;
             public bool FollowingError => (GetStatusWord() & 0x2000) == 0x2000;
-
+            public bool HomingAttained => (GetStatusWord() & 0x1000) == 0x1000; // Bit 12
+            public bool HomingError => (GetStatusWord() & 0x2000) == 0x2000;    // Bit 13
 
             public ushort IpmStatus
             {
