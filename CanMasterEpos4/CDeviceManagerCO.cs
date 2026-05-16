@@ -288,6 +288,7 @@ namespace EposCmd.Net
                 }
             } while (COP_k_QUEUE_EMPTY != res);
         }
+     /*
         public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
         {
             short res = 0;
@@ -333,6 +334,56 @@ namespace EposCmd.Net
                 }
             } while (COP_k_QUEUE_EMPTY != res);
         }
+        */
+     public void StatusCallback(ushort aBoardhdl, byte aQueID, byte aCANline)
+     {
+         short res = 0;
+
+         do
+         {
+             res = COP_GetEvent(_keyHandle, out LastEventMsg.evt_type, out LastEventMsg.evt_data1, out LastEventMsg.evt_data2, out LastEventMsg.evt_data3);
+             switch (res)
+             {
+                 case COP_k_OK:
+                 {
+                     try
+                     {
+                         // OPRAVA: Vyhodnocuje sa evt_type, nie evt_data1
+                         switch (LastEventMsg.evt_type)
+                         {
+                             case COP_k_NMT_EVT:
+                             case COP_k_RPDO_EVT:
+                             case COP_k_WPDO_EVT:
+                             {
+                                 if (DeviceList.ContainsKey(LastEventMsg.evt_data2))
+                                 {
+                                     DeviceList[LastEventMsg.evt_data2].ReadStatus(LastEventMsg);
+                                 }
+                             }
+                                 break;
+                             case COP_k_DLL_EVT:
+                             case COP_k_QUEUE_OVRUN_EVT:
+                             case COP_k_FLY_EVT:
+                             {
+                             }
+                                 break;
+                             default:
+                                 break;
+                         }
+
+                         RecStatus(EventArgs.Empty);
+                     }
+                     catch (Exception)
+                     {
+                         // Ignorované podľa pôvodného kódu
+                     }
+                 }
+                     break;
+                 case COP_k_QUEUE_EMPTY:
+                     break;
+             }
+         } while (COP_k_QUEUE_EMPTY != res);
+     }
         private void SyncCallback(ushort boardhdl, byte que_num, byte canline)
         {          
             short res = 0;

@@ -67,6 +67,24 @@ namespace EposCmd
                     throw new CDeviceException(Message + "  (" + CopErrorString(res) + ")", (uint)res);
                 }
             }
+           
+            protected void WritePDO(byte Pdo, byte[] TxData)
+            {
+                lock (Data.NodePdoLock)
+                {
+                    if (!Data.RemoteStatus)
+                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] (Remote status off.) ", 0);
+            
+                    short res = COP_WritePDO(KeyHandle, NodeId, Pdo, TxData);
+            
+                    if (res != COP_k_OK)
+                    {
+                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] ({CopErrorString(res)}) ", (uint)res);
+                    }
+                }
+            }
+            
+            /*
             protected void WritePDO(byte Pdo, byte[] TxData)
             {
                 lock (Data.NodePdoLock)
@@ -100,6 +118,8 @@ namespace EposCmd
                     }
                 }
             }
+            
+            */
             protected void SetControlword(ushort value)
             {
                 try
@@ -246,11 +266,26 @@ namespace EposCmd
                 SetEnableStateAndWait(); // Resetnutie ACK
                 WaitForResetACK(2000); // Cakanie na ACK = false
             }
+            /*
             private void WaitForEnableState(int time)
             {
                 if (!SpinWait.SpinUntil(() => { var x = Data.Statusword; return Data.EnableState; }, time))
                 {
                     var message = $"SetEnable Node:{NodeId:d}. Timeout set enable. Time:{time}"; throw new CDeviceException(message, 0);
+                }
+            }
+            */
+            private void WaitForEnableState(int time)
+            {
+                if (!SpinWait.SpinUntil(() => Data.EnableState || Data.WpdoError, time))
+                {
+                    var message = $"SetEnable Node:{NodeId:d}. Timeout set enable. Time:{time}"; 
+                    throw new CDeviceException(message, 0);
+                }
+
+                if (Data.WpdoError)
+                {
+                    throw new CDeviceException($"SetEnable Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
                 }
             }
             private void WaitForDisableState(int time)
@@ -267,6 +302,7 @@ namespace EposCmd
                     var message = $"SetSwitchOn  Node:{NodeId:d}. Timeout set SwitchOn. Time:{time}"; throw new CDeviceException(message, 0);
                 }
             }
+          /*
             public void WaitForSetACK(uint timeout)
             {
                 if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState, (int)timeout))
@@ -274,6 +310,8 @@ namespace EposCmd
                     throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
                 }
             }
+           
+          
             public void WaitForResetACK(uint timeout)
             {
                 if (!SpinWait.SpinUntil(() => !Data.Ack, (int)timeout))
@@ -281,14 +319,34 @@ namespace EposCmd
                     throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
                 }
             }
-            public void WaitForEnableState(uint timeout)
-            {
-                if (!SpinWait.SpinUntil(() => Data.Ack, (int)timeout))
-                {
-                    var Message = $"Wait for Enable  Node:{NodeId:d}. Timeout";
-                    throw new CDeviceException(Message, 0);
-                }
-            }
+             */
+          public void WaitForSetACK(uint timeout)
+          {
+              if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState || Data.WpdoError, (int)timeout))
+              {
+                  throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
+              }
+
+              if (Data.WpdoError)
+              {
+                  throw new CDeviceException($"Wait for set ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+              }
+          }
+
+          public void WaitForResetACK(uint timeout)
+          {
+              if (!SpinWait.SpinUntil(() => !Data.Ack || Data.WpdoError, (int)timeout))
+              {
+                  throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
+              }
+
+              if (Data.WpdoError)
+              {
+                  throw new CDeviceException($"Wait for reset ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+              }
+          }
+          
+         
             protected EOperationMode GetModeOfOperation() { return Data.ModeOfOperationDisplay; }
             protected EStates GetStateCommand()
             {

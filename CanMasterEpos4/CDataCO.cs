@@ -55,6 +55,36 @@ namespace EposCmd
             public double Gear;
             public double Pulse;
             private ushort _statusword;
+            
+            //++++++++++++++++++++++++++++++++ Uprava krok 2 ++++++++++++++++++++++++++++++++++
+            
+            private readonly object LockingWpdoError = new object();
+            private bool _wpdoError;
+            private byte _wpdoErrorPdoNumber;
+
+            public bool WpdoError
+            {
+                get { lock (LockingWpdoError) { return _wpdoError; } }
+                set { lock (LockingWpdoError) { _wpdoError = value; } }
+            }
+
+            public byte WpdoErrorPdoNumber
+            {
+                get { lock (LockingWpdoError) { return _wpdoErrorPdoNumber; } }
+                set { lock (LockingWpdoError) { _wpdoErrorPdoNumber = value; } }
+            }
+
+            public void ResetWpdoError()
+            {
+                lock (LockingWpdoError)
+                {
+                    _wpdoError = false;
+                    _wpdoErrorPdoNumber = 0;
+                }
+            }
+            
+            //--------------------------- Uprava krok 2 --------------------------------
+            
             public CDataCO(byte nodeId, string name, double gear)
             {
                 _statusword = 0;

@@ -82,7 +82,7 @@ namespace EposCmd
                         break;
                 }
             }
-
+/*
             public override void ReadStatus(COP_t_EVENT_OBJ eventMsg)
             {
                 Data.LastEvent = eventMsg;
@@ -106,6 +106,39 @@ namespace EposCmd
 
                 RecStatus(EventArgs.Empty);
             }
+            */
+            public override void ReadStatus(COP_t_EVENT_OBJ eventMsg)
+            {
+                Data.LastEvent = eventMsg;
+    
+                // OPRAVA: Vyhodnocuje sa evt_type, nie evt_data1
+                switch (eventMsg.evt_type)
+                {
+                    case COP_k_NMT_EVT:
+                    case COP_k_DLL_EVT:
+                    {
+                        Data.Statusword = 0;
+                    }
+                        break;
+                    case COP_k_WPDO_EVT:
+                    {
+                        // Zaznamenanie asynchrónnej chyby zápisu PDO
+                        Data.WpdoError = true;
+                        Data.WpdoErrorPdoNumber = eventMsg.evt_data3;
+                    }
+                        break;
+                    case COP_k_QUEUE_OVRUN_EVT:
+                    case COP_k_FLY_EVT:
+                    {
+                    }
+                        break;
+                    default:
+                        break;
+                }
+
+                RecStatus(EventArgs.Empty);
+            }
+
 
             public override void ReadEmergency(COP_t_EMERGENCY_OBJ spEmergency)
             {
@@ -131,5 +164,7 @@ namespace EposCmd
 
         
         }
+      
+
     }
 }

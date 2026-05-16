@@ -44,11 +44,41 @@ namespace EposCmd
                         }
                     }
                     public void HaltPositionMovement() => throw new CDeviceException($"Not implementation!", 0);
+                    /*
                     public void MoveToPosition(int targetPosition, bool absolute, bool immediately)
                     {
                         try
                         {
                             TestBeforSetPointPpm();
+        
+                            ushort controlword = 0;
+                            if (absolute)
+                            {
+                                controlword = immediately ? (ushort)0x003F : (ushort)0x001F;
+                            }
+                            else
+                            {
+                                controlword = immediately ? (ushort)0x007F : (ushort)0x005F;
+                            }
+
+                            SetCW_TP(controlword, targetPosition);
+                            WaitForACK();
+                        }
+                        catch (CDeviceException e)
+                        {
+                            throw new CDeviceException($"MoveToPosition:{e.ErrorMessage}", 0);
+                        }
+                    }
+                    */
+                    
+                    public void MoveToPosition(int targetPosition, bool absolute, bool immediately)
+                    {
+                        try
+                        {
+                            TestBeforSetPointPpm();
+        
+                            // Reset asynchrónneho chybového príznaku pred novým príkazom
+                            Data.ResetWpdoError();
         
                             ushort controlword = 0;
                             if (absolute)
