@@ -14,9 +14,7 @@
                         NodeId = nodeId;
                         this.Data = Data;
                     }
-
-                    public CyclicSynPositionModeAdvanced Advanced { get; }
-
+                  
                     public void ActivateCyclicSynPositionMode()
                     {
                         SetModeOfOperation(EOperationMode.OmdCyclicSynchronousPositionMode);
@@ -30,9 +28,7 @@
                     public void SetPositionMust(int positionMust)
                     {
                         WritedSDO(0x2062, 0x00, (ulong)positionMust, 4);
-                        //var Txdata = new byte[4];
-                        //Txdata = BitConverter.GetBytes(positionMust);
-                        //WritePDO(4, Txdata);
+                      
                     }
                 }
             }

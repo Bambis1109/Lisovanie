@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {
@@ -16,7 +14,7 @@ namespace EposCmd
                         NodeId = nodeId;
                         this.Data = Data;
                     }
-                
+
                     public void ActivateHomingMode()
                     {
                         SetModeOfOperation(EOperationMode.OmdHomingMode);
@@ -27,18 +25,22 @@ namespace EposCmd
                     {
                         TestStateDeviceForFindHome();
                         Data.ResetWpdoError();
-    
+
                         SetControlword(0x001F); // Start Homing (Bit 4 = 1)
-    
+
                         // Exaktné čakanie na potvrdenie štartu od EPOS4 (Bit 10 a 12 musia klesnúť na 0)
-                        if (!SpinWait.SpinUntil(() => (!Data.TargetReached && !Data.HomingAttained) || Data.WpdoError || !Data.EnableState, 1000))
+                        if (!SpinWait.SpinUntil(
+                                () => (!Data.TargetReached && !Data.HomingAttained) || Data.WpdoError ||
+                                      !Data.EnableState, 1000))
                         {
-                            throw new CDeviceException($"FindHome Node:{NodeId}. Timeout waiting for homing to start.", 0);
+                            throw new CDeviceException($"FindHome Node:{NodeId}. Timeout waiting for homing to start.",
+                                0);
                         }
 
                         if (Data.WpdoError)
                         {
-                            throw new CDeviceException($"FindHome Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                            throw new CDeviceException(
+                                $"FindHome Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
                         }
                     }
 
@@ -52,27 +54,13 @@ namespace EposCmd
                     {
                         SetEnableStateAndWait(); // Zhodí Bit 4 na 0, čím preruší Homing
                     }
-                    
-                    /*
-                    public void ActivateHomingMode()
-                    {
-                        SetModeOfOperation(EOperationMode.OmdHomingMode);
-                        SetEnableState();
-                        WaitForResetACK(100);
-                    }
-                    */
+
                     public void DefinePosition(int homePosition)
                     {
                         WritedSDO(0x2081, 0x00, (uint)homePosition, 4); // home position
                         FindHome(EHomingMethod.HmActualPosition);
                     }
-                 /*
-                    public void FindHome(EHomingMethod homingMethod)
-                    {
-                        WritedSDO(0x6098, 0x00, (byte)homingMethod, 1);
-                        SetControlword(0x1F); // Set start home
-                    }
-                   */
+
                     private void TestStateDeviceForFindHome()
                     {
                         var operationMode = GetModeOfOperation();
@@ -104,26 +92,21 @@ namespace EposCmd
                         currentTreshold = (ushort)ReadSdo(0x6080, 0x00, 2); //curent treshold
                         homePosition = (int)ReadSdo(0x6081, 0x00, 4); // home position
                     }
-                 /*
-                    public void FindHome()
-                    {
-                        TestStateDeviceForFindHome();
-                        //  WritedSDO(0x6098, 0x00, (byte)homingMethod, 1);
-                        SetControlword(0x1F); // Set start home
-                        Thread.Sleep(10);
-                    }
-                    */
+
                     public void GetHomingState(ref bool homingAttained, ref bool homingError)
                     {
                     }
+
                     public int GetSSiEncoderActualPositionA()
                     {
                         return (int)ReadSdo(0x3012, 0x09, 4);
                     }
+
                     public int GetSSiEncoderActualPosition()
                     {
                         return (int)ReadSdo(0x2211, 0x03, 4);
                     }
+
                     public void SetHomingParameter(uint homingAcceleration, uint speedSwitch, uint speedIndex,
                         int homeOffset, ushort currentTreshold, int homePosition, EHomingMethod homingMethod)
                     {
@@ -137,12 +120,6 @@ namespace EposCmd
                         WritedSDO(0x6098, 0x00, (byte)homingMethod, 1); //Homing metod
                         var x = Data.Statusword;
                     }
-                    /*
-                    public void StopHoming()
-                    {
-                        SetEnableStateAndWait();
-                    }
-                    */
                 }
             }
         }

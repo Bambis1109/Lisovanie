@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {

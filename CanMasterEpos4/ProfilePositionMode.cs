@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {
@@ -16,7 +14,7 @@ namespace EposCmd
                         NodeId = nodeId;
                         this.Data = Data;
                     }
-                    public ProfilePositionModeAdvanced Advanced { get; }
+
                     public void ActivateProfilePositionMode()
                     {
                         SetModeOfOperation(EOperationMode.OmdProfilePositionMode);
@@ -24,13 +22,16 @@ namespace EposCmd
                         WaitForResetACK(100);
                     }
 
-                    public void GetPositionProfile(ref uint profileVelocity, ref uint profileAcceleration, ref uint profileDeceleration)
+                    public void GetPositionProfile(ref uint profileVelocity, ref uint profileAcceleration,
+                        ref uint profileDeceleration)
                     {
                         profileVelocity = (uint)ReadSdo(0x6081, 0x00, 4);
                         profileAcceleration = (uint)ReadSdo(0x6083, 0x00, 4);
                         profileDeceleration = (uint)ReadSdo(0x6084, 0x00, 4);
                     }
+
                     public int GetTargetPosition() => (int)ReadSdo(0x607a, 0x00, 4);
+
                     public void SetTargetPosition(int targetPosition)
                     {
                         try
@@ -43,43 +44,18 @@ namespace EposCmd
                             throw new CDeviceException($"SetTargetPositiion: {e.ErrorMessage}", 0);
                         }
                     }
-                    public void HaltPositionMovement() => throw new CDeviceException($"Not implementation!", 0);
-                    /*
-                    public void MoveToPosition(int targetPosition, bool absolute, bool immediately)
-                    {
-                        try
-                        {
-                            TestBeforSetPointPpm();
-        
-                            ushort controlword = 0;
-                            if (absolute)
-                            {
-                                controlword = immediately ? (ushort)0x003F : (ushort)0x001F;
-                            }
-                            else
-                            {
-                                controlword = immediately ? (ushort)0x007F : (ushort)0x005F;
-                            }
 
-                            SetCW_TP(controlword, targetPosition);
-                            WaitForACK();
-                        }
-                        catch (CDeviceException e)
-                        {
-                            throw new CDeviceException($"MoveToPosition:{e.ErrorMessage}", 0);
-                        }
-                    }
-                    */
-                    
+                    public void HaltPositionMovement() => throw new CDeviceException($"Not implementation!", 0);
+
                     public void MoveToPosition(int targetPosition, bool absolute, bool immediately)
                     {
                         try
                         {
                             TestBeforSetPointPpm();
-        
+
                             // Reset asynchrónneho chybového príznaku pred novým príkazom
                             Data.ResetWpdoError();
-        
+
                             ushort controlword = 0;
                             if (absolute)
                             {
@@ -98,6 +74,7 @@ namespace EposCmd
                             throw new CDeviceException($"MoveToPosition:{e.ErrorMessage}", 0);
                         }
                     }
+
                     public void MoveToPositionSync(int targetPosition, bool absolute, bool immediately)
                     {
                         try
@@ -120,6 +97,7 @@ namespace EposCmd
                             throw new CDeviceException($"MoveToPosition:{e.ErrorMessage}", 0);
                         }
                     }
+
                     public void MoveToPositionGear(double targetPosition, bool absolute, bool immediately)
                     {
                         try
@@ -132,6 +110,7 @@ namespace EposCmd
                             throw new CDeviceException($"MoveToPositionGear:{e.ErrorMessage}", 0);
                         }
                     }
+
                     public void MoveToPositionGearSync(double targetPosition, bool absolute, bool immediately)
                     {
                         try
@@ -154,13 +133,17 @@ namespace EposCmd
                             throw new CDeviceException($"MoveToPosition:{e.ErrorMessage}", 0);
                         }
                     }
-                    public void SetPositionProfile(uint profileVelocity, uint profileAcceleration, uint profileDeceleration)
+
+                    public void SetPositionProfile(uint profileVelocity, uint profileAcceleration,
+                        uint profileDeceleration)
                     {
                         WritedSDO(0x6081, 0x00, profileVelocity, 4);
                         WritedSDO(0x6083, 0x00, profileAcceleration, 4);
                         WritedSDO(0x6084, 0x00, profileDeceleration, 4);
                     }
-                    public void SetPositionProfileGear(double profileVelocity, double profileAcceleration, double profileDeceleration)
+
+                    public void SetPositionProfileGear(double profileVelocity, double profileAcceleration,
+                        double profileDeceleration)
                     {
                         double om = Data.Gear / Data.Pulse;
 
@@ -168,15 +151,18 @@ namespace EposCmd
                         WritedSDO(0x6083, 0x00, (ulong)Math.Round(profileAcceleration * om), 4);
                         WritedSDO(0x6084, 0x00, (ulong)Math.Round(profileDeceleration * om), 4);
                     }
+
                     private void TestBeforSetPointPpm()
                     {
                         if (Data.ModeOfOperationDisplay != EOperationMode.OmdProfilePositionMode)
-                            throw new CDeviceException($"Node {NodeId:d}: Operation mode is not PPM [{Data.ModeOfOperationDisplay}]", 0);
+                            throw new CDeviceException(
+                                $"Node {NodeId:d}: Operation mode is not PPM [{Data.ModeOfOperationDisplay}]", 0);
                         var stateDevice = GetStateCommand();
-                        if (stateDevice != EStates.StEnabled) throw new CDeviceException($"Node {NodeId:d}: State of device is not Enable [{stateDevice}]", 0);
+                        if (stateDevice != EStates.StEnabled)
+                            throw new CDeviceException(
+                                $"Node {NodeId:d}: State of device is not Enable [{stateDevice}]", 0);
                         if (Data.Ack) throw new CDeviceException($"Ack is not reset.  Node:{NodeId:d}", 0);
                     }
-
                 }
             }
         }

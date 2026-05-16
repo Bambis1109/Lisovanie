@@ -1,29 +1,10 @@
-/*************************************************************************
-**    IXXAT Automation GmbH Weingarten
-**************************************************************************
-** Summary : Class CANopenMasterAPI that declares constants and
-**           function prototypes for CANopen Master API 6
-** Compiler: Visual Studio 2008 (.NET Framework 2.0)
-**************************************************************************
-** Copyright (C) 2002-2015 IXXAT Automation GmbH, all rights reserved
-**************************************************************************/
-
-using System;
 using System.Runtime.InteropServices;
 
-/*##########################################################################
- Name:
-  IXXAT
-
- Description :
-  Contains IXXAT product related type definitions.
-##########################################################################*/
 namespace IXXAT
 {
     /*##########################################################################
      Name:
       CANopenMasterAPI6
-
      Description :
       Defines and Structures for the command queue between firmware and API-DLL
     ##########################################################################*/
@@ -67,9 +48,9 @@ namespace IXXAT
         public const short BER_k_OK = 0; //  success
         public const short BER_k_ERR = 1; //  general error
         public const short COP_k_NO_OBJECTS = 9; //  compatibility entry for COP_k_QUEUE_EMPTY
-        public const short BER_k_DATA_CORRUPT = -41; //  corrupt data detected µC to PC
+        public const short BER_k_DATA_CORRUPT = -41; //  corrupt data detected ï¿½C to PC
         public const short BER_k_NOT_SENT = -40; //  msg not sent; try again
-        public const short BER_k_TIMEOUT = -38; //  timeout in communication PC to µC
+        public const short BER_k_TIMEOUT = -38; //  timeout in communication PC to ï¿½C
         public const short BER_k_BOARD_ALREADY_USED = -37; //  board is used by another instance
         public const short BER_k_ALL_BOARDS_USED = -36; //  no free board slots inside DLL
         public const short BER_k_BOARD_NOT_SUPP = -35; //  the given board is not supported by CANopen Master API
@@ -77,7 +58,7 @@ namespace IXXAT
         public const short BER_k_CANNOT_SEARCH_BOARD = -33; //  Hardware selection Dialog cancelled by user
         public const short BER_k_WRONG_FW = -32; //  wrong firmware version
         public const short BER_k_USED_FROM_OTHER_PROCESS = -31; //  board is used by another application
-        public const short BER_k_PC_MC_COMM_ERR = -30; //  communication error PC to µC
+        public const short BER_k_PC_MC_COMM_ERR = -30; //  communication error PC to ï¿½C
         public const short BER_k_BOARD_DLD_ERR = -29; //  an error occured while firmware download
         public const short BER_k_BADCALLBACK_PTR = -28; //  a callbackpointer is invalid
         public const short BER_k_NO_SUCH_CANLINE = -27; //  given CANline is not available or not supported
@@ -1034,7 +1015,7 @@ namespace IXXAT
         //                    BER_k_ERR       : boardhandle not valid
         //                    BER_k_TIMEOUT   : no confirmation received
         //                    BER_k_PC_MC_COMM_ERR:
-        //                                      Communication error PC to µC
+        //                                      Communication error PC to ï¿½C
         //                    BER_k_DATA_CORRUPT:
         //                                      Sequence number incorrect
         //
@@ -2115,7 +2096,7 @@ namespace IXXAT
         //
         //    Returnvalues  : BER_k_ERR       : boardhandle not valid
         //                    BER_k_PC_MC_COMM_ERR:
-        //                                      Communication error PC to µC
+        //                                      Communication error PC to ï¿½C
         //                    COP_k_OK        : sync signaled
         //
         //************************************************************************
@@ -2204,7 +2185,7 @@ namespace IXXAT
         //                                      Thread execution cancelled
         //                    BER_k_OK        : success
         //                    BER_k_PC_MC_COMM_ERR:
-        //                                      Communication error PC to µC
+        //                                      Communication error PC to ï¿½C
         //                    COP_k_IV        : invalid parameter
         //                    COP_k_NOT_FOUND : node not present in network
         //                    COP_k_TIMEOUT   : SDO response timeout expired
@@ -2257,7 +2238,7 @@ namespace IXXAT
         //                                      Thread execution cancelled
         //                    BER_k_OK        : success
         //                    BER_k_PC_MC_COMM_ERR:
-        //                                      Communication error PC to µC
+        //                                      Communication error PC to ï¿½C
         //                    COP_k_IV        : invalid parameter
         //                    COP_k_NOT_FOUND : node not present in network
         //                    COP_k_TIMEOUT   : SDO response timeout expired
@@ -2341,14 +2322,14 @@ namespace IXXAT
         //
         //    Returnvalues  : BER_k_ERR       : boardhandle not valid
         //                    BER_k_OK        : success
-        //                    BER_k_TIMEOUT   : timeout in communication PC to µC
+        //                    BER_k_TIMEOUT   : timeout in communication PC to ï¿½C
         //                    BER_k_SDO_THREAD_ERR:
         //                                      Thread execution cancelled
         //                    BER_k_DATA_CORRUPT:
-        //                                      Corrupt data detected µC to PC,
+        //                                      Corrupt data detected ï¿½C to PC,
         //                                      SDO job still pending
         //                    BER_k_PC_MC_COMM_ERR:
-        //                                      Communication error PC to µC
+        //                                      Communication error PC to ï¿½C
         //                    COP_k_IV        : invalid parameter
         //                    COP_k_NOT_FOUND : node not present in network
         //                    COP_k_SDO_RUNNING:SDO transfer currently running, the
@@ -3517,14 +3498,14 @@ namespace IXXAT
                     description = "general error";
                     break;
                 case BER_k_DATA_CORRUPT:
-                    description = "corrupt data detected µC to PC";
+                    description = "corrupt data detected ï¿½C to PC";
                     break;
                 case BER_k_NOT_SENT:
                     description = "msg not sent, try again";
                     break;
                 //case  BER_k_NO_NEW_MSG            : description = "no new msg (queue empty)"; break;
                 case BER_k_TIMEOUT:
-                    description = "timeout in communication PC to µC";
+                    description = "timeout in communication PC to ï¿½C";
                     break;
                 case BER_k_BOARD_ALREADY_USED:
                     description = "board is used by another instance";
@@ -3548,7 +3529,7 @@ namespace IXXAT
                     description = "board is used by another application";
                     break;
                 case BER_k_PC_MC_COMM_ERR:
-                    description = "communication error PC to µC";
+                    description = "communication error PC to ï¿½C";
                     break;
                 case BER_k_BOARD_DLD_ERR:
                     description = "an error occured while firmware download";

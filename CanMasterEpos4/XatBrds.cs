@@ -1,15 +1,3 @@
-/*************************************************************************
-**    IXXAT Automation GmbH Weingarten
-**************************************************************************
-** Summary : Class XatBoards that declares constants for identification
-**           of IXXAT board types.
-** Compiler: VisualStudio 2008 (.NET Framework 2.0)
-**************************************************************************
-** Copyright (C) 2002-2016 IXXAT Automation GmbH, all rights reserved
-**************************************************************************/
-
-using System;
-
 namespace IXXAT
 {
     /*##########################################################################

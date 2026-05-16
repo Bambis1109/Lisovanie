@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading;
-using static IXXAT.CANopenMasterAPI6;
+﻿using static IXXAT.CANopenMasterAPI6;
 
 
 namespace EposCmd
@@ -90,42 +88,6 @@ namespace EposCmd
                 }
             }
 
-            /*
-            protected void WritePDO(byte Pdo, byte[] TxData)
-            {
-                lock (Data.NodePdoLock)
-                {
-                    var temp = TxData.Clone();
-                    if (!Data.RemoteStatus)
-                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{NodeId:d}] (Remote status off.) ", 0);
-
-                    short res;
-                    int retries = 0;
-                    const int maxRetries = 1000;
-                    var spinWait = new SpinWait();
-
-                    do
-                    {
-                        res = COP_WritePDO(KeyHandle //  handle of CAN board
-                            , NodeId //  number of the node
-                            , Pdo //  number of the pdo
-                            , TxData);
-
-                        if (res == COP_k_BSY)
-                        {
-                            spinWait.SpinOnce();
-                            retries++;
-                        }
-                    } while (res == COP_k_BSY && retries < maxRetries);
-
-                    if (COP_k_OK != res)
-                    {
-                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] ({CopErrorString(res)}) ", (uint)res);
-                    }
-                }
-            }
-
-            */
             protected void SetControlword(ushort value)
             {
                 try
@@ -297,15 +259,7 @@ namespace EposCmd
                 WaitForResetACK(2000); // Cakanie na ACK = false
             }
 
-            /*
-            private void WaitForEnableState(int time)
-            {
-                if (!SpinWait.SpinUntil(() => { var x = Data.Statusword; return Data.EnableState; }, time))
-                {
-                    var message = $"SetEnable Node:{NodeId:d}. Timeout set enable. Time:{time}"; throw new CDeviceException(message, 0);
-                }
-            }
-            */
+
             private void WaitForEnableState(int time)
             {
                 if (!SpinWait.SpinUntil(() => Data.EnableState || Data.WpdoError, time))
@@ -339,24 +293,6 @@ namespace EposCmd
                 }
             }
 
-            /*
-              public void WaitForSetACK(uint timeout)
-              {
-                  if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState, (int)timeout))
-                  {
-                      throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
-                  }
-              }
-
-
-              public void WaitForResetACK(uint timeout)
-              {
-                  if (!SpinWait.SpinUntil(() => !Data.Ack, (int)timeout))
-                  {
-                      throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
-                  }
-              }
-               */
             public void WaitForSetACK(uint timeout)
             {
                 if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState || Data.WpdoError, (int)timeout))
@@ -384,7 +320,6 @@ namespace EposCmd
                         $"Wait for reset ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
                 }
             }
-
 
             protected EOperationMode GetModeOfOperation()
             {
@@ -571,43 +506,34 @@ namespace EposCmd
                     default: break;
                 }
             }
-/*
-            public void ClearFault()
-            {
-                if (Data.FaultState)
-                {
-                    WritedSDO(0x1003, 0, 0, 1); //SetControlword(0x00); //Disable
-                    Thread.Sleep(1);
-                    SetControlword(0x80); // Clear device error
-                    Thread.Sleep(100);
-                }
-            }
-            */
+
             public void ClearFault()
             {
                 if (Data.FaultState)
                 {
                     // Vymazanie histórie chýb (ponechané z pôvodného kódu)
                     WritedSDO(0x1003, 0, 0, 1);
-        
+
                     // 1. Garantovaný prechod Bitu 7 (Fault Reset) z 0 na 1
                     SetControlword(0x0000);
                     Thread.Sleep(10); // Krátka pauza pre spracovanie na strane EPOS4
                     SetControlword(0x0080);
-        
+
                     // Čakanie na opustenie stavu Fault (EPOS4 prechádza do Switch On Disabled)
                     if (!SpinWait.SpinUntil(() => !Data.FaultState, 1000))
                     {
-                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Fault state clear.", 0);
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Fault state clear.",
+                            0);
                     }
 
                     // 2. Sekvencia pre návrat do Operation Enabled (0x0006 -> 0x0007 -> 0x000F)
-        
+
                     // Krok A: Shutdown (0x0006) -> prechod do Ready to Switch On
                     SetControlword(0x0006);
                     if (!SpinWait.SpinUntil(() => Data.ReadyToSwitchOn, 500))
                     {
-                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for ReadyToSwitchOn.", 0);
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for ReadyToSwitchOn.",
+                            0);
                     }
 
                     // Krok B: Switch On (0x0007) -> prechod do Switched On
@@ -622,7 +548,8 @@ namespace EposCmd
                     SetControlword(0x000F);
                     if (!SpinWait.SpinUntil(() => Data.EnableState, 500))
                     {
-                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Operation Enabled.", 0);
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Operation Enabled.",
+                            0);
                     }
                 }
             }

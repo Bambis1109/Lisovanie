@@ -15,8 +15,6 @@
                         this.Data = Data;
                     }
 
-                    public ProfileVelocityModeAdvanced Advanced { get; }
-
                     public void ActivateProfileVelocityMode()
                     {
                     }

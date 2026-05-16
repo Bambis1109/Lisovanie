@@ -1,7 +1,4 @@
-﻿using System;
-using static IXXAT.CANopenMasterAPI6;
-
-
+﻿using static IXXAT.CANopenMasterAPI6;
 namespace EposCmd
 {
     namespace Net
@@ -82,9 +79,7 @@ namespace EposCmd
                     _wpdoErrorPdoNumber = 0;
                 }
             }
-            
-            //--------------------------- Uprava krok 2 --------------------------------
-            
+         
             public CDataCO(byte nodeId, string name, double gear)
             {
                 _statusword = 0;
@@ -298,10 +293,7 @@ namespace EposCmd
 
             private void WritePDO4()
             {
-                //var Txdata = new byte[4];
-                //Txdata = BitConverter.GetBytes(targetPosition);
-                //WritePDO(4, Txdata);
-            }
+               }
             private ushort GetStatusWord()
             {
                 if (!RemoteStatus)

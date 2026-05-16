@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {
@@ -41,6 +39,7 @@ namespace EposCmd
                     {
                         Data.Gear = gear;
                     }
+
                     public Configuration(ushort keyHandle, byte nodeId)
                     {
                         KeyHandle = keyHandle;
@@ -116,25 +115,25 @@ namespace EposCmd
                     {
                     }
 
-                    public void DigitalOutputConfiguration(ushort digitalOutputNb, EDigitalOutputConfiguration configuration, bool state, bool mask, bool polarity)
+                    public void DigitalOutputConfiguration(ushort digitalOutputNb,
+                        EDigitalOutputConfiguration configuration, bool state, bool mask, bool polarity)
                     {
-
                         //Set configuration for output port
                         WritedSDO(0x2079, (byte)digitalOutputNb, (ushort)configuration, 2);
 
                         ushort digitalOutpuState = (ushort)ReadSdo(0x2078, 0x01, 2);
-                        WritedSDO(0x2078, 0x01, ModificationBit(digitalOutpuState,(ushort)configuration,state), 2);
+                        WritedSDO(0x2078, 0x01, ModificationBit(digitalOutpuState, (ushort)configuration, state), 2);
 
                         ushort digitalOutpuMask = (ushort)ReadSdo(0x2078, 0x02, 2);
                         WritedSDO(0x2078, 0x02, ModificationBit(digitalOutpuMask, (ushort)configuration, mask), 2);
 
                         ushort digitalOutpuPolarity = (ushort)ReadSdo(0x2078, 0x03, 2);
-                        WritedSDO(0x2078, 0x03, ModificationBit(digitalOutpuPolarity, (ushort)configuration, polarity), 2);
-
+                        WritedSDO(0x2078, 0x03, ModificationBit(digitalOutpuPolarity, (ushort)configuration, polarity),
+                            2);
                     }
 
 
-                    public ushort ModificationBit(ushort value,ushort bitNumber,bool bit)
+                    public ushort ModificationBit(ushort value, ushort bitNumber, bool bit)
                     {
                         if (!bit)
                         {
@@ -142,10 +141,11 @@ namespace EposCmd
                         }
                         else
                         {
-                            return (ushort) (value | (1 << bitNumber))  ;
+                            return (ushort)(value | (1 << bitNumber));
                         }
                     }
                 }
+
                 public class Motor : CCommandGroupCO
                 {
                     public Motor(ushort keyHandle, byte nodeId)
@@ -153,14 +153,17 @@ namespace EposCmd
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
                     }
+
                     public void SetNominalCurrent(UInt32 nominalCurent)
                     {
                         WritedSDO(0x3001, 0x01, (UInt32)nominalCurent, 4);
                     }
+
                     public void SetOutputCurrentLimit(UInt32 outputCurrentLimit)
                     {
                         WritedSDO(0x3001, 0x02, (UInt32)outputCurrentLimit, 4);
                     }
+
                     public void SetCurrentLimits(UInt32 nominalCurrent, UInt32 outputCurrentLimit)
                     {
                         SetNominalCurrent(nominalCurrent);
@@ -168,16 +171,15 @@ namespace EposCmd
                     }
 
 
-
                     public UInt32 GetNominalCurrent()
                     {
-                        return (UInt32)ReadSdo(0x3001, 0x01,4);
+                        return (UInt32)ReadSdo(0x3001, 0x01, 4);
                     }
+
                     public UInt32 GetOutputCurrentLimit()
                     {
                         return (UInt32)ReadSdo(0x3001, 0x02, 4);
                     }
-
 
 
                     public void GetDcMotorParameter(ref ushort nominalCurrent, ref ushort maxOutputCurrent,
@@ -277,7 +279,8 @@ namespace EposCmd
 
                     public uint GetMaxFollowingError()
                     {
-                        return (uint)ReadSdo(0x6065, 0x00, 4); ;
+                        return (uint)ReadSdo(0x6065, 0x00, 4);
+                        ;
                     }
 
                     public uint GetMaxProfileVelocity()
@@ -290,8 +293,8 @@ namespace EposCmd
                     }
 
                     public void SetMaxFollowingError(uint maxFollowingError)
-                    {                        
-                        WritedSDO(0x6065, 0x00, maxFollowingError, 4);                        
+                    {
+                        WritedSDO(0x6065, 0x00, maxFollowingError, 4);
                     }
 
                     public void SetMaxProfileVelocity(uint maxProfileVelocity)

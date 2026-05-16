@@ -1,8 +1,4 @@
-﻿using EposCmd.Net.DeviceCmdSet.DataRecorder;
-using System.Diagnostics;
-using System.Threading;
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {
@@ -18,7 +14,7 @@ namespace EposCmd
                         NodeId = nodeId;
                         Data = data;
                     }
-                    
+
                     public int GetCurrentIs() => (int)ReadSdo(0x6078, 0x00, 4);
                     public int GetCurrentIsAveraged() => (int)ReadSdo(0x2027, 0x00, 4);
                     public int GetPositionIs() => (int)ReadSdo(0x6064, 0x00, 4);
@@ -27,30 +23,6 @@ namespace EposCmd
                     public int GetVelocityIs() => (int)ReadSdo(0x606C, 0x00, 4);
                     public int GetVelocityIsAveraged() => (int)ReadSdo(0x2028, 0x00, 4);
 
-                    // OPRAVA 1: Použitie SpinWait pre bezpečný timeout
-                    /*
-                    public void WaitForTargetReached(uint timeout)
-                    {
-                        // Čakáme kým nenastane jedna z podmienok:
-                        // 1. Target Reached (Bit 10) je true
-                        // 2. Motor stratil Enable (napr. spadol do QuickStop alebo Disable)
-                        // 3. Motor hlási Fault (Bit 3)
-                        bool conditionMet = SpinWait.SpinUntil(() => 
-                            Data.TargetReached || !Data.EnableState || Data.FaultState, (int)timeout);
-
-                        if (!conditionMet)
-                        {
-                            var Message = $"WaitForTargetReached Node:{NodeId}. Timeout:{timeout}ms. TargetReached:{Data.TargetReached} Ack:{Data.Ack}";
-                            throw new CDeviceException(Message, 0);
-                        }
-
-                        if (Data.FaultState)
-                        {
-                            var Message = $"WaitForTargetReached Node:{NodeId}. Device is in Fault state.";
-                            throw new CDeviceException(Message, 0);
-                        }
-                    }
-*/
                     public void WaitForTargetReached(uint timeout)
                     {
                         bool targetReachedSuccessfully = false;
@@ -91,43 +63,31 @@ namespace EposCmd
 
                         if (Data.WpdoError)
                         {
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                            throw new CDeviceException(
+                                $"WaitForTargetReached Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}",
+                                0);
                         }
 
                         if (!Data.EnableState)
                         {
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device lost Enable state.", 0);
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device lost Enable state.",
+                                0);
                         }
 
                         if (faultOccurred)
                         {
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Following Error / Fault occurred.", 0);
+                            throw new CDeviceException(
+                                $"WaitForTargetReached Node:{NodeId}. Following Error / Fault occurred.", 0);
                         }
 
                         if (!targetReachedSuccessfully)
                         {
                             // Fallback pre neočakávané stavy
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Unknown exit condition.", 0);
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Unknown exit condition.",
+                                0);
                         }
                     }
-                    // OPRAVA 2: Pridané odpočítavanie timeoutu a oprava logických operátorov
-                 
-/*
-                    public void WaitForHomingAttained(uint timeout)
-                    {
-                        bool conditionMet = SpinWait.SpinUntil(() => Data.Ack || Data.FaultState, (int)timeout);
 
-                        if (!conditionMet)
-                        {
-                            var message = $"Wait for homing attained Node:{NodeId:d}. Timeout";
-                            throw new CDeviceException(message, 0);
-                        }
-                        if (Data.FaultState)
-                        {
-                            throw new CDeviceException($"WaitFor homing attained Node:{NodeId}. Fault", 0);
-                        }
-                    }
-*/
                     public void WaitForHomingAttained(uint timeout)
                     {
                         bool homingSuccessfullyCompleted = false;
@@ -166,27 +126,33 @@ namespace EposCmd
 
                         if (Data.WpdoError)
                         {
-                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                            throw new CDeviceException(
+                                $"WaitForHomingAttained Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}",
+                                0);
                         }
 
                         if (!Data.EnableState)
                         {
-                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Device lost Enable state.", 0);
+                            throw new CDeviceException(
+                                $"WaitForHomingAttained Node:{NodeId}. Device lost Enable state.", 0);
                         }
 
                         if (Data.FaultState)
                         {
-                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Device is in Fault state.", 0);
+                            throw new CDeviceException(
+                                $"WaitForHomingAttained Node:{NodeId}. Device is in Fault state.", 0);
                         }
 
                         if (homingErrorOccurred)
                         {
-                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Homing Error occurred (Bit 13).", 0);
+                            throw new CDeviceException(
+                                $"WaitForHomingAttained Node:{NodeId}. Homing Error occurred (Bit 13).", 0);
                         }
 
                         if (!homingSuccessfullyCompleted)
                         {
-                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Unknown exit condition.", 0);
+                            throw new CDeviceException($"WaitForHomingAttained Node:{NodeId}. Unknown exit condition.",
+                                0);
                         }
                     }
 

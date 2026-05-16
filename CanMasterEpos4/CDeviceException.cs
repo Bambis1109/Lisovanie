@@ -1,7 +1,4 @@
-﻿using System;
-
-
-namespace EposCmd
+﻿namespace EposCmd
 {
     namespace Net
     {

@@ -1,12 +1,5 @@
-﻿using System;
-using EposCmd.Net.DeviceCmdSet.Configuration;
-using EposCmd.Net.DeviceCmdSet.DataRecorder;
-using EposCmd.Net.DeviceCmdSet.Initialization;
-using EposCmd.Net.DeviceCmdSet.LowLayer;
-using EposCmd.Net.DeviceCmdSet.Operation;
+﻿using EposCmd.Net.DeviceCmdSet.LowLayer;
 using static IXXAT.CANopenMasterAPI6;
-
-
 namespace EposCmd
 {
     namespace Net
@@ -18,12 +11,9 @@ namespace EposCmd
             protected ushort KeyHandle;
             public string Name = "Unknow";
             public byte NodeId;
-            //public abstract Configuration Configuration { get; }
-            //public abstract DataRecorder DataRecording { get; }
-            //public abstract Initialization Initialization { get; }
+          
             public abstract LowLayer LowLayer { get; }
-            //public abstract Operation Operation { get; }
-
+         
             public event EventHandler ReceivePdo;
             public event EventHandler ReceiveEmergency;
             public event EventHandler ReceiveStatus;

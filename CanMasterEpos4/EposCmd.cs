@@ -1,7 +1,4 @@
-﻿using System.Xml.Linq;
-using IXXAT;
-
-
+﻿using IXXAT;
 namespace EposCmd
 {
     namespace Net

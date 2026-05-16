@@ -1,7 +1,4 @@
 ﻿using IXXAT;
-using System;
-using System.Threading;
-
 namespace EposCmd
 {
     namespace Net
@@ -28,9 +25,6 @@ namespace EposCmd
                         NodeId = nodeId;
                         Data = data;
                     }
-
-
-
 
                     public void SetRegister(ushort Index, byte Subindex, ulong Value)
                     {
