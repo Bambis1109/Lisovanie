@@ -28,6 +28,7 @@ namespace EposCmd
                     public int GetVelocityIsAveraged() => (int)ReadSdo(0x2028, 0x00, 4);
 
                     // OPRAVA 1: Použitie SpinWait pre bezpečný timeout
+                    /*
                     public void WaitForTargetReached(uint timeout)
                     {
                         // Čakáme kým nenastane jedna z podmienok:
@@ -49,7 +50,66 @@ namespace EposCmd
                             throw new CDeviceException(Message, 0);
                         }
                     }
+*/
+                    public void WaitForTargetReached(uint timeout)
+                    {
+                        bool targetReachedSuccessfully = false;
+                        bool faultOccurred = false;
 
+                        bool conditionMet = SpinWait.SpinUntil(() =>
+                        {
+                            // Kontrola straty stavu Enable alebo asynchrónnej chyby zápisu
+                            if (!Data.EnableState || Data.WpdoError)
+                            {
+                                return true;
+                            }
+
+                            // Vetva B: Neúspešné ukončenie (Following Error / Fault)
+                            // Podmienka: Bit 3 == 1 && Bit 13 == 1
+                            if (Data.FaultState && Data.FollowingError)
+                            {
+                                faultOccurred = true;
+                                return true;
+                            }
+
+                            // Vetva A: Úspešné ukončenie (Target Reached)
+                            // Podmienka: Bit 3 == 0 && Bit 13 == 0 && Bit 10 == 1 && Bit 12 == 0
+                            if (!Data.FaultState && !Data.FollowingError && Data.TargetReached && !Data.Ack)
+                            {
+                                targetReachedSuccessfully = true;
+                                return true;
+                            }
+
+                            return false;
+                        }, (int)timeout);
+
+                        // Vyhodnotenie dôvodu ukončenia SpinWait
+                        if (!conditionMet)
+                        {
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Timeout:{timeout}ms.", 0);
+                        }
+
+                        if (Data.WpdoError)
+                        {
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                        }
+
+                        if (!Data.EnableState)
+                        {
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device lost Enable state.", 0);
+                        }
+
+                        if (faultOccurred)
+                        {
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Following Error / Fault occurred.", 0);
+                        }
+
+                        if (!targetReachedSuccessfully)
+                        {
+                            // Fallback pre neočakávané stavy
+                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Unknown exit condition.", 0);
+                        }
+                    }
                     // OPRAVA 2: Pridané odpočítavanie timeoutu a oprava logických operátorov
                     public void WaitForPositionReachedGear(double waitPosition, bool bigger, uint timeout)
                     {

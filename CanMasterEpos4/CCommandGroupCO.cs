@@ -12,6 +12,7 @@ namespace EposCmd
             protected CDataCO Data;
             protected ushort KeyHandle;
             protected byte NodeId;
+
             protected void WritedSDO(ushort Index, byte Subindex, ulong Value, ushort Len)
             {
                 lock (Data.NodeSdoLock)
@@ -31,16 +32,19 @@ namespace EposCmd
                         , out abortcode); //  abort code of SDO-transfer
                     if (COP_k_OK != res)
                     {
-                        var Message = string.Format("WriteSDO  Node {0:d}  [index:0x{1:X04} sub:0x{2:X02}]", NodeId, Index,
+                        var Message = string.Format("WriteSDO  Node {0:d}  [index:0x{1:X04} sub:0x{2:X02}]", NodeId,
+                            Index,
                             Subindex);
 
                         if (COP_k_ABORT == res)
-                            throw new CDeviceException(Message + "  (" + CopAbortCodeString(abortcode) + ")", abortcode);
+                            throw new CDeviceException(Message + "  (" + CopAbortCodeString(abortcode) + ")",
+                                abortcode);
 
                         throw new CDeviceException(Message + "  (" + CopErrorString(res) + ")", (uint)res);
                     }
                 }
             }
+
             protected ulong ReadSdo(ushort Index, byte Subindex, ushort Len)
             {
                 lock (Data.NodeSdoLock)
@@ -67,23 +71,25 @@ namespace EposCmd
                     throw new CDeviceException(Message + "  (" + CopErrorString(res) + ")", (uint)res);
                 }
             }
-           
+
             protected void WritePDO(byte Pdo, byte[] TxData)
             {
                 lock (Data.NodePdoLock)
                 {
                     if (!Data.RemoteStatus)
-                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] (Remote status off.) ", 0);
-            
+                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] (Remote status off.) ",
+                            0);
+
                     short res = COP_WritePDO(KeyHandle, NodeId, Pdo, TxData);
-            
+
                     if (res != COP_k_OK)
                     {
-                        throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] ({CopErrorString(res)}) ", (uint)res);
+                        throw new CDeviceException(
+                            $"WritePDO  [Node:{NodeId:d}]  [PDO:{Pdo:d}] ({CopErrorString(res)}) ", (uint)res);
                     }
                 }
             }
-            
+
             /*
             protected void WritePDO(byte Pdo, byte[] TxData)
             {
@@ -92,19 +98,19 @@ namespace EposCmd
                     var temp = TxData.Clone();
                     if (!Data.RemoteStatus)
                         throw new CDeviceException($"WritePDO  [Node:{NodeId:d}]  [PDO:{NodeId:d}] (Remote status off.) ", 0);
-                        
+
                     short res;
                     int retries = 0;
                     const int maxRetries = 1000;
                     var spinWait = new SpinWait();
-                    
+
                     do
                     {
                         res = COP_WritePDO(KeyHandle //  handle of CAN board
                             , NodeId //  number of the node
                             , Pdo //  number of the pdo
                             , TxData);
-                            
+
                         if (res == COP_k_BSY)
                         {
                             spinWait.SpinOnce();
@@ -118,7 +124,7 @@ namespace EposCmd
                     }
                 }
             }
-            
+
             */
             protected void SetControlword(ushort value)
             {
@@ -128,13 +134,13 @@ namespace EposCmd
                     Txdata = BitConverter.GetBytes(value);
 
                     WritePDO(1, Txdata);
-
                 }
                 catch (CDeviceException e)
                 {
                     throw new CDeviceException($"SetControlWord:[{value:X02}] {e.ErrorMessage}", 0);
                 }
             }
+
             protected void SetControlwordSync(ushort value)
             {
                 try
@@ -143,8 +149,12 @@ namespace EposCmd
                     Txdata = BitConverter.GetBytes(value);
                     WritePDO(2, Txdata); // Prepisany PDO na 1 z 2
                 }
-                catch (CDeviceException e) { throw new CDeviceException($"SetControlWordSync:[{value:X02}] {e.ErrorMessage}", 0); }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetControlWordSync:[{value:X02}] {e.ErrorMessage}", 0);
+                }
             }
+
             protected void SetCW_TP(ushort controlword, int targetPosition)
             {
                 try
@@ -157,10 +167,11 @@ namespace EposCmd
                 }
                 catch (CDeviceException e)
                 {
-                    throw new CDeviceException($"SetCW_TP:[CW:0x{controlword:X04}, TP:{targetPosition}] {e.ErrorMessage}", 0);
+                    throw new CDeviceException(
+                        $"SetCW_TP:[CW:0x{controlword:X04}, TP:{targetPosition}] {e.ErrorMessage}", 0);
                 }
             }
-            
+
             public void WritePDO3SetupOutput(UInt32 value)
             {
                 lock (Data.NodePdoLock)
@@ -174,6 +185,7 @@ namespace EposCmd
                     WritePDO(3, Data.TxdataPDO3); // WritePDO3SetupOutput
                 }
             }
+
             public void WritePDO3ModeOfOperation(EOperationMode operationMode)
             {
                 lock (Data.NodePdoLock)
@@ -184,6 +196,7 @@ namespace EposCmd
                     WritePDO(3, Data.TxdataPDO3); // WritePDO3ModeOfOperation
                 }
             }
+
             public void WritePDO3TargetTorque(short targetTorque)
             {
                 lock (Data.NodePdoLock)
@@ -195,6 +208,7 @@ namespace EposCmd
                     WritePDO(3, Data.TxdataPDO3); //WritePDO3TargetTorque
                 }
             }
+
             public void WritePDO4TargetPosition(int targetPosition)
             {
                 lock (Data.NodePdoLock)
@@ -208,7 +222,7 @@ namespace EposCmd
                     WritePDO(4, Data.TxdataPDO4);
                 }
             }
-       
+
             protected void SetSwitchOnAndWait()
             {
                 try
@@ -216,8 +230,12 @@ namespace EposCmd
                     SetControlword(0x06); // Set SwitchOn
                     WaitForSwitchOn(500);
                 }
-                catch (CDeviceException e) { throw new CDeviceException($"SetSwitchOn: {e.ErrorMessage}", 0); }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetSwitchOn: {e.ErrorMessage}", 0);
+                }
             }
+
             protected void SetEnableStateAndWait()
             {
                 try
@@ -226,8 +244,12 @@ namespace EposCmd
 
                     WaitForEnableState(500);
                 }
-                catch (CDeviceException e) { throw new CDeviceException($"SetEnable: {e.ErrorMessage}", 0); }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetEnable: {e.ErrorMessage}", 0);
+                }
             }
+
             protected void SetDisableStateAndWait()
             {
                 try
@@ -235,37 +257,46 @@ namespace EposCmd
                     SetControlword(0x00); // Set Enable
                     WaitForDisableState(500);
                 }
-                catch (CDeviceException e) { throw new CDeviceException($"SetEneble: {e.ErrorMessage}", 0); }
+                catch (CDeviceException e)
+                {
+                    throw new CDeviceException($"SetEneble: {e.ErrorMessage}", 0);
+                }
             }
+
             protected void SetModeOfOperation(EOperationMode value)
             {
                 EOperationMode temp = value;
 
                 if (Data.ModeOfOperationDisplay == value)
                     return;
-                
+
                 WritePDO3ModeOfOperation(value);
                 if (!SpinWait.SpinUntil(() => Data.ModeOfOperationDisplay == value, 1000))
                 {
                     Thread.Sleep(1000);
-                    var message1 = $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
+                    var message1 =
+                        $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
                     Thread.Sleep(1000);
                     WritePDO3ModeOfOperation(value);
                     if (!SpinWait.SpinUntil(() => Data.ModeOfOperationDisplay == value, 1000))
                     {
                         Thread.Sleep(1000);
-                        var message2 = $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
+                        var message2 =
+                            $"SetOperetion mode from {temp} to {value} actual mode is {Data.ModeOfOperationDisplay} Node:{NodeId:d}. Timeout .";
                         throw new CDeviceException($"{message1}---{message2}", 0);
                     }
                 }
+
                 Thread.Sleep(1);
             }
+
             public void WaitForACK()
             {
                 WaitForSetACK(2000); //Cakanie na Ack = true
                 SetEnableStateAndWait(); // Resetnutie ACK
                 WaitForResetACK(2000); // Cakanie na ACK = false
             }
+
             /*
             private void WaitForEnableState(int time)
             {
@@ -279,75 +310,87 @@ namespace EposCmd
             {
                 if (!SpinWait.SpinUntil(() => Data.EnableState || Data.WpdoError, time))
                 {
-                    var message = $"SetEnable Node:{NodeId:d}. Timeout set enable. Time:{time}"; 
+                    var message = $"SetEnable Node:{NodeId:d}. Timeout set enable. Time:{time}";
                     throw new CDeviceException(message, 0);
                 }
 
                 if (Data.WpdoError)
                 {
-                    throw new CDeviceException($"SetEnable Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                    throw new CDeviceException(
+                        $"SetEnable Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
                 }
             }
+
             private void WaitForDisableState(int time)
             {
                 if (!SpinWait.SpinUntil(() => Data.DisableState, time))
                 {
-                    var message = $"SetDisable Node:{NodeId:d}. Timeout set disable. Time:{time}"; throw new CDeviceException(message, 0);
+                    var message = $"SetDisable Node:{NodeId:d}. Timeout set disable. Time:{time}";
+                    throw new CDeviceException(message, 0);
                 }
             }
+
             private void WaitForSwitchOn(int time)
             {
                 if (!SpinWait.SpinUntil(() => Data.ReadyToSwitchOn, time))
                 {
-                    var message = $"SetSwitchOn  Node:{NodeId:d}. Timeout set SwitchOn. Time:{time}"; throw new CDeviceException(message, 0);
+                    var message = $"SetSwitchOn  Node:{NodeId:d}. Timeout set SwitchOn. Time:{time}";
+                    throw new CDeviceException(message, 0);
                 }
             }
-          /*
+
+            /*
+              public void WaitForSetACK(uint timeout)
+              {
+                  if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState, (int)timeout))
+                  {
+                      throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
+                  }
+              }
+
+
+              public void WaitForResetACK(uint timeout)
+              {
+                  if (!SpinWait.SpinUntil(() => !Data.Ack, (int)timeout))
+                  {
+                      throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
+                  }
+              }
+               */
             public void WaitForSetACK(uint timeout)
             {
-                if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState, (int)timeout))
+                if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState || Data.WpdoError, (int)timeout))
                 {
                     throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
                 }
+
+                if (Data.WpdoError)
+                {
+                    throw new CDeviceException(
+                        $"Wait for set ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                }
             }
-           
-          
+
             public void WaitForResetACK(uint timeout)
             {
-                if (!SpinWait.SpinUntil(() => !Data.Ack, (int)timeout))
+                if (!SpinWait.SpinUntil(() => !Data.Ack || Data.WpdoError, (int)timeout))
                 {
                     throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
                 }
+
+                if (Data.WpdoError)
+                {
+                    throw new CDeviceException(
+                        $"Wait for reset ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+                }
             }
-             */
-          public void WaitForSetACK(uint timeout)
-          {
-              if (!SpinWait.SpinUntil(() => Data.Ack || !Data.EnableState || Data.WpdoError, (int)timeout))
-              {
-                  throw new CDeviceException($"Wait for set ACK  Node:{NodeId}. Timeout {timeout}", 0);
-              }
 
-              if (Data.WpdoError)
-              {
-                  throw new CDeviceException($"Wait for set ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
-              }
-          }
 
-          public void WaitForResetACK(uint timeout)
-          {
-              if (!SpinWait.SpinUntil(() => !Data.Ack || Data.WpdoError, (int)timeout))
-              {
-                  throw new CDeviceException($"Wait for reset ACK  Node:{NodeId:d}. Timeout {timeout}", 0);
-              }
+            protected EOperationMode GetModeOfOperation()
+            {
+                return Data.ModeOfOperationDisplay;
+            }
 
-              if (Data.WpdoError)
-              {
-                  throw new CDeviceException($"Wait for reset ACK Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
-              }
-          }
-          
-         
-            protected EOperationMode GetModeOfOperation() { return Data.ModeOfOperationDisplay; }
             protected EStates GetStateCommand()
             {
                 if (Data.FaultState) return EStates.StFault;
@@ -361,7 +404,12 @@ namespace EposCmd
                 throw new CDeviceException(
                     $" GetState Node {NodeId:d}: Unknow statusword value [0x{Data.Statusword:X02}] ", 0);
             }
-            public EStates GetState() { return GetStateCommand(); }
+
+            public EStates GetState()
+            {
+                return GetStateCommand();
+            }
+
             public void SetDisableState()
             {
                 var state = GetState();
@@ -371,29 +419,29 @@ namespace EposCmd
                         SetControlword(0x00);
                         break;
                     case EStates.StFault:
-                        {
-                            var Message = string.Format("SetDisable  Node:{0:d}. Device is fault.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetDisable  Node:{0:d}. Device is fault.", NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
                     case EStates.StDisabled:
-                        {
-
-                        }
+                    {
+                    }
                         break;
                     case EStates.StQuickStop:
-                        {
-                            SetControlword(0x00);
-                        }
+                    {
+                        SetControlword(0x00);
+                    }
                         break;
                     case EStates.StReadyToSwitchOn:
-                        {
-                            SetControlword(0x00);
-                        }
+                    {
+                        SetControlword(0x00);
+                    }
                         break;
                     default:
                         break;
                 }
             }
+
             public void SetEnableState()
             {
                 var state = GetState();
@@ -403,30 +451,31 @@ namespace EposCmd
                         SetEnableStateAndWait();
                         break;
                     case EStates.StFault:
-                        {
-                            var Message = string.Format("SetEnable  Node:{0:d}. Device is fault.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetEnable  Node:{0:d}. Device is fault.", NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
                     case EStates.StDisabled:
-                        {
-                            SetReadyToSwitchAndWait();
-                            SetEnableStateAndWait();
-                        }
+                    {
+                        SetReadyToSwitchAndWait();
+                        SetEnableStateAndWait();
+                    }
                         break;
                     case EStates.StQuickStop:
-                        {
-                            SetEnableStateAndWait();
-                        }
+                    {
+                        SetEnableStateAndWait();
+                    }
                         break;
                     case EStates.StReadyToSwitchOn:
-                        {
-                            SetEnableStateAndWait();
-                        }
+                    {
+                        SetEnableStateAndWait();
+                    }
                         break;
                     default:
                         break;
                 }
             }
+
             public void SetReadyToSwitchOnState()
             {
                 var state = GetState();
@@ -436,31 +485,30 @@ namespace EposCmd
                         SetReadyToSwitchAndWait();
                         break;
                     case EStates.StFault:
-                        {
-                            var Message = string.Format("SetReadyToSwitchOn  Node:{0:d}. Device is fault.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetReadyToSwitchOn  Node:{0:d}. Device is fault.", NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
                     case EStates.StDisabled:
-                        {
-                            SetReadyToSwitchAndWait();
-
-                        }
+                    {
+                        SetReadyToSwitchAndWait();
+                    }
                         break;
                     case EStates.StQuickStop:
-                        {
-                            SetEnableStateAndWait();
-                            SetReadyToSwitchAndWait();
-                        }
+                    {
+                        SetEnableStateAndWait();
+                        SetReadyToSwitchAndWait();
+                    }
                         break;
                     case EStates.StReadyToSwitchOn:
-                        {
-
-                        }
+                    {
+                    }
                         break;
                     default:
                         break;
                 }
             }
+
             private void SetReadyToSwitchAndWait()
             {
                 SetControlword(0x06); //ShutDown
@@ -470,9 +518,9 @@ namespace EposCmd
                     throw new CDeviceException(Message, 0);
                 }
             }
+
             public void SetQuickStopState()
             {
-
                 var state = GetState();
                 switch (state)
                 {
@@ -480,32 +528,33 @@ namespace EposCmd
                         SetControlword(0x0B);
                         break;
                     case EStates.StFault:
-                        {
-                            var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is fault.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is fault.", NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
 
                     case EStates.StDisabled:
-                        {
-                            var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is Disable.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is Disable.", NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
 
                     case EStates.StQuickStop:
-                        {
-
-                        }
+                    {
+                    }
                         break;
                     case EStates.StReadyToSwitchOn:
-                        {
-                            var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is ReadyToSwitchOn.", NodeId);
-                            throw new CDeviceException(Message, 0);
-                        }
+                    {
+                        var Message = string.Format("SetQuickStopState  Node:{0:d}. Device is ReadyToSwitchOn.",
+                            NodeId);
+                        throw new CDeviceException(Message, 0);
+                    }
 
                     default:
                         break;
                 }
             }
+
             public void SetState(EStates state)
             {
                 switch (state)
@@ -522,14 +571,59 @@ namespace EposCmd
                     default: break;
                 }
             }
+/*
             public void ClearFault()
             {
                 if (Data.FaultState)
                 {
-                    WritedSDO(0x1003, 0, 0, 1);    //SetControlword(0x00); //Disable
+                    WritedSDO(0x1003, 0, 0, 1); //SetControlword(0x00); //Disable
                     Thread.Sleep(1);
                     SetControlword(0x80); // Clear device error
                     Thread.Sleep(100);
+                }
+            }
+            */
+            public void ClearFault()
+            {
+                if (Data.FaultState)
+                {
+                    // Vymazanie histórie chýb (ponechané z pôvodného kódu)
+                    WritedSDO(0x1003, 0, 0, 1);
+        
+                    // 1. Garantovaný prechod Bitu 7 (Fault Reset) z 0 na 1
+                    SetControlword(0x0000);
+                    Thread.Sleep(10); // Krátka pauza pre spracovanie na strane EPOS4
+                    SetControlword(0x0080);
+        
+                    // Čakanie na opustenie stavu Fault (EPOS4 prechádza do Switch On Disabled)
+                    if (!SpinWait.SpinUntil(() => !Data.FaultState, 1000))
+                    {
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Fault state clear.", 0);
+                    }
+
+                    // 2. Sekvencia pre návrat do Operation Enabled (0x0006 -> 0x0007 -> 0x000F)
+        
+                    // Krok A: Shutdown (0x0006) -> prechod do Ready to Switch On
+                    SetControlword(0x0006);
+                    if (!SpinWait.SpinUntil(() => Data.ReadyToSwitchOn, 500))
+                    {
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for ReadyToSwitchOn.", 0);
+                    }
+
+                    // Krok B: Switch On (0x0007) -> prechod do Switched On
+                    // Pre Switched On stav je maska Statuswordu: xxxx xxxx x01x 0011 (0x0023)
+                    SetControlword(0x0007);
+                    if (!SpinWait.SpinUntil(() => (Data.Statusword & 0x007F) == 0x0023, 500))
+                    {
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Switched On.", 0);
+                    }
+
+                    // Krok C: Enable Operation (0x000F) -> prechod do Operation Enabled
+                    SetControlword(0x000F);
+                    if (!SpinWait.SpinUntil(() => Data.EnableState, 500))
+                    {
+                        throw new CDeviceException($"ClearFault Node:{NodeId}. Timeout waiting for Operation Enabled.", 0);
+                    }
                 }
             }
         }

@@ -119,7 +119,7 @@ namespace EposCmd
                 get { lock (LockingInput) { return _input; } }
                 set { lock (LockingInput) { _input = value; } }
             }
-
+          
 
             //************************************************************** VAHA *******************************************************
 
@@ -188,7 +188,7 @@ namespace EposCmd
             public bool FaultState => (GetStatusWord() & 0x0008) == 0x0008;
             public bool QuickStopState => (GetStatusWord() & 0x007F) == 0x0017;
             public bool ReadyToSwitchOn => (GetStatusWord() & 0x007F) == 0x0021;
-
+            public bool FollowingError => (GetStatusWord() & 0x2000) == 0x2000;
 
 
             public ushort IpmStatus
