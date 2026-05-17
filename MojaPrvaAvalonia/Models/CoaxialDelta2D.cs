@@ -32,27 +32,21 @@ public partial class CoaxialDelta2D : ObservableObject
     public CParameters ParametersDelta { get; set; } = new();
 
     // --- Dynamické polohy pre UI ---
-    [ObservableProperty]
-    private double _currentR;
+    [ObservableProperty] private double _currentR;
 
-    [ObservableProperty]
-    private double _currentPhi;
+    [ObservableProperty] private double _currentPhi;
 
-    [ObservableProperty]
-    private double _currentX;
+    [ObservableProperty] private double _currentX;
 
-    [ObservableProperty]
-    private double _currentY;
+    [ObservableProperty] private double _currentY;
 
-    [ObservableProperty]
-    private double _stepSize = 1.0;
+    [ObservableProperty] private double _stepSize = 1.0;
 
     private double _minTCP = 56.0;
     private double _maxTCP = 270.0;
     private double _offsetGCP = 0.0;
 
-    [ObservableProperty]
-    private EnMovementMode _movementMode = EnMovementMode.Polar;
+    [ObservableProperty] private EnMovementMode _movementMode = EnMovementMode.Polar;
 
     private CancellationTokenSource _cts;
 
@@ -69,7 +63,8 @@ public partial class CoaxialDelta2D : ObservableObject
     /// <param name="minTCP">Minimálny povolený polomer TCP [mm]</param>
     /// <param name="maxTCP">Maximálny povolený polomer TCP [mm]</param>
     /// <param name="offsetGCP">Vzdialenosť od TCP k stredu grippera [mm]</param>
-    public CoaxialDelta2D(double l1, double l2, double encoderResolution, double minTCP, double maxTCP, double offsetGCP)
+    public CoaxialDelta2D(double l1, double l2, double encoderResolution, double minTCP, double maxTCP,
+        double offsetGCP)
     {
         _l1 = l1;
         _l2 = l2;
@@ -158,9 +153,8 @@ public partial class CoaxialDelta2D : ObservableObject
         {
             actualLD -= _encoderResolution;
         }
-
-       
     }
+
     public void MoveRight()
     {
         if (MovementMode == EnMovementMode.Polar)
@@ -192,7 +186,7 @@ public partial class CoaxialDelta2D : ObservableObject
     private void MoveAngleRelative(double deltaPhi)
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
-        
+
         UpdatePositions();
         MoveToPhi(CurrentPhi + deltaPhi);
     }
@@ -211,13 +205,14 @@ public partial class CoaxialDelta2D : ObservableObject
         // Kontrola softvérových limitov pre mechaniku (TCP)
         if (rTcp < _minTCP || rTcp > _maxTCP)
         {
-            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error($"MoveToPolar(GCP-R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Mechanický polomer TCP ({rTcp:F1}) mimo rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
+            Serilog.Log.Logger.ForContext("Name", "Delta2D").Error(
+                $"MoveToPolar(GCP-R:{r:F1}, Phi:{phi:F1}) ZAMIETNUTÉ: Mechanický polomer TCP ({rTcp:F1}) mimo rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
         double alpha = CalculateAlphaFromR(rTcp);
 
-    //    Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: GCP-R:{r:F1}mm (TCP-R:{rTcp:F1}), Phi:{phi:F2}° (Alpha:{alpha:F2})");
+        //    Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToPolar: GCP-R:{r:F1}mm (TCP-R:{rTcp:F1}), Phi:{phi:F2}° (Alpha:{alpha:F2})");
 
         // MotorDown = stred + alpha, MotorUp = stred - alpha
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alpha, true, true);
@@ -256,7 +251,7 @@ public partial class CoaxialDelta2D : ObservableObject
         // Použijeme Atan2(x, y) namiesto štandardného (y, x)
         double phiDeg = Math.Atan2(x, y) * 180.0 / Math.PI;
 
-       // Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
+        // Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
 
         MoveToPolar(r, phiDeg);
     }
@@ -298,7 +293,7 @@ public partial class CoaxialDelta2D : ObservableObject
         double phi = (ad + au) / 2.0;
         double alphaOld = Math.Abs(ad - au) / 2.0;
         double rTcpOld = CalculateRFromAlpha(alphaOld);
-        
+
         // Aktuálne GCP polomer
         double rGcpOld = rTcpOld + _offsetGCP;
 
@@ -309,14 +304,16 @@ public partial class CoaxialDelta2D : ObservableObject
         // Kontrola softvérových limitov pre mechaniku (TCP)
         if (rTcpNew < _minTCP || rTcpNew > _maxTCP)
         {
-            Serilog.Log.Logger.Error($"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť GCP-R={rGcpNew:F1}mm (TCP-R={rTcpNew:F1}mm) je mimo povoleného rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
+            Serilog.Log.Logger.Error(
+                $"[DELTA] MoveRadial({deltaR:F1}mm) ZAMIETNUTÉ: Cieľová vzdialenosť GCP-R={rGcpNew:F1}mm (TCP-R={rTcpNew:F1}mm) je mimo povoleného rozsahu ({_minTCP:F1} - {_maxTCP:F1} mm).");
             return;
         }
 
         // Vypocet noveho uhla roztvorenia Alpha z noveho TCP R
         double alphaNew = CalculateAlphaFromR(rTcpNew);
 
-        Serilog.Log.Logger.Information($"[DELTA] MoveRadial({deltaR:F1}mm): GCP-R:{rGcpOld:F1}->{rGcpNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
+        Serilog.Log.Logger.Information(
+            $"[DELTA] MoveRadial({deltaR:F1}mm): GCP-R:{rGcpOld:F1}->{rGcpNew:F1}mm, Phi:{phi:F2}° (Alpha:{alphaOld:F2}->{alphaNew:F2})");
 
         // 3. Nastavíme motory
         _motorDown.Operation.ProfilePositionMode.MoveToPositionGear(phi + alphaNew, true, true);
@@ -324,16 +321,90 @@ public partial class CoaxialDelta2D : ObservableObject
     }
 
 
-    public void WaitForTargetReached(uint timeout)
+    public void WaitForTargetReached(uint timeoutMs)
     {
-        _motorDown.Operation.MotionInfo.WaitForTargetReached(timeout);
-        _motorUp.Operation.MotionInfo.WaitForTargetReached(timeout);
+        // Bezpečnostná kontrola, či sú motory priradené
+        if (_motorDown == null || _motorUp == null)
+            throw new InvalidOperationException("Motory pre Delta robota nie sú inicializované.");
+
+        long startTime = Environment.TickCount64;
+
+        while (true)
+        {
+            // --- 1. ATOMICKÉ NAČÍTANIE STAVOV PRE OBA MOTORY ---
+            ushort swDown = _motorDown.Data.Statusword;
+            bool wpdoErrorDown = _motorDown.Data.WpdoError;
+
+            ushort swUp = _motorUp.Data.Statusword;
+            bool wpdoErrorUp = _motorUp.Data.WpdoError;
+
+            // --- 2. BITOVÁ EXTRAKCIA PRE MOTOR DOWN ---
+            bool enableDown = (swDown & 0x007F) == 0x0037; // Operation Enabled
+            bool faultDown = (swDown & 0x0008) == 0x0008; // Bit 3 (Fault)
+            bool targetDown = (swDown & 0x0400) == 0x0400; // Bit 10 (Target Reached)
+            bool ackDown = (swDown & 0x1000) == 0x1000; // Bit 12 (Setpoint Acknowledge)
+            bool folErrorDown = (swDown & 0x2000) == 0x2000; // Bit 13 (Following Error)
+
+            // --- 3. BITOVÁ EXTRAKCIA PRE MOTOR UP ---
+            bool enableUp = (swUp & 0x007F) == 0x0037;
+            bool faultUp = (swUp & 0x0008) == 0x0008;
+            bool targetUp = (swUp & 0x0400) == 0x0400;
+            bool ackUp = (swUp & 0x1000) == 0x1000;
+            bool folErrorUp = (swUp & 0x2000) == 0x2000;
+
+            // --- 4. FAIL-FAST KONTROLA CHÝB (Okamžitá reakcia na kolíziu) ---
+
+            // Kontrola Motor Down
+            if (wpdoErrorDown)
+                throw new CDeviceException($"DeltaRobot: Async WPDO Error na motore Down (Node:{_motorDown.NodeId}).",
+                    0);
+            if (!enableDown)
+                throw new CDeviceException($"DeltaRobot: Motor Down (Node:{_motorDown.NodeId}) stratil stav Enable.",
+                    0);
+            if (faultDown)
+                throw new CDeviceException($"DeltaRobot: Motor Down (Node:{_motorDown.NodeId}) je v stave Fault.", 0);
+            if (folErrorDown)
+                throw new CDeviceException($"DeltaRobot: Following Error na motore Down (Node:{_motorDown.NodeId}).",
+                    0);
+
+            // Kontrola Motor Up
+            if (wpdoErrorUp)
+                throw new CDeviceException($"DeltaRobot: Async WPDO Error na motore Up (Node:{_motorUp.NodeId}).", 0);
+            if (!enableUp)
+                throw new CDeviceException($"DeltaRobot: Motor Up (Node:{_motorUp.NodeId}) stratil stav Enable.", 0);
+            if (faultUp)
+                throw new CDeviceException($"DeltaRobot: Motor Up (Node:{_motorUp.NodeId}) je v stave Fault.", 0);
+            if (folErrorUp)
+                throw new CDeviceException($"DeltaRobot: Following Error na motore Up (Node:{_motorUp.NodeId}).", 0);
+
+            // --- 5. KONTROLA ÚSPEŠNÉHO DOKONČENIA OBOCH MOTOROV ---
+            bool downFinished = targetDown && !ackDown;
+            bool upFinished = targetUp && !ackUp;
+
+            if (downFinished && upFinished)
+            {
+                return; // Oba motory úspešne dosiahli cieľ, môžeme pokračovať na ďalší krok
+            }
+
+            // --- 6. KONTROLA TIMEOUTU ---
+            if (Environment.TickCount64 - startTime > timeoutMs)
+            {
+                throw new CDeviceException(
+                    $"DeltaRobot: Timeout {timeoutMs}ms vypršal. Stav dokončenia -> Down:{downFinished}, Up:{upFinished}",
+                    0);
+            }
+
+            // --- 7. UVOĽNENIE CPU ---
+            // Uspí vlákno na 10ms. Zabezpečí 0% záťaž CPU, ale garantuje reakciu na chybu do 10ms.
+            Thread.Sleep(10);
+        }
     }
+
     private double CalculateAlphaFromR(double r)
     {
         // Kosínusová veta pre uhol alpha: cos(alpha) = (R^2 + _l1^2 - _l2^2) / (2 * R * _l1)
         double val = (r * r + _l1 * _l1 - _l2 * _l2) / (2.0 * r * _l1);
-        
+
         // Ošetrenie limitov (matematická bezpečnosť)
         if (val > 1.0) val = 1.0;
         if (val < -1.0) val = -1.0;
@@ -350,7 +421,8 @@ public partial class CoaxialDelta2D : ObservableObject
     private void LogCurrentPolar(string method, double inputVal)
     {
         UpdatePositions();
-        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"{method}({inputVal}): Ad:{_motorDown.Data.PositionActualGear:F2}° Au:{_motorUp.Data.PositionActualGear:F2}° => R:{CurrentR:F2}mm, Phi:{CurrentPhi:F2}°");
+        Serilog.Log.Logger.ForContext("Name", "Delta2D").Information(
+            $"{method}({inputVal}): Ad:{_motorDown.Data.PositionActualGear:F2}° Au:{_motorUp.Data.PositionActualGear:F2}° => R:{CurrentR:F2}mm, Phi:{CurrentPhi:F2}°");
     }
 
     public void UpdatePositions()
@@ -390,7 +462,10 @@ public partial class CoaxialDelta2D : ObservableObject
                 {
                     UpdatePositions();
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                }
+
                 await Task.Delay(100, token);
             }
         }, token);
@@ -422,7 +497,8 @@ public partial class CoaxialDelta2D : ObservableObject
 
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    Log.Information($"Delta2D: Kalibruj dokončené. RawLH: {ParametersDelta.RawLH}, RawLD: {ParametersDelta.RawLD}, OffsetSystem: {ParametersDelta.OffsetSystem}, OffsetArm: {ParametersDelta.OffsetArm}");
+                    Log.Information(
+                        $"Delta2D: Kalibruj dokončené. RawLH: {ParametersDelta.RawLH}, RawLD: {ParametersDelta.RawLD}, OffsetSystem: {ParametersDelta.OffsetSystem}, OffsetArm: {ParametersDelta.OffsetArm}");
                 });
             });
         }
@@ -440,7 +516,7 @@ public partial class CoaxialDelta2D : ObservableObject
             await Task.Run(() =>
             {
                 OrientSystem();
-                
+
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     ParametersDelta.OffsetSystem = (int)OffsetSystem;

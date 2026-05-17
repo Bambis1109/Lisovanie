@@ -11,65 +11,67 @@ namespace EposCmd
             protected CDataCO Data;
             protected ushort KeyHandle;
             protected byte NodeId;
+            private readonly byte[] _sdoTxBuffer = new byte[8];
+            private readonly byte[] _sdoRxBuffer = new byte[8];
 
-            protected void WritedSDO(ushort Index, byte Subindex, ulong Value, ushort Len)
+  protected void WritedSDO(ushort Index, byte Subindex, ulong Value, ushort Len)
+    {
+        lock (Data.NodeSdoLock)
+        {
+            short res;
+            uint abortcode = 0;
+            
+            // Zápis priamo do pre-alokovaného buffra
+            BinaryPrimitives.WriteUInt64LittleEndian(_sdoTxBuffer, Value);
+
+            int retries = 0;
+            var spinWait = new SpinWait();
+            do
             {
-                lock (Data.NodeSdoLock)
+                res = COP_WriteSDO(KeyHandle, NodeId, COP_k_DEFAULT_SDO, COP_k_NO_BLOCKTRANSFER, Index,
+                    Subindex, Len, _sdoTxBuffer, out abortcode);
+                
+                if (res == COP_k_SDO_RUNNING || res == COP_k_BSY)
                 {
-                    short res;
-                    uint abortcode = 0;
-                    var Txdata = new byte[8];
-                    BinaryPrimitives.WriteUInt64LittleEndian(Txdata, Value);
-
-                    int retries = 0;
-                    var spinWait = new SpinWait();
-                    do
-                    {
-                        res = COP_WriteSDO(KeyHandle, NodeId, COP_k_DEFAULT_SDO, COP_k_NO_BLOCKTRANSFER, Index,
-                            Subindex, Len, Txdata, out abortcode);
-                        if (res == COP_k_SDO_RUNNING || res == COP_k_BSY)
-                        {
-                            spinWait.SpinOnce();
-                            retries++;
-                        }
-                    } while ((res == COP_k_SDO_RUNNING || res == COP_k_BSY) && retries < 1000);
-
-                    if (COP_k_OK != res)
-                    {
-                        var Message = $"WriteSDO Node {NodeId:d} [index:0x{Index:X04} sub:0x{Subindex:X02}]";
-                        if (COP_k_ABORT == res)
-                            throw new CDeviceException($"{Message} ({CopAbortCodeString(abortcode)})", abortcode);
-                        throw new CDeviceException($"{Message} ({CopErrorString(res)})", (uint)res);
-                    }
+                    spinWait.SpinOnce();
+                    retries++;
                 }
-            }
+            } while ((res == COP_k_SDO_RUNNING || res == COP_k_BSY) && retries < 1000);
 
-            protected ulong ReadSdo(ushort Index, byte Subindex, ushort Len)
+            if (COP_k_OK != res)
             {
-                lock (Data.NodeSdoLock)
-                {
-                    short res;
-                    var rxdata = new byte[8];
-                    uint abortcode = 0;
-                    uint rxLen = Len;
-                    res = COP_ReadSDO(KeyHandle //  handle of CAN board
-                        , NodeId //  number of the node
-                        , COP_k_DEFAULT_SDO
-                        , COP_k_NO_BLOCKTRANSFER
-                        , Index //  index in OV
-                        , Subindex //  subindex in OV
-                        , ref rxLen //  size of buffer / length of received data
-                        , rxdata //  received data
-                        , out abortcode); //  abort code of SDO-transfer 
-
-                    if (COP_k_OK == res) return BitConverter.ToUInt64(rxdata, 0);
-                    var Message = string.Format("WriteSDO  Node {0:d}  [index:0x{1:X04} sub:0x{2:X02}]", NodeId, Index,
-                        Subindex);
-                    if (COP_k_ABORT == res)
-                        throw new CDeviceException(Message + "  (" + CopAbortCodeString(abortcode) + ")", abortcode);
-                    throw new CDeviceException(Message + "  (" + CopErrorString(res) + ")", (uint)res);
-                }
+                var Message = $"WriteSDO Node {NodeId:d} [index:0x{Index:X04} sub:0x{Subindex:X02}]";
+                if (COP_k_ABORT == res)
+                    throw new CDeviceException($"{Message} ({CopAbortCodeString(abortcode)})", abortcode);
+                throw new CDeviceException($"{Message} ({CopErrorString(res)})", (uint)res);
             }
+        }
+    }
+
+    protected ulong ReadSdo(ushort Index, byte Subindex, ushort Len)
+    {
+        lock (Data.NodeSdoLock)
+        {
+            short res;
+            uint abortcode = 0;
+            uint rxLen = Len;
+            
+            // Použitie pre-alokovaného buffra
+            Array.Clear(_sdoRxBuffer, 0, _sdoRxBuffer.Length); // Voliteľné, pre istotu
+
+            res = COP_ReadSDO(KeyHandle, NodeId, COP_k_DEFAULT_SDO, COP_k_NO_BLOCKTRANSFER, 
+                Index, Subindex, ref rxLen, _sdoRxBuffer, out abortcode);
+
+            if (COP_k_OK == res) 
+                return BitConverter.ToUInt64(_sdoRxBuffer, 0);
+            
+            var Message = $"ReadSDO Node {NodeId:d} [index:0x{Index:X04} sub:0x{Subindex:X02}]";
+            if (COP_k_ABORT == res)
+                throw new CDeviceException($"{Message} ({CopAbortCodeString(abortcode)})", abortcode);
+            throw new CDeviceException($"{Message} ({CopErrorString(res)})", (uint)res);
+        }
+    }
+
 
             protected void WritePDO(byte Pdo, byte[] TxData)
             {
