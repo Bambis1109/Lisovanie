@@ -260,8 +260,8 @@ public partial class CManipulator : CPlcEpos
         return 160;
     }
 
-    private double x1 = -35;
-    private double x2 = -35;
+    private double x1 = -1;
+    private double x2 = -30;
 
     private int MainStep160(int step)
     {

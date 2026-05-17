@@ -23,68 +23,46 @@
                     public int GetVelocityIs() => (int)ReadSdo(0x606C, 0x00, 4);
                     public int GetVelocityIsAveraged() => (int)ReadSdo(0x2028, 0x00, 4);
 
-                    public void WaitForTargetReached(uint timeout)
+                    public void WaitForTargetReached(uint timeoutMs)
                     {
-                        bool targetReachedSuccessfully = false;
-                        bool faultOccurred = false;
+                        long startTime = Environment.TickCount64;
 
-                        bool conditionMet = SpinWait.SpinUntil(() =>
+                        while (true)
                         {
-                            // Kontrola straty stavu Enable alebo asynchrónnej chyby zápisu
-                            if (!Data.EnableState || Data.WpdoError)
-                            {
-                                return true;
-                            }
+                            // 1. Atomické načítanie stavu
+                            ushort sw = Data.Statusword;
+                            bool wpdoError = Data.WpdoError;
 
-                            // Vetva B: Neúspešné ukončenie (Following Error / Fault)
-                            // Podmienka: Bit 3 == 1 && Bit 13 == 1
-                            if (Data.FaultState && Data.FollowingError)
-                            {
-                                faultOccurred = true;
-                                return true;
-                            }
+                            // 2. Bitová extrakcia z jedného snapshotu
+                            bool enableState = (sw & 0x007F) == 0x0037;
+                            bool faultState = (sw & 0x0008) == 0x0008;
+                            bool targetReached = (sw & 0x0400) == 0x0400;
+                            bool ack = (sw & 0x1000) == 0x1000;
+                            bool followingError = (sw & 0x2000) == 0x2000;
 
-                            // Vetva A: Úspešné ukončenie (Target Reached)
-                            // Podmienka: Bit 3 == 0 && Bit 13 == 0 && Bit 10 == 1 && Bit 12 == 0
-                            if (!Data.FaultState && !Data.FollowingError && Data.TargetReached && !Data.Ack)
-                            {
-                                targetReachedSuccessfully = true;
-                                return true;
-                            }
+                            // 3. Exaktné vyhodnotenie chybových stavov
+                            if (wpdoError)
+                                throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}", 0);
+        
+                            if (!enableState)
+                                throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device lost Enable state.", 0);
+        
+                            if (faultState)
+                                throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device is in Fault state.", 0);
+        
+                            if (followingError)
+                                throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Following Error occurred.", 0);
 
-                            return false;
-                        }, (int)timeout);
+                            // 4. Vyhodnotenie úspešného stavu
+                            if (targetReached && !ack)
+                                return;
 
-                        // Vyhodnotenie dôvodu ukončenia SpinWait
-                        if (!conditionMet)
-                        {
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Timeout:{timeout}ms.", 0);
-                        }
+                            // 5. Kontrola pretečenia času (bez rizika Integer Overflow)
+                            if (Environment.TickCount64 - startTime > timeoutMs)
+                                throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Timeout:{timeoutMs}ms.", 0);
 
-                        if (Data.WpdoError)
-                        {
-                            throw new CDeviceException(
-                                $"WaitForTargetReached Node:{NodeId}. Async WPDO Error on PDO {Data.WpdoErrorPdoNumber}",
-                                0);
-                        }
-
-                        if (!Data.EnableState)
-                        {
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Device lost Enable state.",
-                                0);
-                        }
-
-                        if (faultOccurred)
-                        {
-                            throw new CDeviceException(
-                                $"WaitForTargetReached Node:{NodeId}. Following Error / Fault occurred.", 0);
-                        }
-
-                        if (!targetReachedSuccessfully)
-                        {
-                            // Fallback pre neočakávané stavy
-                            throw new CDeviceException($"WaitForTargetReached Node:{NodeId}. Unknown exit condition.",
-                                0);
+                            // 6. Uvoľnenie CPU (Context Switch)
+                            Thread.Sleep(1);
                         }
                     }
 
