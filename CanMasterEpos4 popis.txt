@@ -1,0 +1,65 @@
+Tu je štruktúrovaná a komprimovaná dokumentácia knižnice **CanMasterEpos4**, navrhnutá presne ako kontext pre AI (LLM). 
+
+Tento text môžeš skopírovať a vložiť do promptu vždy, keď budeš s AI riešiť aplikačnú vrstvu (napr. sekvencie, stavové automaty, chybové stavy). AI vďaka tomu pochopí architektúru bez toho, aby potrebovala vidieť zdrojový kód.
+
+---
+
+# Dokumentácia API: CanMasterEpos4 (Ixxat CANopen)
+
+**Kontext:** Knižnica slúži na riadenie pohonov Maxon EPOS4 cez Ixxat CANopen Master API v6.2. Komunikácia beží na pozadí (asynchrónne PDO/SDO/EMCY eventy). Aplikačná vrstva volá **synchrónne blokujúce metódy**, ktoré pri zlyhaní vyhadzujú `CDeviceException`.
+
+## 1. Inicializácia a správa zbernice
+Hlavným manažérom zbernice je `CDeviceManagerCO`.
+*   `Init()`: Inicializuje Ixxat kartu a CAN rozhranie.
+*   `CreateDevice(byte nodeId, string name)`: Vytvorí a vráti inštanciu `CDeviceEpos4` pre konkrétny motor.
+*   `SendNmtServiceForAllNodes(ECommandSpecifier)`: Broadcast NMT príkazov (napr. `NcsResetNode`, `NcsStartRemoteNode`).
+
+## 2. Štruktúra motora (`CDeviceEpos4`)
+Každý motor obsahuje pod-objekty pre prístup k dátam a operáciám:
+*   `motor.Data`: Thread-safe prístup k aktuálnym hodnotám (aktualizované z RxPDO).
+*   `motor.Operation.StateMachine`: Riadenie stavového automatu (CiA 402).
+*   `motor.Operation.HomingMode`: Riadenie referovania (HM).
+*   `motor.Operation.ProfilePositionMode`: Riadenie polohovania (PPM).
+*   `motor.Operation.MotionInfo`: Čakacie slučky a informácie o pohybe.
+*   `motor.Operation.DeviceErrorHandling`: Vyčítanie histórie chýb z EPOS4.
+
+## 3. Čítanie stavov a dát (Real-time)
+Dáta sa čítajú z objektu `motor.Data`. Sú thread-safe a nevyvolávajú SDO dotazy (sú aktualizované na pozadí cez PDO).
+*   **Poloha a rýchlosť:** `PositionActual`, `PositionActualSensor2`, `PositionActualGear` (prepočítaná cez prevodovku), `VelocityActual`.
+*   **Stavové bity (Statusword):** `EnableState`, `FaultState`, `TargetReached`, `HomingAttained`, `HomingError`, `WpdoError` (asynchrónna chyba zápisu).
+
+## 4. Stavový automat (State Machine)
+Metódy sú synchrónne a čakajú na potvrdenie stavu od meniča.
+*   `motor.Operation.StateMachine.SetEnableState()`: Zapne motor (Operation Enabled).
+*   `motor.Operation.StateMachine.SetDisableState()`: Vypne motor (Switch On Disabled).
+*   `motor.Operation.StateMachine.SetQuickStopState()`: Rýchle zastavenie.
+*   `motor.Operation.StateMachine.ClearFault()`: Vymaže chybu (Fault Reset sekvencia) a vráti motor do Enable.
+
+## 5. Homing Mode (HM)
+*   `SetHomingParameter(accel, speedSwitch, speedIndex, offset, currentThreshold, homePos, method)`: Konfigurácia SDO parametrov.
+*   `ActivateHomingMode()`: Prepne menič do HM a zapne Enable.
+*   `FindHome()`: Odštartuje referovanie (nastaví Bit 4 v Controlworde).
+*   `motor.Operation.MotionInfo.WaitForHomingAttained(timeoutMs)`: **Blokujúce čakanie.** Skončí úspešne, ak sa Homing dokončí. Vyhodí `CDeviceException` pri chybe, strate Enable, alebo vypršaní času.
+
+## 6. Profile Position Mode (PPM)
+*   `ActivateProfilePositionMode()`: Prepne menič do PPM a zapne Enable.
+*   `SetPositionProfile(velocity, accel, decel)`: Nastaví kinematiku (SDO).
+*   `SetPositionProfileGear(vel, acc, dec)`: Nastaví kinematiku s prepočtom na prevodovku.
+*   `MoveToPositionGear(targetPosition, absolute, immediately)`: Odštartuje pohyb (prepočet cez prevodovku). `absolute` = true (absolútne), false (relatívne).
+*   `motor.Operation.MotionInfo.WaitForTargetReached(timeoutMs)`: **Blokujúce čakanie.** Skončí, keď motor dosiahne cieľ (Target Reached = 1, ACK = 0). Vyhodí `CDeviceException` pri kolízii (Following Error), Fault stave alebo timeoute.
+
+## 7. Obsluha chýb (Error Handling)
+Akákoľvek chyba na zbernici, timeout alebo zlyhanie pohybu vyhodí `CDeviceException`.
+Pre detailnú diagnostiku EPOS4 (ak je motor vo `FaultState`) sa používa:
+*   `byte count = motor.Operation.DeviceErrorHandling.GetNbOfDeviceError()`: Počet chýb v pamäti.
+*   `ushort code = motor.Operation.DeviceErrorHandling.GetDeviceErrorCode(index)`: Získa hex kód chyby (index 1 až 5).
+*   `string desc = motor.Operation.DeviceErrorHandling.GetErrorDescription(code)`: Vráti textový popis chyby (napr. "Following error", "Overvoltage").
+
+## 8. Pravidlá pre vývoj aplikačnej vrstvy (AI Instructions)
+Pri generovaní kódu pre aplikačnú vrstvu (napr. sekvencie stroja) dodržuj tieto pravidlá:
+1.  **Fail-Fast prístup:** Všetky pohyby a čakania musia byť obalené v `try-catch (CDeviceException)`. Pri zachytení výnimky musí stroj okamžite prejsť do chybového stavu a zavolať `DisableAllMotors()`.
+2.  **Multi-Axis čakanie:** Ak sa hýbe viacero motorov súčasne (napr. Delta robot), **nepoužívaj** sekvenčné volanie `WaitForTargetReached` pre každý motor zvlášť. Použi spoločnú slučku (Group Wait), ktorá v každom tiku (10ms) atomicky kontroluje `Statusword` všetkých bežiacich motorov. Ak jeden zlyhá, okamžite vyhoď výnimku.
+3.  **Žiadne SDO v reálnom čase:** Počas pohybu (v slučkách) čítaj výhradne vlastnosti z `motor.Data` (sú mapované cez PDO). Nikdy nevolaj metódy, ktoré interne používajú `ReadSdo` alebo `WritedSDO`, aby si nespôsobil latenciu na zbernici.
+
+--- 
+*(Koniec dokumentácie pre AI)*
