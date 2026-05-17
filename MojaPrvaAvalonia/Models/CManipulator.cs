@@ -19,7 +19,7 @@ public partial class CManipulator : CPlcEpos
     public CDeviceEpos4 MotorJaws { get; set; }
     public CDeviceEpos4 MotorZ { get; set; }
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
-
+    public CJaws jaws { get; set; } = new CJaws();
     public CManipulator(string name) : base(name)
     {
         LoadParameters();
@@ -36,6 +36,7 @@ public partial class CManipulator : CPlcEpos
         if (Connection == EnStatusConnection.Connected)
         {
             deltaRobot.SetMotors(this.MotorDown, this.MotorUp);
+            jaws.SetMotors(MotorJaws);
             deltaRobot.StartMonitoring();
         }
     }
@@ -132,21 +133,21 @@ public partial class CManipulator : CPlcEpos
     private int InitStep30(int step)
     {
         Message = "Homing Z a Jaws";
-        MotorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 20, 1500, 300, 0,
+       jaws._motorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 20, 1500, 300, 0,
             EHomingMethod.HmCurrentThresholdNegativeSpeed);
         MotorZ.Operation.HomingMode.SetHomingParameter(10000, 1500, 500, 0, 300, 0,
             EHomingMethod.HmHomeSwitchPositiveSpeed);
 
-        MotorJaws.Operation.HomingMode.FindHome();
+        jaws._motorJaws.Operation.HomingMode.FindHome();
         MotorZ.Operation.HomingMode.FindHome();
 
-        MotorJaws.Operation.MotionInfo.WaitForHomingAttained(5000);
+        jaws._motorJaws.Operation.MotionInfo.WaitForHomingAttained(5000);
         MotorZ.Operation.MotionInfo.WaitForHomingAttained(5000);
 
-        MotorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
+        jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorZ.Operation.ProfilePositionMode.ActivateProfilePositionMode();
 
-        MotorJaws.Operation.ProfilePositionMode.SetPositionProfile(2000, 10000, 10000);
+        jaws._motorJaws.Operation.ProfilePositionMode.SetPositionProfile(2000, 10000, 10000);
         MotorZ.Operation.ProfilePositionMode.SetPositionProfile(2000, 5000, 5000);
 
 
@@ -276,8 +277,8 @@ public partial class CManipulator : CPlcEpos
     private int MainStep170(int step)
     {
         Message = "Celuste otvor";
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
+        jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 180;
     }
 
@@ -344,8 +345,8 @@ public partial class CManipulator : CPlcEpos
     private int MainStep240(int step)
     {
         Message = "Celuste zatvor";
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(15, true, true);
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(15, true, true);
+        jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 250;
     }
 
@@ -517,7 +518,7 @@ public partial class CManipulator : CPlcEpos
         {
             await Task.Run(() =>
             {
-                MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true);
+                jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(deltaRobot.StepSize, false, true);
             });
         }
         catch (Exception ea)
@@ -533,7 +534,7 @@ public partial class CManipulator : CPlcEpos
         {
             await Task.Run(() =>
             {
-                MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true);
+                jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-deltaRobot.StepSize, false, true);
             });
         }
         catch (Exception ea)
@@ -571,55 +572,6 @@ public partial class CManipulator : CPlcEpos
         catch (Exception ea)
         {
             Log.Error($"MoveZDown Error: {ea.Message}");
-        }
-    }
-
-  
-
-   
-
-    public bool SetPosCurrent(string measure, double midlevalue, double percentageForce, double range, int timeout)
-    {
-        // 1. Výpočet pre-grip pozície (na okraji tolerančného pásma podľa smeru)
-        double preposition = (percentageForce > 0) ? midlevalue - range : midlevalue + range;
-
-        // 2. Fáza rýchleho priblíženia (PPM)
-        MotorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(preposition, true, true);
-        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-
-        // 3. Fáza aplikácie sily (CST)
-        MotorJaws.Operation.CurrentMode.ActivateCurrentMode();
-        // MotorJaws.Operation.StateMachine.SetEnableState(); // Odstránené - redundantné
-
-        // Čaká na dosiahnutie sily a mechanické ustálenie (obsahuje vlastný stabilizačný counter)
-        MotorJaws.Operation.CurrentMode.WaitToTorqueStopMovePercentage(timeout, percentageForce);
-
-        // Thread.Sleep(10); // Odstránené - ušetrený čas cyklu
-
-        // 4. Načítanie skutočnej pozície
-        var actual = MotorJaws.Data.PositionActualGear;
-
-        // 5. Vyhodnotenie tolerancie (Čitateľnejší zápis pôvodnej matematickej logiky)
-        // Kontroluje, či je absolútna odchýlka od stredu menšia alebo rovná tolerancii (range)
-        bool isOk = Math.Abs(actual - midlevalue) <= range;
-
-        // 6. Logovanie do DB (Formát zachovaný presne podľa zadania)
-        if (isOk)
-        {
-            Log.Logger.ForContext("Name", MotorJaws.Name)
-                .ForContext("Measure", measure)
-                .Verbose(
-                    $"percentage:[{percentageForce}], midle: [{midlevalue:0.00}], range: [{range:0.00}], actual: [{actual:0.00}], result: [true]");
-            return true;
-        }
-        else
-        {
-            Log.Logger.ForContext("Name", MotorJaws.Name)
-                .ForContext("Measure", measure)
-                .Error(
-                    $"percentage:[{percentageForce}], midle: [{midlevalue:0.00}], range: [{range:0.00}], actual: [{actual:0.00}], result: [false]");
-            return false;
         }
     }
 }
