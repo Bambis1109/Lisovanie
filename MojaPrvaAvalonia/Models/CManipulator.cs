@@ -233,7 +233,7 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.MoveToXY(-200, 180);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-       
+
         return 140;
     }
 
@@ -241,7 +241,7 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Vysun 4: Spat";
         deltaRobot.MoveToXY(-200, 140);
-        
+
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         deltaRobot.WaitForTargetReached(5000);
@@ -255,8 +255,8 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-      
-     
+
+
         return 160;
     }
 
@@ -266,8 +266,8 @@ public partial class CManipulator : CPlcEpos
     private int MainStep160(int step)
     {
         Message = "Z-axis dole";
-        
-       
+
+
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 170;
@@ -288,8 +288,8 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-       
-       
+
+
         return 190;
     }
 
@@ -300,7 +300,7 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-       
+
         return 200;
     }
 
@@ -311,8 +311,8 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        
+
+
         return 210;
     }
 
@@ -323,14 +323,14 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-       
+
         return 220;
     }
 
     private int MainStep220(int step)
     {
         Message = "Zasun 5: Finalizuj";
-       
+
         return 230;
     }
 
@@ -571,6 +571,55 @@ public partial class CManipulator : CPlcEpos
         catch (Exception ea)
         {
             Log.Error($"MoveZDown Error: {ea.Message}");
+        }
+    }
+
+  
+
+   
+
+    public bool SetPosCurrent(string measure, double midlevalue, double percentageForce, double range, int timeout)
+    {
+        // 1. Výpočet pre-grip pozície (na okraji tolerančného pásma podľa smeru)
+        double preposition = (percentageForce > 0) ? midlevalue - range : midlevalue + range;
+
+        // 2. Fáza rýchleho priblíženia (PPM)
+        MotorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
+        MotorJaws.Operation.ProfilePositionMode.MoveToPositionGear(preposition, true, true);
+        MotorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+
+        // 3. Fáza aplikácie sily (CST)
+        MotorJaws.Operation.CurrentMode.ActivateCurrentMode();
+        // MotorJaws.Operation.StateMachine.SetEnableState(); // Odstránené - redundantné
+
+        // Čaká na dosiahnutie sily a mechanické ustálenie (obsahuje vlastný stabilizačný counter)
+        MotorJaws.Operation.CurrentMode.WaitToTorqueStopMovePercentage(timeout, percentageForce);
+
+        // Thread.Sleep(10); // Odstránené - ušetrený čas cyklu
+
+        // 4. Načítanie skutočnej pozície
+        var actual = MotorJaws.Data.PositionActualGear;
+
+        // 5. Vyhodnotenie tolerancie (Čitateľnejší zápis pôvodnej matematickej logiky)
+        // Kontroluje, či je absolútna odchýlka od stredu menšia alebo rovná tolerancii (range)
+        bool isOk = Math.Abs(actual - midlevalue) <= range;
+
+        // 6. Logovanie do DB (Formát zachovaný presne podľa zadania)
+        if (isOk)
+        {
+            Log.Logger.ForContext("Name", MotorJaws.Name)
+                .ForContext("Measure", measure)
+                .Verbose(
+                    $"percentage:[{percentageForce}], midle: [{midlevalue:0.00}], range: [{range:0.00}], actual: [{actual:0.00}], result: [true]");
+            return true;
+        }
+        else
+        {
+            Log.Logger.ForContext("Name", MotorJaws.Name)
+                .ForContext("Measure", measure)
+                .Error(
+                    $"percentage:[{percentageForce}], midle: [{midlevalue:0.00}], range: [{range:0.00}], actual: [{actual:0.00}], result: [false]");
+            return false;
         }
     }
 }
