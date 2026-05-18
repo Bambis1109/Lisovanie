@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class ProfilePositionMode : CCommandGroupCO
+                public class ProfilePositionMode : CEpos4CommandGroupCO
                 {
-                    public ProfilePositionMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public ProfilePositionMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public void ActivateProfilePositionMode()

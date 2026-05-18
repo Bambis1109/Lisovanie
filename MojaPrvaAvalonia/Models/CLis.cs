@@ -269,7 +269,7 @@ public partial class CLis : CPlcEpos
             {
                 if (MotorStred?.Data == null) return;
 
-                double current = MotorStred.Data.PositionActualGear;
+                double current = MotorStred.EposData.PositionActualGear;
                 double future = current - StepSize; // Smer UP odoberá (otočená os)
 
                 double min = Math.Min(LimitStredUp, LimitStredDown);
@@ -301,7 +301,7 @@ public partial class CLis : CPlcEpos
             {
                 if (MotorStred?.Data == null) return;
 
-                double current = MotorStred.Data.PositionActualGear;
+                double current = MotorStred.EposData.PositionActualGear;
                 double future = current + StepSize; // Smer DOWN pridáva (otočená os)
 
                 double min = Math.Min(LimitStredUp, LimitStredDown);
@@ -368,7 +368,7 @@ public partial class CLis : CPlcEpos
             {
                 if (MotorMaster?.Data == null) return;
 
-                double current = MotorMaster.Data.PositionActualGear;
+                double current = MotorMaster.EposData.PositionActualGear;
                 double future = current + StepSize; // UP smeruje k 0
 
                 double min = Math.Min(LimitLisUp, LimitLisDown);
@@ -400,7 +400,7 @@ public partial class CLis : CPlcEpos
             {
                 if (MotorMaster?.Data == null) return;
 
-                double current = MotorMaster.Data.PositionActualGear;
+                double current = MotorMaster.EposData.PositionActualGear;
                 double future = current - StepSize; // DOWN smeruje k -220
 
                 double min = Math.Min(LimitLisUp, LimitLisDown);

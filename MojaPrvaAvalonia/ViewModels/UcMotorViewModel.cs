@@ -75,11 +75,11 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
 
             // 2. Motor žije, ťaháme aktuálne dáta
             MotorData.NodeId = _device.NodeId;
-            MotorData.ActualGearPosition = _device.Data.PositionActualGear;
-            MotorData.ActualPositionSensor2Float = _device.Data.PositionActualSensor2Float;
-            MotorData.ActualVelocity = _device.Data.VelocityActual;
-            MotorData.ActualCurrent = _device.Data.CurrentActualAveragePercentage;
-            MotorData.ActualAnalog1 = _device.Data.AnalogInput1Weight;
+            MotorData.ActualGearPosition = _device.EposData.PositionActualGear;
+            MotorData.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2Float;
+            MotorData.ActualVelocity = _device.EposData.VelocityActual;
+            MotorData.ActualCurrent = _device.EposData.CurrentActualAveragePercentage;
+            MotorData.ActualAnalog1 = _device.EposData.AnalogInput1Weight;
 
             UpdateStatusAndColors(nmtState);
         }
@@ -127,7 +127,7 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         }
 
         // 2. Mode of Operation Logic
-        var mode = _device!.Data.ModeOfOperationDisplay;
+        var mode = _device!.EposData.ModeOfOperationDisplay;
         switch (mode)
         {
             case EOperationMode.OmdProfilePositionMode: ModeShorthand = "PPM"; ModeColor = Brushes.Blue; break;
@@ -140,7 +140,7 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         }
 
         // 3. Statusword Logic (CiA 402)
-        ushort sw = _device.Data.Statusword;
+        ushort sw = _device.EposData.Statusword;
         
         if ((sw & 0x0008) == 0x0008) // Bit 3 = Fault
         {
@@ -174,7 +174,7 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         }
 
         // 4. Remote Status (Bit 9)
-        RemoteColor = _device.Data.RemoteStatus ? Brushes.Green : Brushes.Red;
+        RemoteColor = _device.EposData.RemoteStatus ? Brushes.Green : Brushes.Red;
     }
 
     public void Dispose()

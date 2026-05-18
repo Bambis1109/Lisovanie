@@ -110,8 +110,8 @@ public partial class CManipulator : CPlcEpos
         double eposPositionLH;
         double eposPositionLD;
 
-        deltaRobot.CalculateColdStartPositions(MotorUp.Data.PositionActualSensor2,
-            MotorDown.Data.PositionActualSensor2, out eposPositionLH,
+        deltaRobot.CalculateColdStartPositions(MotorUp.EposData.PositionActualSensor2,
+            MotorDown.EposData.PositionActualSensor2, out eposPositionLH,
             out eposPositionLD);
 
         deltaRobot.ParametersDelta.EposLH = (int)eposPositionLH;
@@ -396,12 +396,12 @@ public partial class CManipulator : CPlcEpos
     {
         if (MotorDown == null || MotorUp == null) return;
 
-        var actualSSIDown = MotorDown.Data.PositionActualSensor2;
-        var actualDown = MotorDown.Data.PositionActual;
-        var actualDownGear = MotorDown.Data.PositionActualGear;
-        var actualSSIUp = MotorUp.Data.PositionActualSensor2;
-        var actualUp = MotorUp.Data.PositionActual;
-        var actualUpGear = MotorUp.Data.PositionActualGear;
+        var actualSSIDown = MotorDown.EposData.PositionActualSensor2;
+        var actualDown = MotorDown.EposData.PositionActual;
+        var actualDownGear = MotorDown.EposData.PositionActualGear;
+        var actualSSIUp = MotorUp.EposData.PositionActualSensor2;
+        var actualUp = MotorUp.EposData.PositionActual;
+        var actualUpGear = MotorUp.EposData.PositionActualGear;
         Log.Logger.ForContext("Name", Name)
             .Debug(
                 $"SSI  In:({actualSSIUp})({actualUp})({actualUpGear:F4}) Out:({actualSSIDown})({actualDown})({actualDownGear:F4}) )");

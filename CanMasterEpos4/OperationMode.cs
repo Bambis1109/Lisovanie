@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class OperationMode : CCommandGroupCO
+                public class OperationMode : CEpos4CommandGroupCO
                 {
-                    public OperationMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public OperationMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public EOperationMode GetOperationMode()

@@ -42,7 +42,7 @@ public class CJaws: ObservableObject
         // Thread.Sleep(10); // Odstránené - ušetrený čas cyklu
 
         // 4. Načítanie skutočnej pozície
-        var actual = _motorJaws.Data.PositionActualGear;
+        var actual = _motorJaws.EposData.PositionActualGear;
 
         // 5. Vyhodnotenie tolerancie (Čitateľnejší zápis pôvodnej matematickej logiky)
         // Kontroluje, či je absolútna odchýlka od stredu menšia alebo rovná tolerancii (range)

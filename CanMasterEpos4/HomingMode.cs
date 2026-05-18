@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class HomingMode : CCommandGroupCO
+                public class HomingMode : CEpos4CommandGroupCO
                 {
-                    public HomingMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public HomingMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public void ActivateHomingMode()

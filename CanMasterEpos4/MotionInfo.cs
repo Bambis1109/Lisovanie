@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class MotionInfo : CCommandGroupCO
+                public class MotionInfo : CEpos4CommandGroupCO
                 {
-                    public MotionInfo(ushort keyHandle, byte nodeId, CDataCO data)
+                    public MotionInfo(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        Data = data;
+                        BaseData = data;
                     }
 
                     public int GetCurrentIs() => (int)ReadSdo(0x6078, 0x00, 4);

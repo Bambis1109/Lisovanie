@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class DeviceErrorHandling : CCommandGroupCO
+                public class DeviceErrorHandling : CEpos4CommandGroupCO
                 {
-                    public DeviceErrorHandling(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public DeviceErrorHandling(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public ushort GetDeviceErrorCode(byte deviceErrorNumber)

@@ -6,7 +6,7 @@ namespace EposCmd
     {
         public abstract class CDeviceCO
         {
-            public CDataCO Data;
+            public CDataBaseCO Data;
 
             protected ushort KeyHandle;
             public string Name = "Unknow";

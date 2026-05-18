@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class VelocityModeAdvanced : CCommandGroupCO
+                public class VelocityModeAdvanced : CEpos4CommandGroupCO
                 {
-                    public VelocityModeAdvanced(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public VelocityModeAdvanced(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = Data;
                     }
 
                     public void ActivateAnalogVelocitySetpoint(ushort analogInputNumber, float scaling, int offset)

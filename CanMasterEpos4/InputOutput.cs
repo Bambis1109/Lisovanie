@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class InputOutput : CCommandGroupCO
+                public class InputOutput : CEpos4CommandGroupCO
                 {
-                    public InputOutput(ushort keyHandle, byte nodeId, CDataCO data)
+                    public InputOutput(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        Data = data;
+                        BaseData = data;
                         PositionMarker = new PositionMarker(keyHandle, nodeId, data);
                         PositionCompare = new PositionCompare(keyHandle, nodeId, data);
                     }

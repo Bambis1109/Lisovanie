@@ -8,13 +8,13 @@ namespace EposCmd
         {
             namespace Operation
             {
-                public class StateMachine : CCommandGroupCO
+                public class StateMachine : CEpos4CommandGroupCO
                 {
-                    public StateMachine(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public StateMachine(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
                  
                     public bool GetDisableState() { return Data.DisableState; }

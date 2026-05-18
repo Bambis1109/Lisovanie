@@ -8,7 +8,7 @@ namespace EposCmd
         {
             namespace Initialization
             {
-                public class Initialization : CCommandGroupCO
+                public class Initialization : CEpos4CommandGroupCO
                 {
                     public Initialization(ushort keyHandle, byte nodeId)
                     {
@@ -32,7 +32,7 @@ namespace EposCmd
                     }
                 }
 
-                public class InitializationAdvanced : CCommandGroupCO
+                public class InitializationAdvanced : CEpos4CommandGroupCO
                 {
                     public InitializationAdvanced(ushort keyHandle, byte nodeId)
                     {

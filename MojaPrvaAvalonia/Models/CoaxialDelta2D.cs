@@ -286,8 +286,8 @@ public partial class CoaxialDelta2D : ObservableObject
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
-        double ad = _motorDown.Data.PositionActualGear;
-        double au = _motorUp.Data.PositionActualGear;
+        double ad = _motorDown.EposData.PositionActualGear;
+        double au = _motorUp.EposData.PositionActualGear;
 
         // 1. Získame aktuálny stav (TCP).
         double phi = (ad + au) / 2.0;
@@ -332,10 +332,10 @@ public partial class CoaxialDelta2D : ObservableObject
         while (true)
         {
             // --- 1. ATOMICKÉ NAČÍTANIE STAVOV PRE OBA MOTORY ---
-            ushort swDown = _motorDown.Data.Statusword;
+            ushort swDown = _motorDown.EposData.Statusword;
             bool wpdoErrorDown = _motorDown.Data.WpdoError;
 
-            ushort swUp = _motorUp.Data.Statusword;
+            ushort swUp = _motorUp.EposData.Statusword;
             bool wpdoErrorUp = _motorUp.Data.WpdoError;
 
             // --- 2. BITOVÁ EXTRAKCIA PRE MOTOR DOWN ---
@@ -422,16 +422,16 @@ public partial class CoaxialDelta2D : ObservableObject
     {
         UpdatePositions();
         Serilog.Log.Logger.ForContext("Name", "Delta2D").Information(
-            $"{method}({inputVal}): Ad:{_motorDown.Data.PositionActualGear:F2}° Au:{_motorUp.Data.PositionActualGear:F2}° => R:{CurrentR:F2}mm, Phi:{CurrentPhi:F2}°");
+            $"{method}({inputVal}): Ad:{_motorDown.EposData.PositionActualGear:F2}° Au:{_motorUp.EposData.PositionActualGear:F2}° => R:{CurrentR:F2}mm, Phi:{CurrentPhi:F2}°");
     }
 
     public void UpdatePositions()
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
-        double ad = _motorDown.Data.PositionActualGear;
-        double au = _motorUp.Data.PositionActualGear;
-
+        double ad = _motorDown.EposData.PositionActualGear;
+        double au = _motorUp.EposData.PositionActualGear;
+     
         // Phi je rovnaké pre TCP aj GCP
         CurrentPhi = (ad + au) / 2.0;
 

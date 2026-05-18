@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class PositionMarker : CCommandGroupCO
+                public class PositionMarker : CEpos4CommandGroupCO
                 {
-                    public PositionMarker(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public PositionMarker(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public void ActivatePositionMarker(ushort digitalInputNumber, int polarity)

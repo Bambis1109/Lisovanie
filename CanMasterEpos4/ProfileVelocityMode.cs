@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class ProfileVelocityMode : CCommandGroupCO
+                public class ProfileVelocityMode : CEpos4CommandGroupCO
                 {
-                    public ProfileVelocityMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public ProfileVelocityMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public void ActivateProfileVelocityMode()

@@ -6,13 +6,13 @@
         {
             namespace Operation
             {
-                public class CyclicSynPositionMode : CCommandGroupCO
+                public class CyclicSynPositionMode : CEpos4CommandGroupCO
                 {
-                    public CyclicSynPositionMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public CyclicSynPositionMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
                   
                     public void ActivateCyclicSynPositionMode()

@@ -8,13 +8,13 @@ namespace EposCmd
         {
             namespace Operation
             {
-                public class PositionCompare : CCommandGroupCO
+                public class PositionCompare : CEpos4CommandGroupCO
                 {
-                    public PositionCompare(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public PositionCompare(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public ushort ModificationBit(ushort value, ushort bitNumber, bool bit)

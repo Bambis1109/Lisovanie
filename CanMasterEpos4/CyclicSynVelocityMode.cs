@@ -8,13 +8,13 @@ namespace EposCmd
         {
             namespace Operation
             {
-                public class CyclicSynVelocityMode : CCommandGroupCO
+                public class CyclicSynVelocityMode : CEpos4CommandGroupCO
                 {
-                    public CyclicSynVelocityMode(ushort keyHandle, byte nodeId, CDataCO Data)
+                    public CyclicSynVelocityMode(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        this.Data = Data;
+                        BaseData = data;
                     }
 
                     public VelocityModeAdvanced Advanced { get; }
