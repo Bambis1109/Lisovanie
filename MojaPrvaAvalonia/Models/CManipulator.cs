@@ -94,7 +94,8 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        matrix = new Matrix(-260, -120, 22, 22, 5, 8);
+        matrix = new Matrix(-260, -120, 21, 19, 3, 3);
+        matrix.RecalculDIA();
 
         return 10;
     } // Init
