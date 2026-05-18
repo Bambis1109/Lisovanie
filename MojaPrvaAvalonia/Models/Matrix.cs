@@ -53,9 +53,10 @@ public partial class Matrix : ObservableObject
 
     public bool SetNextItemTestLast()
     {
-        _actualItem += 1;
+        
 
         if (_actualItem >= Items.Count - 1) return true;
+        _actualItem += 1;
         return false;
     }
 

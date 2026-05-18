@@ -94,7 +94,7 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        matrix = new Matrix(-260, -120, 21, 19, 3, 3);
+        matrix = new Matrix(-260, -120, 21, 19, 2, 2);
         matrix.RecalculDIA();
 
         return 10;
@@ -174,7 +174,7 @@ public partial class CManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 40;
+        uint velocity = 20;
         uint acceleration = 100;
         uint deceleration = 100;
 
@@ -217,7 +217,7 @@ public partial class CManipulator : CPlcEpos
     private int MainStep120(int step)
     {
         Message = "Vychodiskova poloha";
-        deltaRobot.MoveToPolar(0, 140);
+        deltaRobot.MoveToPolar(0, 160);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
@@ -235,6 +235,7 @@ public partial class CManipulator : CPlcEpos
         {
             return 0;
         }
+
         if (!resultUchopenie) Thread.Sleep(3000);
         return 140;
     } // Cakanie na lis
@@ -290,7 +291,8 @@ public partial class CManipulator : CPlcEpos
         Message = "Zasunutie";
         deltaRobot.MoveToPolar(0, 140);
         deltaRobot.WaitForTargetReached(5000);
-        return 200;
+       
+        return 220;
     } //Zasunutie
 
     private int MainStep200(int step)
@@ -312,10 +314,13 @@ public partial class CManipulator : CPlcEpos
     private int MainStep220(int step)
     {
         Message = "Vysunutie na vykladanie";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
+      
         deltaRobot.MoveToXY(matrix.Xactual, matrix.Yactual);
         //  deltaRobot.MoveToPolar(-90, 300);
         deltaRobot.WaitForTargetReached(5000);
-        matrix.SetNextItemTestLast();
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+      
 
         return 230;
     } //Vysunutie na vykladanie
@@ -342,16 +347,23 @@ public partial class CManipulator : CPlcEpos
         Message = "Vyska nad box";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        return 260;
-    } //Vyska nad box
+        if (matrix.SetNextItemTestLast()) return 260; // Ak je pocet OK koniec
+        return 100; 
+    } //Vyska nad box test naplnenia OK->260 koniec, NOK opakuj ->100
 
     private int MainStep260(int step)
     {
-        Message = "Zasunutie nad box";
-        deltaRobot.MoveToPolar(-90, 140);
+        Message = "Parkuj";
+       
+        deltaRobot.MoveToPolar(0, 160);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
         deltaRobot.WaitForTargetReached(5000);
-        return 100;
-    } // Zasunutie nad box
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 0;
+    } // Parkuj
 
     // Dodatočné metódy z CDelta
     [RelayCommand]
