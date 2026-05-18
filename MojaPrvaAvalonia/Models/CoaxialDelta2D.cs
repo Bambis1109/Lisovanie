@@ -234,7 +234,7 @@ public partial class CoaxialDelta2D : ObservableObject
     public void MoveToPhi(double phi)
     {
         UpdatePositions();
-        MoveToPolar(CurrentR, phi);
+        MoveToPolar( phi,CurrentR);
     }
 
     /// <summary>

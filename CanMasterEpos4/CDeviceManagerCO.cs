@@ -137,7 +137,7 @@ namespace EposCmd.Net
                 throw new CDeviceException("Error RegisterCallbacks", (uint)result);
             }
 
-            result = COP_InitInterface(_keyHandle, COP_k_BAUD_CIA, BaudIndex, 0, 0, COP_k_NO_FEATURES);
+            result = COP_InitInterface(_keyHandle, COP_k_BAUD_CIA, BaudIndex, 127, 100, COP_k_NO_FEATURES);
             if (COP_k_OK != result)
             {
                 COP_ReleaseBoard(_keyHandle);
@@ -170,17 +170,20 @@ namespace EposCmd.Net
             if (DeviceList.ContainsKey(device.NodeId))
                 throw new CDeviceException("Error add node: " + device.NodeId + " Node already exist", 0);
             var result = 0;
-            result = COP_AddNode(_keyHandle, device.NodeId, COP_k_NODE_GUARDING, 0, 10);
+            result = COP_AddNode(_keyHandle, device.NodeId, COP_k_NODE_GUARDING, 0, 2);
             if (COP_k_OK != result)
             {
                 COP_ReleaseBoard(_keyHandle);
                 _keyHandle = 0;
                 throw new CDeviceException("Error add node:" + device.NodeId, (uint)result);
             }
+           
 
             DeviceList.Add(device.NodeId, device);
         }
 
+        
+        
         protected void RecEmergency(EventArgs e)
         {
             ReceiveEmergency?.Invoke(this, e);

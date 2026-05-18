@@ -94,7 +94,7 @@ public partial class CManipulator : CPlcEpos
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
         return 10;
-    }
+    }// Init
 
     private int InitStep10(int step)
     {
@@ -114,7 +114,7 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
 
         return 20;
-    }
+    }//Vypocet polohy ramena
 
     private int InitStep20(int step)
     {
@@ -129,7 +129,7 @@ public partial class CManipulator : CPlcEpos
         }
 
         return 30;
-    }
+    }//Mazanie chyb a nastavenie enable
 
     private int InitStep30(int step)
     {
@@ -153,11 +153,11 @@ public partial class CManipulator : CPlcEpos
 
 
         return 40;
-    }
+    }//Homing Jaws a Z - nastavenie parametrov
 
     private int InitStep40(int step)
     {
-        Message = "Inicializacia ramien";
+        Message = "Homing delta ramien";
 
         MotorDown.Operation.HomingMode.SetHomingParameter(100, 20, 10, 0, 100, deltaRobot.ParametersDelta.EposLD,
             EHomingMethod.HmActualPosition);
@@ -170,9 +170,9 @@ public partial class CManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 30;
-        uint acceleration = 300;
-        uint deceleration = 300;
+        uint velocity = 15;
+        uint acceleration = 100;
+        uint deceleration = 100;
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorDown.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
@@ -180,13 +180,13 @@ public partial class CManipulator : CPlcEpos
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorUp.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
-        deltaRobot.MoveToXY(0, 140);
+        deltaRobot.MoveToPolar(0, 140);
         deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
 
         return 99;
-    }
+    } //Homing Delta ramien - nastavenie parametrov
 
     // ==========================================
     // METÓDY PRE MAIN PROGRAM (Prepojené na reálne motory)
@@ -215,7 +215,7 @@ public partial class CManipulator : CPlcEpos
     private int MainStep120(int step)
     {
         Message = "Vychodiskova poloha";
-        deltaRobot.MoveToPolar(1.5, 140);
+        deltaRobot.MoveToPolar(0, 140);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
         deltaRobot.WaitForTargetReached(5000);
@@ -234,7 +234,7 @@ public partial class CManipulator : CPlcEpos
     private int MainStep140(int step)
     {
         Message = "Vysunutie k lisu";
-        deltaRobot.MoveToPolar(1.5, 255);
+        deltaRobot.MoveToPolar(0, 255);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     } //Vysunutie k lisu

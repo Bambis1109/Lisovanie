@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EposCmd.Net;
 using MojaPrvaAvalonia.ViewModels;
@@ -54,7 +55,7 @@ public partial class CPlcEpos : CPlc
         // 2. Odoslanie povelu na štart uzlov (NMT Start Remote Node)
         await Task.Run(async () =>
         {
-            StartNodes(); // Odoslanie príkazu na prechod do Operational
+            await StartNodesAsync(); // Odoslanie príkazu na prechod do Operational
             await Task.Delay(500); // Poskytnutie času zbernici a meničom na spracovanie
         });
 
@@ -83,11 +84,14 @@ public partial class CPlcEpos : CPlc
     }
 
     // Nová metóda: Iba odošle NMT príkaz na štart (CS = 0x01)
-    public void StartNodes()
+    public async Task StartNodesAsync()
     {
         foreach (var motor in Motors)
         {
             motor.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
+        
+            // 3. 'await' teraz môže legálne fungovať
+            await Task.Delay(10);
         }
     }
 
@@ -182,8 +186,6 @@ public partial class CPlcEpos : CPlc
 
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
-
-    
     
     /// <summary>
     /// Skontroluje, či sú všetky motory v stave OPERATIONAL.
@@ -223,7 +225,6 @@ public partial class CPlcEpos : CPlc
             }
         }
     }
-
     
      public void DisableAllMotors()
     {
@@ -288,9 +289,6 @@ public partial class CPlcEpos : CPlc
         }
     }
     
-    
-    
-
     public void ClearAllFaults()
     {
         TestOperationModeAllMotor();
@@ -308,14 +306,7 @@ public partial class CPlcEpos : CPlc
             }
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
+        
     internal void LogErrors()
     {
         foreach (var item in Motors)
