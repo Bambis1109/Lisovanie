@@ -20,6 +20,7 @@ public partial class CManipulator : CPlcEpos
     public CDeviceEpos4 MotorZ { get; set; }
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
     public CJaws jaws { get; set; } = new CJaws();
+    public Matrix matrix { get; set; }
 
     public CManipulator(string name) : base(name)
     {
@@ -93,6 +94,8 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
+        matrix = new Matrix(-260, -120, 22, 22, 5, 8);
+
         return 10;
     } // Init
 
@@ -170,7 +173,7 @@ public partial class CManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 15;
+        uint velocity = 40;
         uint acceleration = 100;
         uint deceleration = 100;
 
@@ -220,7 +223,7 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-        
+
         return 130;
     } // Vychodiskova poloha
 
@@ -231,7 +234,7 @@ public partial class CManipulator : CPlcEpos
         {
             return 0;
         }
-        Thread.Sleep(3000);
+        if (!resultUchopenie) Thread.Sleep(3000);
         return 140;
     } // Cakanie na lis
 
@@ -251,14 +254,18 @@ public partial class CManipulator : CPlcEpos
         return 160;
     } // Dolu nad vyrobok
 
+    bool resultUchopenie;
+
     private int MainStep160(int step)
     {
         Message = "Uchopenie";
         if (!jaws.SetPosCurrent("kv4", -6.7, -30, 1, 2000))
         {
+            resultUchopenie = false;
             return 110;
         }
 
+        resultUchopenie = true;
         return 170;
     } //Uchopenie OK->170  NOK->120
 
@@ -304,8 +311,11 @@ public partial class CManipulator : CPlcEpos
     private int MainStep220(int step)
     {
         Message = "Vysunutie na vykladanie";
-        deltaRobot.MoveToPolar(-90, 300);
+        deltaRobot.MoveToXY(matrix.Xactual, matrix.Yactual);
+        //  deltaRobot.MoveToPolar(-90, 300);
         deltaRobot.WaitForTargetReached(5000);
+        matrix.SetNextItemTestLast();
+
         return 230;
     } //Vysunutie na vykladanie
 

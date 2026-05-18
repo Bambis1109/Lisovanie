@@ -1,0 +1,126 @@
+﻿using System;
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+namespace MojaPrvaAvalonia.Models;
+
+public partial class Matrix : ObservableObject
+{
+    [ObservableProperty] private int _xfirst;
+    [ObservableProperty] private int _yfirst;
+    [ObservableProperty] private int _xdelta;
+    [ObservableProperty] private int _ydelta;
+    [ObservableProperty] private int _xnum;
+    [ObservableProperty] private int _ynum;
+    [ObservableProperty] public int _actualItem;
+
+    public int Xactual
+    {
+        get => Items[_actualItem].X;
+    }
+
+    public int Yactual
+    {
+        get => Items[_actualItem].Y;
+    }
+
+    [ObservableProperty] private string _lastToggledItem = "-";
+
+    public ObservableCollection<Item> Items { get; } = new();
+
+    public Matrix()
+    {
+        Xfirst = 10;
+        Yfirst = 10;
+        Xdelta = 30;
+        Ydelta = 30;
+        Xnum = 5;
+        Ynum = 5;
+    }
+
+    public Matrix(int xfirst, int yfirst, int xdelta, int ydelta, int xnum, int ynum)
+    {
+        Xfirst = xfirst;
+        Yfirst = yfirst;
+        Xdelta = xdelta;
+        Ydelta = ydelta;
+        Xnum = xnum;
+        Ynum = ynum;
+        Recalcul();
+        _actualItem = 0;
+        ;
+    }
+
+    public bool SetNextItemTestLast()
+    {
+        _actualItem += 1;
+
+        if (_actualItem >= Items.Count - 1) return true;
+        return false;
+    }
+
+private void OnItemToggled(Item item)
+    {
+        LastToggledItem = $"#{item.Id} [X:{item.X}, Y:{item.Y}]";
+    }
+
+    [RelayCommand]
+    private void Recalcul()
+    {
+        Items.Clear();
+        LastToggledItem = "-";
+        int count = 0;
+
+        for (int riadok = 0; riadok < Ynum; riadok++)
+        {
+            for (int stlpec = 0; stlpec < Xnum; stlpec++)
+            {
+                if (count >= 100) return;
+                
+                int posX = Xfirst + (stlpec * Xdelta);
+                int posY = Yfirst + (riadok * Ydelta);
+                
+                // Id prvku bude od 1 vyššie
+                Items.Add(new Item(count + 1, posX, posY, OnItemToggled));
+                count++;
+            }
+        }
+
+        ;
+    }
+
+    [RelayCommand]
+    private void Start()
+    {
+        Recalcul();
+    }
+}
+
+public partial class Item : ObservableObject
+{
+    public int Id { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+
+    private readonly Action<Item> _onToggled;
+
+    [ObservableProperty]
+    private bool _aktiv;
+
+    public Item(int id, int x, int y, Action<Item> onToggled, bool aktiv = false)
+    {
+        Id = id;
+        X = x;
+        Y = y;
+        _onToggled = onToggled;
+        Aktiv = aktiv;
+    }
+
+    [RelayCommand]
+    private void Toggle()
+    {
+        Aktiv = !Aktiv;
+        _onToggled?.Invoke(this);
+    }
+}
