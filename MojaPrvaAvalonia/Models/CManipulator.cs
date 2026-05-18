@@ -77,10 +77,10 @@ public partial class CManipulator : CPlcEpos
             case 210: return MainStep210(step);
             case 220: return MainStep220(step);
 
-            case 230: return MainStep230(step); 
-            case 240: return MainStep240(step); 
-            case 250: return MainStep250(step); 
-            case 260: return MainStep260(step); 
+            case 230: return MainStep230(step);
+            case 240: return MainStep240(step);
+            case 250: return MainStep250(step);
+            case 260: return MainStep260(step);
 
             default: return base.RunStep(step);
         }
@@ -94,7 +94,7 @@ public partial class CManipulator : CPlcEpos
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
         return 10;
-    }// Init
+    } // Init
 
     private int InitStep10(int step)
     {
@@ -114,7 +114,7 @@ public partial class CManipulator : CPlcEpos
         deltaRobot.ParametersDelta.EposLD = (int)eposPositionLD;
 
         return 20;
-    }//Vypocet polohy ramena
+    } //Vypocet polohy ramena
 
     private int InitStep20(int step)
     {
@@ -129,7 +129,7 @@ public partial class CManipulator : CPlcEpos
         }
 
         return 30;
-    }//Mazanie chyb a nastavenie enable
+    } //Mazanie chyb a nastavenie enable
 
     private int InitStep30(int step)
     {
@@ -153,7 +153,7 @@ public partial class CManipulator : CPlcEpos
 
 
         return 40;
-    }//Homing Jaws a Z - nastavenie parametrov
+    } //Homing Jaws a Z - nastavenie parametrov
 
     private int InitStep40(int step)
     {
@@ -198,7 +198,6 @@ public partial class CManipulator : CPlcEpos
 
         if (RequestToEnd)
         {
-            Log.Logger.ForContext("Name", Name).Information("Zachytená požiadavka na parkovanie, ukončujem program.");
             return 0;
         }
 
@@ -208,7 +207,6 @@ public partial class CManipulator : CPlcEpos
     private int MainStep110(int step)
     {
         Message = "Start";
-
         return 120;
     } // start cyklu
 
@@ -217,16 +215,22 @@ public partial class CManipulator : CPlcEpos
         Message = "Vychodiskova poloha";
         deltaRobot.MoveToPolar(0, 140);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        
         return 130;
     } // Vychodiskova poloha
 
     private int MainStep130(int step)
     {
         Message = "Cakanie na Lis";
+        if (RequestToEnd)
+        {
+            return 0;
+        }
         Thread.Sleep(3000);
         return 140;
     } // Cakanie na lis
@@ -250,10 +254,13 @@ public partial class CManipulator : CPlcEpos
     private int MainStep160(int step)
     {
         Message = "Uchopenie";
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-6, true, true);
-        deltaRobot.WaitForTargetReached(5000);
+        if (!jaws.SetPosCurrent("kv4", -6.7, -30, 1, 2000))
+        {
+            return 110;
+        }
+
         return 170;
-    } //Uchopenie
+    } //Uchopenie OK->170  NOK->120
 
     private int MainStep170(int step)
     {
@@ -313,6 +320,7 @@ public partial class CManipulator : CPlcEpos
     private int MainStep240(int step)
     {
         Message = "Celuste vyloz";
+        jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, true, true);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 250;
