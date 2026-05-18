@@ -17,7 +17,7 @@ namespace EposCmd
                         BaseData = data;
                     }
 
-                    public VelocityModeAdvanced Advanced { get; }
+                  
                     public void SetMaxProfileVelocity(uint velocity)
                     {
                         WritedSDO(0x607F, 0x00, velocity, 4);

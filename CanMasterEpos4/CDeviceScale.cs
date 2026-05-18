@@ -21,7 +21,7 @@ namespace EposCmd.Net
         }
 
         // Spracovanie prichádzajúcich PDO z STM32 (z pohľadu mastra sú to RxPDO)
-        public override LowLayer LowLayer { get; }
+        public override LowLayer LowLayer => null;
 
         public override void ReadPdo(COP_t_RX_PDO spPdo)
         {
