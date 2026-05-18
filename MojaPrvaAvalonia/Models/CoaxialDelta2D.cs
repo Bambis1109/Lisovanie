@@ -195,7 +195,7 @@ public partial class CoaxialDelta2D : ObservableObject
     /// Presun na absolútne polárne súradnice [R, Phi].
     /// r je v tomto prípade cieľový GCP polomer (stred grippera).
     /// </summary>
-    public void MoveToPolar(double r, double phi)
+    public void MoveToPolar(double phi,double r )
     {
         if (_motorDown?.Data == null || _motorUp?.Data == null) return;
 
@@ -253,7 +253,7 @@ public partial class CoaxialDelta2D : ObservableObject
 
         // Serilog.Log.Logger.ForContext("Name", "Delta2D").Information($"MoveToXY(X:{x:F1}, Y:{y:F1}) -> Prepočítané na R:{r:F1}mm, Phi:{phiDeg:F2}°");
 
-        MoveToPolar(r, phiDeg);
+        MoveToPolar(phiDeg,r);
     }
 
     public void MoveUp()

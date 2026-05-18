@@ -170,7 +170,7 @@ namespace EposCmd.Net
             if (DeviceList.ContainsKey(device.NodeId))
                 throw new CDeviceException("Error add node: " + device.NodeId + " Node already exist", 0);
             var result = 0;
-            result = COP_AddNode(_keyHandle, device.NodeId, COP_k_NODE_GUARDING, 0, 2);
+            result = COP_AddNode(_keyHandle, device.NodeId, COP_k_NODE_GUARDING, 0, 10);
             if (COP_k_OK != result)
             {
                 COP_ReleaseBoard(_keyHandle);
@@ -238,7 +238,7 @@ namespace EposCmd.Net
             switch (sync)
             {
                 case ESync.NcsEnable:
-                    res = COP_DefSyncObj(_keyHandle, 5, 5, 0);
+                    res = COP_DefSyncObj(_keyHandle, 20, 20, 0);
                     res = COP_EnableSync(_keyHandle, COP_k_SINGLE_LINE);
 
                     break;

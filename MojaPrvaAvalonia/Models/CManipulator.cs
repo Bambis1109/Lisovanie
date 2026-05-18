@@ -20,6 +20,7 @@ public partial class CManipulator : CPlcEpos
     public CDeviceEpos4 MotorZ { get; set; }
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
     public CJaws jaws { get; set; } = new CJaws();
+
     public CManipulator(string name) : base(name)
     {
         LoadParameters();
@@ -76,9 +77,10 @@ public partial class CManipulator : CPlcEpos
             case 210: return MainStep210(step);
             case 220: return MainStep220(step);
 
-            case 230: return MainStep230(step); // Z hore
-            case 240: return MainStep240(step); // Celuste zatvor
-            case 250: return MainStep250(step); // Vychodiskova poloha
+            case 230: return MainStep230(step); 
+            case 240: return MainStep240(step); 
+            case 250: return MainStep250(step); 
+            case 260: return MainStep260(step); 
 
             default: return base.RunStep(step);
         }
@@ -129,11 +131,10 @@ public partial class CManipulator : CPlcEpos
         return 30;
     }
 
-
     private int InitStep30(int step)
     {
         Message = "Homing Z a Jaws";
-       jaws._motorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 20, 1500, 300, 0,
+        jaws._motorJaws.Operation.HomingMode.SetHomingParameter(1000, 100, 20, 1500, 300, 0,
             EHomingMethod.HmCurrentThresholdNegativeSpeed);
         MotorZ.Operation.HomingMode.SetHomingParameter(10000, 1500, 500, 0, 300, 0,
             EHomingMethod.HmHomeSwitchPositiveSpeed);
@@ -148,7 +149,7 @@ public partial class CManipulator : CPlcEpos
         MotorZ.Operation.ProfilePositionMode.ActivateProfilePositionMode();
 
         jaws._motorJaws.Operation.ProfilePositionMode.SetPositionProfile(2000, 10000, 10000);
-        MotorZ.Operation.ProfilePositionMode.SetPositionProfile(2000, 5000, 5000);
+        MotorZ.Operation.ProfilePositionMode.SetPositionProfile(4000, 15000, 15000);
 
 
         return 40;
@@ -169,9 +170,9 @@ public partial class CManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 20;
-        uint acceleration = 200;
-        uint deceleration = 200;
+        uint velocity = 30;
+        uint acceleration = 300;
+        uint deceleration = 300;
 
         MotorDown.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorDown.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
@@ -206,156 +207,132 @@ public partial class CManipulator : CPlcEpos
 
     private int MainStep110(int step)
     {
-        Message = "Vysun 1: Centruj";
-        deltaRobot.MoveToXY(0, 140);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        deltaRobot.WaitForTargetReached(5000);
+        Message = "Start";
+
         return 120;
-    }
+    } // start cyklu
 
     private int MainStep120(int step)
     {
-        Message = "Vysun 2: Vpred";
-        deltaRobot.MoveToXY(0, 180);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Vychodiskova poloha";
+        deltaRobot.MoveToPolar(1.5, 140);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
         deltaRobot.WaitForTargetReached(5000);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 130;
-    }
+    } // Vychodiskova poloha
 
     private int MainStep130(int step)
     {
-        Message = "Vysun 3: Vlavo";
-        deltaRobot.MoveToXY(-200, 180);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
+        Message = "Cakanie na Lis";
+        Thread.Sleep(3000);
         return 140;
-    }
+    } // Cakanie na lis
 
     private int MainStep140(int step)
     {
-        Message = "Vysun 4: Spat";
-        deltaRobot.MoveToXY(-200, 140);
-
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Vysunutie k lisu";
+        deltaRobot.MoveToPolar(1.5, 255);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
-    }
+    } //Vysunutie k lisu
 
     private int MainStep150(int step)
     {
-        Message = "Vysun 5: Finalizuj";
-        deltaRobot.MoveToXY(0, 140);
-        deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        Message = "Dolu nad vyrobok";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-13, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
-
         return 160;
-    }
-
-    private double x1 = -1;
-    private double x2 = -30;
+    } // Dolu nad vyrobok
 
     private int MainStep160(int step)
     {
-        Message = "Z-axis dole";
-
-
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Uchopenie";
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-6, true, true);
+        deltaRobot.WaitForTargetReached(5000);
         return 170;
-    }
+    } //Uchopenie
 
     private int MainStep170(int step)
     {
-        Message = "Celuste otvor";
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(0, true, true);
-        jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "Kontrola uchopenia";
+
         return 180;
-    }
+    } //KOntrola uchopenia
 
     private int MainStep180(int step)
     {
-        Message = "Zasun 1: Centruj";
-        deltaRobot.MoveToXY(0, 140);
-        deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
+        Message = "Zdvih";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
-
         return 190;
-    }
+    } //Zdvih
 
     private int MainStep190(int step)
     {
-        Message = "Zasun 2: Vpred";
-        deltaRobot.MoveToXY(0, 180);
+        Message = "Zasunutie";
+        deltaRobot.MoveToPolar(0, 140);
         deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
         return 200;
-    }
+    } //Zasunutie
 
     private int MainStep200(int step)
     {
-        Message = "Zasun 3: Vpravo";
-        deltaRobot.MoveToXY(200, 180);
+        Message = "Otocenie na vykladanie";
+        deltaRobot.MoveToPolar(-90, 140);
         deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x1, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
-
         return 210;
-    }
+    } //Otocenie na vykladanie
 
     private int MainStep210(int step)
     {
-        Message = "Zasun 4: Spat";
-        deltaRobot.MoveToXY(200, 140);
-        deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(x2, true, true);
+        Message = "Vyska nad box";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-
         return 220;
-    }
+    } // vyska nad box
 
     private int MainStep220(int step)
     {
-        Message = "Zasun 5: Finalizuj";
-
+        Message = "Vysunutie na vykladanie";
+        deltaRobot.MoveToPolar(-90, 300);
+        deltaRobot.WaitForTargetReached(5000);
         return 230;
-    }
+    } //Vysunutie na vykladanie
 
     private int MainStep230(int step)
     {
-        Message = "Z hore";
-
+        Message = "Vyska na vylozenie";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-37, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 240;
-    }
+    } //Vyska na vylozenie
 
     private int MainStep240(int step)
     {
-        Message = "Celuste zatvor";
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(15, true, true);
+        Message = "Celuste vyloz";
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, true, true);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 250;
-    }
+    } //Celuste vyloz
 
     private int MainStep250(int step)
     {
-        Message = "Vychodiskova poloha";
+        Message = "Vyska nad box";
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
+        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 260;
+    } //Vyska nad box
 
+    private int MainStep260(int step)
+    {
+        Message = "Zasunutie nad box";
+        deltaRobot.MoveToPolar(-90, 140);
+        deltaRobot.WaitForTargetReached(5000);
         return 100;
-    }
+    } // Zasunutie nad box
 
     // Dodatočné metódy z CDelta
     [RelayCommand]
