@@ -25,8 +25,8 @@ public partial class CMainProgram : ObservableObject
     }
 
     public ObservableCollection<CPlc> ZoznamPlc { get; } = new ObservableCollection<CPlc>();
-    public CDeviceManagerCO DeviceManagerCO { get; set; }
-    public CDeviceManagerCO DeviceManagerScale { get; set; }
+    public CDeviceManagerCO DeviceManagerCO;
+    public CDeviceManagerCO DeviceManagerScale;
 
 
     public CMainProgram()
@@ -42,7 +42,7 @@ public partial class CMainProgram : ObservableObject
         IxxatState = EnIxxatState.Connecting;
         try
         {
-            if (!CreateCanConector(0, 0, DeviceManagerCO))
+            if (!CreateCanConector(0, 0, ref DeviceManagerCO))
             {
                 IxxatState = EnIxxatState.Disconnected;
                 return false;
@@ -88,14 +88,15 @@ public partial class CMainProgram : ObservableObject
                 return false;
             }
 
-            CScales? scales = ZoznamPlc[2] as CScales;
+            CScales? _scales = ZoznamPlc[2] as CScales;
 
-            scales.Scale1 = CreateScale(DeviceManagerCO, 6, "Main_Scale");
-            scales.Scale1 = CreateScale(DeviceManagerCO, 6, "Main_Scale");
+            _scales.Scale1 = CreateScale(DeviceManagerScale, 6, "Scale1");
+            _scales.Scale2 = CreateScale(DeviceManagerScale, 3, "Scale2");
 
 
-            scales.Scales.Clear();
-            scales.Scales.Add(scales.Scale1);
+            _scales.Scales.Clear();
+            _scales.Scales.Add(_scales.Scale1);
+            _scales.Scales.Add(_scales.Scale2);
 
 
             foreach (var vm in manipulator.MotorViewModels)
