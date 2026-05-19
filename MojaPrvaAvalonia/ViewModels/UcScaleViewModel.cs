@@ -22,6 +22,10 @@ public partial class UcScaleViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private string _nmtText = "UNKNOWN";
     [ObservableProperty] private IBrush _nmtColor = Brushes.DarkGray;
+    
+    [ObservableProperty] private bool _isSetupVisible = true;
+
+    public CDeviceScale? Device => _device;
 
     public UcScaleViewModel(CDeviceScale? device, string scaleName)
     {
