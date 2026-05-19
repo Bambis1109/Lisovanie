@@ -27,8 +27,8 @@ public partial class frmScale : Window
         // Spustíme obnovu dát z rovnakej inštancie CDeviceScale
         vm.StartRefresh();
         
-        // Priradíme ViewModel do nášho UserControlu (MyUcScale)
-        MyUcScale.DataContext = vm;
+        // Priradíme ViewModel do globálneho DataContext okna
+        DataContext = vm;
         
         Title = $"Scale Setup - {deviceScale.Name}";
     }
@@ -43,7 +43,7 @@ public partial class frmScale : Window
         base.OnClosed(e);
         // Zastavíme timer pre refresh pri zatvorení okna, 
         // aby sme neuvoľňovali zbytočne prostriedky.
-        if (MyUcScale.DataContext is UcScaleViewModel vm)
+        if (DataContext is UcScaleViewModel vm)
         {
             vm.StopRefresh();
         }

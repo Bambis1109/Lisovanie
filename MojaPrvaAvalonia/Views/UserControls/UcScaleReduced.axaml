@@ -8,11 +8,11 @@
              x:DataType="vm:UcScaleViewModel">
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="3">
-            <TextBlock Text="{Binding ScaleData.ScaleName}" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11"/>
+            <TextBlock Text="{Binding ScaleName}" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11"/>
             
             <Grid RowDefinitions="Auto" ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="W: " FontWeight="Bold" FontSize="11"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScaleData.WeightFinal}" FontSize="11"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding WeightFinalKg, StringFormat={}{0:F3} kg}" FontSize="11"/>
             </Grid>
 
             <Border Background="{Binding NmtColor}" CornerRadius="3" Margin="0,2,0,0" Padding="2">

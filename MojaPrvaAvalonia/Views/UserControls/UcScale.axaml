@@ -3,39 +3,88 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="250"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcScale"
-             x:DataType="vm:UcScaleViewModel">
-    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
-        <StackPanel Spacing="5">
-            <TextBlock Text="{Binding ScaleData.ScaleName}" FontWeight="Bold" HorizontalAlignment="Center"/>
-            
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Node: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScaleData.NodeId}"/>
+             x:DataType="vm:UcScaleViewModel"
+             IsEnabled="{Binding IsUiEnabled}">
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Final: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ScaleData.WeightFinal}"/>
+    <!-- UX vylepšenia cez Styles -->
+    <UserControl.Styles>
+        <Style Selector="TextBlock.status">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.status[Text='Error']">
+            <Setter Property="Foreground" Value="Red" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style Selector="TextBlock.status[Text='Ready']">
+            <Setter Property="Foreground" Value="LimeGreen" />
+        </Style>
+        <Style Selector="TextBlock.status[Text='Busy']">
+            <Setter Property="Foreground" Value="Orange" />
+        </Style>
+    </UserControl.Styles>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Raw: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScaleData.WeightRaw}"/>
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Actual: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ScaleData.Weight32Actual}"/>
-
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="Proc: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ScaleData.StatusMainProc}"/>
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Padding="10" Margin="5" Background="#1E1E1E">
+        <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*, Auto, Auto">
+                <TextBlock Grid.Column="0" Text="{Binding ScaleName}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Background="{Binding NmtColor}" CornerRadius="3" Padding="5,2" Margin="0,0,5,0">
+                    <TextBlock Text="{Binding NmtText}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                </Border>
+                <Button Grid.Column="2" Content="Setup" Click="SetupButton_Click" IsVisible="{Binding IsSetupVisible}"
+                        Background="DodgerBlue" Foreground="White" CornerRadius="3" Padding="10,2"
+                        VerticalContentAlignment="Center" FontSize="11" FontWeight="Bold"/>
             </Grid>
 
-            <!-- Status Indicator -->
-            <UniformGrid Columns="2" Margin="0,5">
-                <Border Background="{Binding NmtColor}" CornerRadius="3" Margin="2" Padding="3">
-                    <TextBlock Text="{Binding NmtText}" Foreground="White" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold"/>
-                </Border>
-                <Button Content="Setup" Click="SetupButton_Click" IsVisible="{Binding IsSetupVisible}"
-                        Background="DodgerBlue" Foreground="White" CornerRadius="3" Margin="2" Padding="0"
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="11" FontWeight="Bold"/>
-            </UniformGrid>
+            <Separator Background="DimGray" Height="1"/>
+
+            <!-- 1. Informácie o hmotnosti -->
+            <Border BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Padding="8">
+                <StackPanel Spacing="5">
+                    <TextBlock Text="Informácie o hmotnosti" FontWeight="Bold" Foreground="LightGray" Margin="0,0,0,5"/>
+                    <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Inter:" Width="80"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Weight32InterKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tare:"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Weight32TareKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Actual:"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Weight32ActualKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Final:"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding WeightFinalKg, StringFormat={}{0:F3} kg}" FontWeight="Bold" Foreground="Cyan"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 2. Prevádzkové stavy -->
+            <Border BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Padding="8">
+                <StackPanel Spacing="5">
+                    <TextBlock Text="Prevádzkové Stavy" FontWeight="Bold" Foreground="LightGray" Margin="0,0,0,5"/>
+                    
+                    <Grid ColumnDefinitions="Auto, *, Auto, *" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,5">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Main Proc:" Width="80"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="status" Text="{Binding StatusMainProc}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Mat:" Width="40" Margin="10,0,0,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="3" Classes="status" Text="{Binding StatusMainMat}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Zone:"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="status" Text="{Binding StatusMainZone}"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Vyložník:" Margin="0,5,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="status" Text="{Binding StatusVyloznikProc}" Margin="0,5,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Mat:" Margin="10,5,0,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="3" Classes="status" Text="{Binding StatusVyloznikMat}" Margin="0,5,0,0"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Dávkovač:" Margin="0,5,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Classes="status" Text="{Binding StatusDoserProc}" Margin="0,5,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="Mat:" Margin="10,5,0,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="3" Classes="status" Text="{Binding StatusDoserMat}" Margin="0,5,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </Border>
 </UserControl>

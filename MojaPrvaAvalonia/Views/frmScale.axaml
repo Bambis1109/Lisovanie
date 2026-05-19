@@ -3,16 +3,108 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
-        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
+        xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="MojaPrvaAvalonia.Views.frmScale"
+        x:DataType="vm:UcScaleViewModel"
         Title="Scale Setup"
-        Width="350" Height="450"
+        Width="850" Height="500"
         WindowStartupLocation="CenterOwner"
         Topmost="True" Background="#1E1E1E">
 
-    <Grid RowDefinitions="*, Auto">
-        <uc:UcScale Name="MyUcScale" Grid.Row="0" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
+    <Window.Styles>
+        <Style Selector="Button.cmd">
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.cmd:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#555555" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*, Auto" Margin="10">
+        
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *">
+            <uc:UcScale Name="MyUcScale" Grid.Column="0" Margin="0,0,10,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+            
+            <Border Grid.Column="1" BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Background="#252526" IsEnabled="{Binding IsUiEnabled}">
+                <TabControl Margin="5">
+                    
+                    <!-- ZÁLOŽKA: Main -->
+                    <TabItem Header="Main">
+                        <StackPanel Spacing="5" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding MasterInitCommand}"/>
+                            <Button Classes="cmd" Content="Produkcia" Command="{Binding MasterProdukciaCommand}"/>
+                            <Button Classes="cmd" Content="Next" Command="{Binding MasterNextCommand}"/>
+                            <Button Classes="cmd" Content="Stop" Command="{Binding MasterStopCommand}" Background="DarkRed"/>
+                        </StackPanel>
+                    </TabItem>
+                    
+                    <!-- ZÁLOŽKA: Dávkovač -->
+                    <TabItem Header="Dávkovač">
+                        <StackPanel Spacing="5" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding DoserInitCommand}"/>
+                            <Button Classes="cmd" Content="Tune" Command="{Binding DoserTuneCommand}"/>
+                            <Button Classes="cmd" Content="Prod" Command="{Binding DoserProdCommand}"/>
+                            <Button Classes="cmd" Content="Vyklop" Command="{Binding DoserVyklopCommand}"/>
+                            <Button Classes="cmd" Content="Stop" Command="{Binding DoserStopCommand}" Background="DarkRed"/>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ZÁLOŽKA: Vyložník -->
+                    <TabItem Header="Vyložník">
+                        <WrapPanel Orientation="Horizontal" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding BoomInitCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysun 1" Command="{Binding BoomVysun1Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysun 2" Command="{Binding BoomVysun2Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vyloz 1" Command="{Binding BoomVyloz1Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vyloz 2" Command="{Binding BoomVyloz2Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysyp" Command="{Binding BoomVysypCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Zasun" Command="{Binding BoomZasunCommand}" Width="110"/>
+                        </WrapPanel>
+                    </TabItem>
+
+                    <!-- ZÁLOŽKA: Zámok -->
+                    <TabItem Header="Zámok">
+                        <WrapPanel Orientation="Horizontal" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding LockInitCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Odomkni" Command="{Binding LockOdomkniCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Zamkni" Command="{Binding LockZamkniCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysyp Vlavo" Command="{Binding LockVysypVlavoCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysyp Vpravo" Command="{Binding LockVysypVpravoCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Kalibruj" Command="{Binding LockKalibrujCommand}" Width="110"/>
+                        </WrapPanel>
+                    </TabItem>
+
+                    <!-- ZÁLOŽKA: Váha -->
+                    <TabItem Header="Váha">
+                        <StackPanel Spacing="5" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding ScaleInitCommand}"/>
+                            <Button Classes="cmd" Content="Kalibruj Min" Command="{Binding ScaleKalibrujMinCommand}"/>
+                            <Button Classes="cmd" Content="Kalibruj Max" Command="{Binding ScaleKalibrujMaxCommand}"/>
+                            <Button Classes="cmd" Content="Tara" Command="{Binding ScaleTaraCommand}"/>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ZÁLOŽKA: Systém -->
+                    <TabItem Header="Systém">
+                        <StackPanel Spacing="5" Margin="10">
+                            <Button Classes="cmd" Content="Save" Command="{Binding SystemSaveCommand}"/>
+                            <Button Classes="cmd" Content="Load" Command="{Binding SystemLoadCommand}"/>
+                            <Button Classes="cmd" Content="Restart" Command="{Binding SystemRestartCommand}" Background="DarkRed"/>
+                        </StackPanel>
+                    </TabItem>
+
+                </TabControl>
+            </Border>
+        </Grid>
+        
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0" Spacing="10">
             <Button Content="Zavrieť" Click="BtnClose_OnClick" 
                     Padding="20,10" Background="#B22222" Foreground="White" 
                     FontWeight="Bold" CornerRadius="5"/>
