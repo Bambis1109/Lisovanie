@@ -1,46 +1,73 @@
 ﻿using System;
-using System.Buffers.Binary;
 
-namespace EposCmd.Net.DeviceCmdSet.Operation
+namespace EposCmd.Net.DeviceScaleSet
 {
-    public class ScaleOperation : CScaleCommandGroupCO
+    public class ScaleOperation
     {
+        public ScaleMasterPlc Master { get; }
+        public ScaleDoser Doser { get; }
+        public ScaleBoom Boom { get; }
+        public ScaleLock Lock { get; }
+        public ScaleWeigher Weigher { get; }
+        public ScaleSystem System { get; }
+
         public ScaleOperation(ushort keyHandle, byte nodeId, CDataScale data)
         {
-            KeyHandle = keyHandle;
-            NodeId = nodeId;
-            BaseData = data;
+            Master = new ScaleMasterPlc(keyHandle, nodeId, data);
+            Doser = new ScaleDoser(keyHandle, nodeId, data);
+            Boom = new ScaleBoom(keyHandle, nodeId, data);
+            Lock = new ScaleLock(keyHandle, nodeId, data);
+            Weigher = new ScaleWeigher(keyHandle, nodeId, data);
+            System = new ScaleSystem(keyHandle, nodeId, data);
         }
+    }
 
-        // Príklad: Zápis do RPDO1 (napríklad nastavenie digitálnych výstupov)
-        public void SetDigitalOutputs(uint outputs)
-        {
-            lock (Data.NodePdoLock)
-            {
-                // Zápis 4 bajtov do pripraveného buffra
-                BinaryPrimitives.WriteUInt32LittleEndian(Data.TxdataPDO1.AsSpan(0, 4), outputs);
-                
-                // Odošleme PDO1 (z pohľadu mastra je to TxPDO1, STM32 to prijme ako RPDO1)
-                WritePDO(1, Data.TxdataPDO1);
-            }
-        }
+    // --- Jednotlivé moduly ---
 
-        // Príklad: Odoslanie príkazu na Tarovanie (napr. cez RPDO2)
-        public void TareScale()
-        {
-            lock (Data.NodePdoLock)
-            {
-                // Povedzme, že v RPDO2 posielame command byte na nultom bajte (0x01 = Tare)
-                Data.TxdataPDO2[0] = 0x01; 
-                WritePDO(2, Data.TxdataPDO2);
-            }
-        }
+    public class ScaleMasterPlc : CScaleCommandGroupCO
+    {
+        public ScaleMasterPlc(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(EMasterCommand cmd) => ExecuteCommandWithAck(0x6206, (uint)cmd);
+    }
 
-        // Príklad: Zápis SDO (ak by si chcel neskôr konfigurovať filtre)
-        public void SetFilterConstant(ushort filterValue)
-        {
-            // Predpokladajme, že filter je na indexe 0x2000, subindex 0x01
-            WritedSDO(0x2000, 0x01, filterValue, 2);
-        }
+    public class ScaleDoser : CScaleCommandGroupCO
+    {
+        public ScaleDoser(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(EDoserCommand cmd) => ExecuteCommandWithAck(0x6205, (uint)cmd);
+    }
+
+    public class ScaleBoom : CScaleCommandGroupCO
+    {
+        public ScaleBoom(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(EBoomCommand cmd) => ExecuteCommandWithAck(0x6203, (uint)cmd);
+    }
+
+    public class ScaleLock : CScaleCommandGroupCO
+    {
+        public ScaleLock(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(ELockCommand cmd) => ExecuteCommandWithAck(0x6201, (uint)cmd);
+        
+        // Čítanie statusu cez SDO (pre ladenie)
+        public uint GetStatus() => (uint)ReadSdo(0x6201, 0x02, 4);
+    }
+
+    public class ScaleWeigher : CScaleCommandGroupCO
+    {
+        public ScaleWeigher(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(EScaleCommand cmd) => ExecuteCommandWithAck(0x6202, (uint)cmd);
+        
+        public uint GetStatus() => (uint)ReadSdo(0x6202, 0x02, 4);
+    }
+
+    public class ScaleSystem : CScaleCommandGroupCO
+    {
+        public ScaleSystem(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(ESystemCommand cmd) => ExecuteCommandWithAck(0x6100, (uint)cmd);
     }
 }

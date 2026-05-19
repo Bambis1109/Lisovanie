@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Buffers.Binary;
 using EposCmd.Net.DeviceCmdSet.LowLayer;
 using EposCmd.Net.DeviceCmdSet.Operation;
+using EposCmd.Net.DeviceScaleSet;
+//using EposCmd.Net.DeviceScaleSet;
 using static IXXAT.CANopenMasterAPI6;
 
 namespace EposCmd.Net
@@ -10,6 +13,7 @@ namespace EposCmd.Net
         private CDataScale ScaleData => (CDataScale)Data;
         
         public ScaleOperation Operation { get; }
+        public override LowLayer LowLayer => null;
 
         public CDeviceScale(ushort keyHandle, byte nodeId, string name)
         {
@@ -20,32 +24,38 @@ namespace EposCmd.Net
             Operation = new ScaleOperation(keyHandle, nodeId, ScaleData);
         }
 
-        // Spracovanie prichádzajúcich PDO z STM32 (z pohľadu mastra sú to RxPDO)
-        public override LowLayer LowLayer => null;
-
         public override void ReadPdo(COP_t_RX_PDO spPdo)
         {
             RecPdo(EventArgs.Empty);
             
+            // Z pohľadu Mastra sú to RxPDO (1 až 4). Z pohľadu STM32 sú to TPDO1 až TPDO4.
             switch (spPdo.pdo_no)
             {
-                case 1: // TPDO1 z STM32 (Napr. Digitálne vstupy a stavové slovo)
-                    ScaleData.DigitalInputs = BitConverter.ToUInt32(spPdo.a_data, 0);
-                    ScaleData.VaStatus = (EVaStatus)spPdo.a_data[4];
+                case 1: // TPDO1
+                    ScaleData.StatusMainProc = (EProcStatus)spPdo.a_data[0];
+                    ScaleData.StatusMainMat  = (EMatStatus)spPdo.a_data[1];
+                    ScaleData.WeightResult   = (EVaResult)spPdo.a_data[2];
+                    ScaleData.StatusMainZone = (EZoneStatus)spPdo.a_data[3];
+                    ScaleData.WeightFinal    = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
-                case 2: // TPDO2 z STM32 (Napr. Aktuálna váha - Float/Double alebo Int32)
-                    // Predpokladajme, že váha chodí ako 32-bitový integer (napr. v gramoch)
-                    int rawWeight = BitConverter.ToInt32(spPdo.a_data, 0);
-                    ScaleData.VaWeightInter = rawWeight; // Prípadne prepočet na double
+                case 2: // TPDO2
+                    ScaleData.Weight32Inter = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(0, 4));
+                    ScaleData.Weight32Tare  = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
-                case 3: // TPDO3 z STM32
-                    // Doplň podľa tvojho mapovania v STM32
+                case 3: // TPDO3
+                    ScaleData.WeightRaw      = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(0, 4));
+                    ScaleData.WeightDuration = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
-                case 4: // TPDO4 z STM32
-                    // Doplň podľa tvojho mapovania v STM32
+                case 4: // TPDO4
+                    ScaleData.StatusDoserProc    = (EProcStatus)spPdo.a_data[0];
+                    ScaleData.StatusDoserMat     = (EMatStatus)spPdo.a_data[1];
+                    // Byte 2 a 3 sú voľné
+                    ScaleData.StatusVyloznikProc =(EProcStatus) spPdo.a_data[4];
+                    ScaleData.StatusVyloznikMat  = (EMatStatus)spPdo.a_data[5];
+                    // Byte 6 a 7 sú voľné
                     break;
             }
         }
@@ -57,7 +67,7 @@ namespace EposCmd.Net
             switch (eventMsg.evt_type)
             {
                 case COP_k_NMT_EVT:
-                    // Tu môžeš spracovať zmenu NMT stavu (napr. STM32 prešlo do Pre-Op)
+                    Data.NmtStatus = (ENmtStatus)eventMsg.evt_data3;
                     break;
                 case COP_k_WPDO_EVT:
                     Data.WpdoError = true;
@@ -75,7 +85,6 @@ namespace EposCmd.Net
 
         public override string GetLastEmergencyMsg()
         {
-            // Tu môžeš neskôr pridať slovník chýb špecifický pre tvoje STM32
             return $"Scale Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}";
         }
     }

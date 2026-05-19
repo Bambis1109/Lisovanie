@@ -1,26 +1,31 @@
 ﻿using System;
+using EposCmd.Net.DeviceScaleSet;
 
 namespace EposCmd.Net
 {
     public class CDataScale : CDataBaseCO
     {
-        // Zámky pre thread-safe prístup
         private readonly object LockingWeight = new object();
-        private readonly object LockingIo = new object();
         private readonly object LockingStatus = new object();
 
-        // --- IO Premenné ---
-        private uint _digitalInputs;
-        private uint _digitalOutputs;
+        // Váhy
+        private int _weightRaw;
+        private int _weight32Inter;
+        private int _weight32Tare;
+        private int _weightFinal;
+        private int _weightDuration;
+        private EVaResult _weightResult;
 
-        // --- Váhové premenné ---
-        private double _vaWeightInter;
-        private double _vaWeightTare;
-        private double _vaWeightFinal;
+        // Statusy (používame silné typy)
+        private EProcStatus _statusMainProc;
+        private EMatStatus _statusMainMat;
+        private EZoneStatus _statusMainZone;
         
-        private EVaStatus _vaStatus;
-        private EVaStatus2 _vaStatus2;
-        private EVaResult _vaResult;
+        private EProcStatus _statusDoserProc;
+        private EMatStatus _statusDoserMat;
+        
+        private EProcStatus _statusVyloznikProc;
+        private EMatStatus _statusVyloznikMat;
 
         public CDataScale(byte nodeId, string name)
         {
@@ -28,61 +33,26 @@ namespace EposCmd.Net
             Name = name;
         }
 
-        // Podľa štandardu CiA 301 je PDO komunikácia povolená len v stave OPERATIONAL
         public override bool IsPdoCommunicationAllowed => NmtStatus == ENmtStatus.NcsOPERATIONAL;
 
-        // --- Vlastnosti (Properties) ---
-        public uint DigitalInputs
-        {
-            get { lock (LockingIo) { return _digitalInputs; } }
-            set { lock (LockingIo) { _digitalInputs = value; } }
-        }
+        // --- Vlastnosti pre Váhu ---
+        public int WeightRaw { get { lock (LockingWeight) return _weightRaw; } set { lock (LockingWeight) _weightRaw = value; } }
+        public int Weight32Inter { get { lock (LockingWeight) return _weight32Inter; } set { lock (LockingWeight) _weight32Inter = value; } }
+        public int Weight32Tare { get { lock (LockingWeight) return _weight32Tare; } set { lock (LockingWeight) _weight32Tare = value; } }
+        public int Weight32Actual { get { lock (LockingWeight) return _weight32Inter - _weight32Tare; } }
+        public int WeightFinal { get { lock (LockingWeight) return _weightFinal; } set { lock (LockingWeight) _weightFinal = value; } }
+        public int WeightDuration { get { lock (LockingWeight) return _weightDuration; } set { lock (LockingWeight) _weightDuration = value; } }
+        public EVaResult WeightResult { get { lock (LockingStatus) return _weightResult; } set { lock (LockingStatus) _weightResult = value; } }
 
-        public uint DigitalOutputs
-        {
-            get { lock (LockingIo) { return _digitalOutputs; } }
-            set { lock (LockingIo) { _digitalOutputs = value; } }
-        }
+        // --- Vlastnosti pre Statusy ---
+        public EProcStatus StatusMainProc { get { lock (LockingStatus) return _statusMainProc; } set { lock (LockingStatus) _statusMainProc = value; } }
+        public EMatStatus StatusMainMat { get { lock (LockingStatus) return _statusMainMat; } set { lock (LockingStatus) _statusMainMat = value; } }
+        public EZoneStatus StatusMainZone { get { lock (LockingStatus) return _statusMainZone; } set { lock (LockingStatus) _statusMainZone = value; } }
 
-        public double VaWeightInter
-        {
-            get { lock (LockingWeight) { return _vaWeightInter; } }
-            set { lock (LockingWeight) { _vaWeightInter = value; } }
-        }
+        public EProcStatus StatusDoserProc { get { lock (LockingStatus) return _statusDoserProc; } set { lock (LockingStatus) _statusDoserProc = value; } }
+        public EMatStatus StatusDoserMat { get { lock (LockingStatus) return _statusDoserMat; } set { lock (LockingStatus) _statusDoserMat = value; } }
 
-        public double VaWeightTare
-        {
-            get { lock (LockingWeight) { return _vaWeightTare; } }
-            set { lock (LockingWeight) { _vaWeightTare = value; } }
-        }
-
-        public double VaWeightActual
-        {
-            get { lock (LockingWeight) { return _vaWeightInter - _vaWeightTare; } }
-        }
-
-        public double VaWeightFinal
-        {
-            get { lock (LockingWeight) { return _vaWeightFinal; } }
-            set { lock (LockingWeight) { _vaWeightFinal = value; } }
-        }
-
-        public EVaStatus VaStatus
-        {
-            get { lock (LockingStatus) { return _vaStatus; } }
-            set { lock (LockingStatus) { _vaStatus = value; } }
-        }
-
-        public EVaStatus2 VaStatus2
-        {
-            get { lock (LockingStatus) { return _vaStatus2; } }
-            set { lock (LockingStatus) { _vaStatus2 = value; } }
-        }
-
-        public EVaResult VaResult
-        {
-            get { lock (LockingStatus) { return _vaResult; } }
-            set { lock (LockingStatus) { _vaResult = value; } }
-        }
+        public EProcStatus StatusVyloznikProc { get { lock (LockingStatus) return _statusVyloznikProc; } set { lock (LockingStatus) _statusVyloznikProc = value; } }
+        public EMatStatus StatusVyloznikMat { get { lock (LockingStatus) return _statusVyloznikMat; } set { lock (LockingStatus) _statusVyloznikMat = value; } }
     }
 }
