@@ -13,8 +13,7 @@ namespace MojaPrvaAvalonia.Models;
 
 public partial class CMainProgram : ObservableObject
 {
-    [ObservableProperty]
-    private EnIxxatState _ixxatState = EnIxxatState.Disconnected;
+    [ObservableProperty] private EnIxxatState _ixxatState = EnIxxatState.Disconnected;
 
     partial void OnIxxatStateChanged(EnIxxatState oldValue, EnIxxatState newValue)
     {
@@ -27,12 +26,14 @@ public partial class CMainProgram : ObservableObject
 
     public ObservableCollection<CPlc> ZoznamPlc { get; } = new ObservableCollection<CPlc>();
     public CDeviceManagerCO DeviceManagerCO { get; set; }
-    public string ConnectionInfo { get; set; }
+    public CDeviceManagerCO DeviceManagerScale { get; set; }
+
 
     public CMainProgram()
     {
         ZoznamPlc.Add(new CManipulator("Manipulator"));
         ZoznamPlc.Add(new CLis("Lis"));
+        ZoznamPlc.Add(new CScales("Vahy"));
     }
 
     public async Task<bool> Connect()
@@ -41,7 +42,7 @@ public partial class CMainProgram : ObservableObject
         IxxatState = EnIxxatState.Connecting;
         try
         {
-            if (!CreateCanConector(0, 0)) 
+            if (!CreateCanConector(0, 0, DeviceManagerCO))
             {
                 IxxatState = EnIxxatState.Disconnected;
                 return false;
@@ -75,22 +76,45 @@ public partial class CMainProgram : ObservableObject
             manipulator.MotorViewModels[1].AssignDevice(manipulator.MotorDown);
             manipulator.MotorViewModels[2].AssignDevice(manipulator.MotorJaws);
             manipulator.MotorViewModels[3].AssignDevice(manipulator.MotorZ);
-            
+
             lis.MotorViewModels[0].AssignDevice(lis.MotorStred);
             lis.MotorViewModels[1].AssignDevice(lis.MotorSlave);
             lis.MotorViewModels[2].AssignDevice(lis.MotorMaster);
-        
+
+//*************************Vahy*********************************
+            if (!CreateCanConector(1, 0,ref  DeviceManagerScale))
+            {
+                IxxatState = EnIxxatState.Disconnected;
+                return false;
+            }
+
+            CScales? scales = ZoznamPlc[2] as CScales;
+
+            scales.Scale1 = CreateScale(DeviceManagerCO, 6, "Main_Scale");
+            scales.Scale1 = CreateScale(DeviceManagerCO, 6, "Main_Scale");
+
+
+            scales.Scales.Clear();
+            scales.Scales.Add(scales.Scale1);
+
 
             foreach (var vm in manipulator.MotorViewModels)
             {
                 vm.StartRefresh();
             }
-            
+
             foreach (var vm in lis.MotorViewModels)
             {
                 vm.StartRefresh();
             }
-           DeviceManagerCO.Sync(ESync.NcsEnable);
+            /* ToDo
+              foreach (var vms in scales.ScaleViewModels)
+              {
+                  vms.StartRefresh();
+              }
+  */
+
+            DeviceManagerCO.Sync(ESync.NcsEnable);
 
             IxxatState = EnIxxatState.Connected;
             return true;
@@ -103,18 +127,19 @@ public partial class CMainProgram : ObservableObject
         }
     }
 
-    private bool CreateCanConector(int canline, int boardline)
+    private bool CreateCanConector(int canline, int boardline, ref CDeviceManagerCO deviceManagerCO)
     {
         try
+
         {
-            if (DeviceManagerCO != null)
+            if (deviceManagerCO != null)
             {
                 Log.Warning("CanOpen Master is already initialized!");
                 return true;
             }
 
             Guid boardId = CANopenMasterAPI6.COP_1stBOARD;
-            DeviceManagerCO = new CDeviceManagerCO
+            deviceManagerCO = new CDeviceManagerCO
             {
                 Name = $"DM:Main",
                 BaudIndex = CANopenMasterAPI6.COP_k_1000_KB,
@@ -125,12 +150,13 @@ public partial class CMainProgram : ObservableObject
                 Timeout = 500
             };
 
-            DeviceManagerCO.Init();
-            ConnectionInfo = DeviceManagerCO.GetConnectionInfo;
-            Log.Information($"Connect: {ConnectionInfo}");
+            deviceManagerCO.Init();
+            var connectionInfo = deviceManagerCO.GetConnectionInfo;
+            Log.Information($"Connect: {connectionInfo}");
             return true;
         }
-        catch (Exception ex)
+        catch
+            (Exception ex)
         {
             Log.Fatal($"Create connectors error: {ex.Message}");
             return false;
@@ -146,30 +172,58 @@ public partial class CMainProgram : ObservableObject
         Log.Information($"Created device: {name} (ID: {nodeId})");
         return motor;
     }
+
+    private CDeviceScale CreateScale(CDeviceManagerCO deviceManagerCO, byte nodeId, string name)
+    {
+        // 1. Vytvorenie inštancie váhy (nepotrebuje gear ani pulse)
+        var scale = new CDeviceScale(deviceManagerCO._keyHandle, nodeId, name);
+
+        // 2. Pridanie do manažéra (zabezpečí routing CAN správ)
+        deviceManagerCO.AddDevice(scale);
+
+        // 3. Odber udalostí (Eventy)
+        scale.ReceiveEmergency += OnScaleEmergency;
+
+        // 4. Logovanie
+        Log.Information($"Created scale device: {name} (ID: {nodeId})");
+
+        return scale;
+    }
+
     private void OnMotorEmergency(object? sender, EventArgs e)
     {
         if (sender is CDeviceEpos4 motor)
         {
             // Získame textový popis chyby priamo z tvojej knižnice
             string errorMsg = motor.GetLastEmergencyMsg();
-    
+
             // Zalogujeme to ako Error (alebo Fatal) cez Serilog
             Log.Error($"[EMCY ALARM] Motor {motor.Name}: {errorMsg}");
 
             // Ak ide o chybu zbernice (CAN passive / Bus off)
-            if (motor.Data.LastEmergency.err_value == 0x8120 || 
+            if (motor.Data.LastEmergency.err_value == 0x8120 ||
                 motor.Data.LastEmergency.err_value == 0x81FD)
             {
                 Log.Fatal($"Kritická chyba CAN zbernice na uzle {motor.NodeId}! Skontroluj káble.");
-            
+
                 // OPRAVA: Presun volania Shutdown do UI vlákna!
-                Dispatcher.UIThread.Post(() =>
-                {
-                    Shutdown(); 
-                });
+                Dispatcher.UIThread.Post(() => { Shutdown(); });
             }
         }
     }
+
+    private void OnScaleEmergency(object sender, EventArgs e)
+    {
+        if (sender is CDeviceScale scale)
+        {
+            // Využijeme metódu GetLastEmergencyMsg, ktorú sme definovali v CDeviceScale
+            string errorMsg = scale.GetLastEmergencyMsg();
+            Log.Error($"[SCALE EMERGENCY] {errorMsg}");
+
+            // Tu môžeš pridať logiku pre UI, napr. zobrazenie chybovej hlášky
+        }
+    }
+
     public void Shutdown()
     {
         Log.Information("Vykonávam núdzový Shutdown systému...");
@@ -205,7 +259,8 @@ public partial class CMainProgram : ObservableObject
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning($"Ignorovaná chyba pri vypínaní motora {motor.Name} (Manipulator): {ex.Message}");
+                            Log.Warning(
+                                $"Ignorovaná chyba pri vypínaní motora {motor.Name} (Manipulator): {ex.Message}");
                         }
                     }
                 }
@@ -225,7 +280,7 @@ public partial class CMainProgram : ObservableObject
                 }
             }
         }
-    
+
         Log.Information("Shutdown dokončený.");
     }
 }
