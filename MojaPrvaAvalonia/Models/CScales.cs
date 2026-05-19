@@ -20,9 +20,8 @@ public partial class CScales : CPlcScale
     public CScales(string name) : base(name)
     {
         LoadParameters();
-  //   ToDo   ScaleViewModels.Add(new UcScaleViewModel(null, "SC1"));
-   //  ToDo   ScaleViewModels.Add(new UcScaleViewModel(null, "SC2"));
-      
+        ScaleViewModels.Add(new UcScaleViewModel(null, "SC1"));
+        ScaleViewModels.Add(new UcScaleViewModel(null, "SC2"));
     }
 
     public override async Task ConnectAsync()

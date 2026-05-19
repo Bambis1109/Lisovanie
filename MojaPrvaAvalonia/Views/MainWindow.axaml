@@ -67,6 +67,9 @@
                         <DataTemplate DataType="models:CLis">
                             <uc:UcLis />
                         </DataTemplate>
+                        <DataTemplate DataType="models:CScales">
+                            <uc:UcScales />
+                        </DataTemplate>
                     </ItemsControl.DataTemplates>
                 </ItemsControl>
             </StackPanel>

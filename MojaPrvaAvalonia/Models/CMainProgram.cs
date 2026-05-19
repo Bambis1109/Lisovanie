@@ -99,6 +99,9 @@ public partial class CMainProgram : ObservableObject
             _scales.Scales.Add(_scales.Scale2);
 
 
+            _scales.ScaleViewModels[0].AssignDevice(_scales.Scale1);
+            _scales.ScaleViewModels[1].AssignDevice(_scales.Scale2);
+
             foreach (var vm in manipulator.MotorViewModels)
             {
                 vm.StartRefresh();
@@ -108,12 +111,11 @@ public partial class CMainProgram : ObservableObject
             {
                 vm.StartRefresh();
             }
-            /* ToDo
-              foreach (var vms in scales.ScaleViewModels)
-              {
-                  vms.StartRefresh();
-              }
-  */
+            
+            foreach (var vms in _scales.ScaleViewModels)
+            {
+                vms.StartRefresh();
+            }
 
             DeviceManagerCO.Sync(ESync.NcsEnable);
 

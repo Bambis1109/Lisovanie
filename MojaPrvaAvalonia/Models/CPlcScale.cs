@@ -14,7 +14,7 @@ namespace MojaPrvaAvalonia.Models;
 public partial class CPlcScale : CPlc
 {
     public List<CDeviceScale> Scales { get; } = new();
-    // ToDo vytvorit public ObservableCollection<UcScaleViewModel> ScaleViewModels { get; } = new();
+    public ObservableCollection<UcScaleViewModel> ScaleViewModels { get; } = new();
 
     public CPlcScale(string name) : base(name)
     {
