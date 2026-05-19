@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="250"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcScale"
+             x:DataType="vm:UcScaleViewModel">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
+        <StackPanel Spacing="5">
+            <TextBlock Text="{Binding ScaleData.ScaleName}" FontWeight="Bold" HorizontalAlignment="Center"/>
+            
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Node: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScaleData.NodeId}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Final: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ScaleData.WeightFinal}"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Raw: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ScaleData.WeightRaw}"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Actual: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ScaleData.Weight32Actual}"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Proc: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ScaleData.StatusMainProc}"/>
+            </Grid>
+
+            <!-- Status Indicator -->
+            <UniformGrid Columns="1" Margin="0,5">
+                <Border Background="{Binding NmtColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding NmtText}" Foreground="White" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold"/>
+                </Border>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</UserControl>
