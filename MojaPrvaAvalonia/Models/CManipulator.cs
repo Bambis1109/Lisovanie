@@ -94,7 +94,7 @@ public partial class CManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        matrix = new Matrix(-260, -120, 21, 19, 2, 2);
+        matrix = new Matrix(-260, -120, 21, 19, 5, 8);
         matrix.RecalculDIA();
 
         return 10;
@@ -174,7 +174,7 @@ public partial class CManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 20;
+        uint velocity = 10;
         uint acceleration = 100;
         uint deceleration = 100;
 
@@ -264,7 +264,7 @@ public partial class CManipulator : CPlcEpos
         if (!jaws.SetPosCurrent("kv4", -6.7, -30, 1, 2000))
         {
             resultUchopenie = false;
-            return 110;
+            return 170;
         }
 
         resultUchopenie = true;
