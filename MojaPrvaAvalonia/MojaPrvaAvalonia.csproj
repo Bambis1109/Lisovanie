@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CanMasterEpos4\CanMasterEpos4.csproj" />
+      <ProjectReference Include="..\CanOpenMaster\CanOpenMaster.csproj" />
     </ItemGroup>
 
     <ItemGroup>

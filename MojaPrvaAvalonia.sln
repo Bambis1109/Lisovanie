@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MojaPrvaAvalonia", "MojaPrvaAvalonia\MojaPrvaAvalonia.csproj", "{BB558D0D-FA65-47A0-A012-39A0E15959F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanMasterEpos4", "CanMasterEpos4\CanMasterEpos4.csproj", "{B53F0699-BEE1-44E4-A662-6051DF70F0DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanOpenMaster", "CanOpenMaster\CanOpenMaster.csproj", "{B53F0699-BEE1-44E4-A662-6051DF70F0DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
