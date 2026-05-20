@@ -93,7 +93,7 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
         try
         {
             var data = (CDataScale)_device.Data;
-            ENmtStatus nmtState = data.NmtStatus;
+            ENmtStatus nmtState = _device.LowLayer.Can.GetNMTState();
 
             if (nmtState == ENmtStatus.NcsDISCONNECTED || nmtState == ENmtStatus.NcsUNKNOWN)
             {

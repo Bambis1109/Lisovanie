@@ -118,6 +118,7 @@ public partial class CMainProgram : ObservableObject
             }
 
             DeviceManagerCO.Sync(ESync.NcsEnable);
+            DeviceManagerScale.Sync(ESync.NcsEnable);
 
             IxxatState = EnIxxatState.Connected;
             return true;
@@ -220,8 +221,8 @@ public partial class CMainProgram : ObservableObject
         if (sender is CDeviceScale scale)
         {
             // Využijeme metódu GetLastEmergencyMsg, ktorú sme definovali v CDeviceScale
-            string errorMsg = scale.GetLastEmergencyMsg();
-            Log.Error($"[SCALE EMERGENCY] {errorMsg}");
+           // string errorMsg = scale.GetLastEmergencyMsg();
+            Log.Error($"[SCALE EMERGENCY] ");
 
             // Tu môžeš pridať logiku pre UI, napr. zobrazenie chybovej hlášky
         }
