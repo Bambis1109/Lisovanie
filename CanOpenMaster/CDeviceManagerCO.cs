@@ -1,5 +1,6 @@
 ﻿using static IXXAT.CANopenMasterAPI6;
 using System.Threading.Channels;
+using IXXAT;
 
 namespace EposCmd.Net
 {
@@ -90,6 +91,10 @@ namespace EposCmd.Net
                                 switch (msg.Event.evt_type)
                                 {
                                     case COP_k_NMT_EVT:
+                                    {
+                                        ;
+                                    }
+                                        break;
                                     case COP_k_RPDO_EVT:
                                     case COP_k_WPDO_EVT:
                                         if (DeviceList.TryGetValue(msg.Event.evt_data2, out var deviceEvent))
@@ -146,44 +151,34 @@ namespace EposCmd.Net
             }
         }
 
-        public CDeviceCO CreateDevice(byte nodeId, string name)
-        {
-            if (DeviceList.ContainsKey(nodeId))
-                throw new CDeviceException("Error add node: " + nodeId + " Node already exist", 0);
-            var result = 0;
-            result = COP_AddNode(_keyHandle, nodeId, COP_k_NODE_GUARDING, 0, 2);
-            if (COP_k_OK != result)
-            {
-                COP_ReleaseBoard(_keyHandle);
-                _keyHandle = 0;
-                throw new CDeviceException("Error add node:" + nodeId, (uint)result);
-            }
-
-
-            CDeviceCO temp = new CDeviceEpos4(_keyHandle, nodeId, name, 1);
-            DeviceList.Add(nodeId, temp);
-            return temp;
-        }
-
+// WORKAROUND: Ixxat API bug - must add node with 0 time first, then change to Heartbeat
         public void AddDevice(CDeviceCO device)
         {
             if (DeviceList.ContainsKey(device.NodeId))
                 throw new CDeviceException("Error add node: " + device.NodeId + " Node already exist", 0);
             var result = 0;
-            result = COP_AddNode(_keyHandle, device.NodeId, COP_k_NODE_GUARDING, 0, 2);
+            result = COP_AddNode((ushort)_keyHandle, (byte)device.NodeId, (byte)COP_k_NODE_GUARDING, (ushort)0,
+                (byte)0);
+
             if (COP_k_OK != result)
             {
                 COP_ReleaseBoard(_keyHandle);
                 _keyHandle = 0;
                 throw new CDeviceException("Error add node:" + device.NodeId, (uint)result);
             }
-           
+
+            result = COP_ChangeNodeParameter(_keyHandle, device.NodeId, (byte)COP_k_HEARTBEAT, (ushort)150, 2);
+            if (COP_k_OK != result)
+            {
+                COP_ReleaseBoard(_keyHandle);
+                _keyHandle = 0;
+                throw new CDeviceException("Error add node:" + device.NodeId, (uint)result);
+            }
 
             DeviceList.Add(device.NodeId, device);
         }
 
-        
-        
+
         protected void RecEmergency(EventArgs e)
         {
             ReceiveEmergency?.Invoke(this, e);

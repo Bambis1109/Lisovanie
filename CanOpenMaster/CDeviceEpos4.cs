@@ -74,6 +74,8 @@ namespace EposCmd.Net
             switch (eventMsg.evt_type)
             {
                 case COP_k_NMT_EVT:
+                    Data.NmtStatus = (ENmtStatus)eventMsg.evt_data3;
+                    break;
                 case COP_k_DLL_EVT:
                     EposData.Statusword = 0;
                     break;
