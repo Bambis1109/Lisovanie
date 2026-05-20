@@ -13,15 +13,15 @@ namespace EposCmd.Net
         private CDataScale ScaleData => (CDataScale)Data;
         
         public ScaleOperation Operation { get; }
-        public override LowLayer LowLayer => null;
-
+    
         public CDeviceScale(ushort keyHandle, byte nodeId, string name)
         {
             Name = name;
             NodeId = nodeId;
             Data = new CDataScale(nodeId, Name);
-            
+            LowLayer = new LowLayer(keyHandle, nodeId, ScaleData);
             Operation = new ScaleOperation(keyHandle, nodeId, ScaleData);
+           
         }
 
         public override void ReadPdo(COP_t_RX_PDO spPdo)

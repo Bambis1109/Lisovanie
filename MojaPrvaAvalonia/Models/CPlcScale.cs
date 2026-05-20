@@ -39,14 +39,26 @@ public partial class CPlcScale : CPlc
         await Task.Run(async () =>
         {
             ResetScales(); // Tvrdý reštart všetkých Scale povelom cez SDO
-            await Task.Delay(500);
+            await Task.Delay(100);
         });
 
-        // 1. Čakanie na odpoved od Scales
+       
 
+        // 3. Čakanie na overenie stavu Operational
+        var startResult = await WaitForStartNodeAsync();
+        if (startResult == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error("Pripojenie zlyhalo: Niektoré vahy neprešli do stavu OPERATIONAL.");
+            StatusPlc = EnStatusPlc.Error;
+            Connection = EnStatusConnection.Disconnect;
+            Message = "Chyba: Zariadenia neštartujú.";
+            return;
+        }
 
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
+
     }
 
     public void ResetScales()
@@ -56,7 +68,37 @@ public partial class CPlcScale : CPlc
             scale.Operation.System.SendCommand(ESystemCommand.Restart);
         }
     }
-   
+    protected async Task<enmError> WaitForStartNodeAsync()
+    {
+        var tasks = Scales.Select(async item =>
+        {
+            for (int i = 0; i < 100; i++) // Prechod do Operational je rýchly, stačí 100x50ms (5 sekúnd)
+            {
+                await Task.Delay(50);
+                try
+                {
+                    // if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                    if(item.LowLayer.Can.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                    {
+                        Log.Logger.ForContext("Name", Name)
+                            .Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
+                        return enmError.NoError;
+                    }
+                }
+                catch (Exception)
+                {
+                    /* Ignorujeme dočasné chyby API počas dopytovania */
+                }
+            }
+
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Node {item.NodeId} ({item.Name}) neprešiel do stavu OPERATIONAL v časovom limite!");
+            return enmError.Error;
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
+    }
     protected async Task<enmError> WaitForResetAllNodeAsync()
     {
         var tasks = Scales.Select(async item =>

@@ -6,7 +6,7 @@ namespace EposCmd.Net.DeviceCmdSet.LowLayer
 {
     public class LowLayer
     {
-        public LowLayer(ushort keyHandle, byte nodeId, CDataEpos4 data)
+        public LowLayer(ushort keyHandle, byte nodeId, CDataBaseCO data)
         {
             Can = new CanLayer(keyHandle, nodeId, data);
         }
@@ -15,7 +15,7 @@ namespace EposCmd.Net.DeviceCmdSet.LowLayer
 
     public class CanLayer : CEpos4CommandGroupCO
     {
-        public CanLayer(ushort keyHandle, byte nodeId, CDataEpos4 data)
+        public CanLayer(ushort keyHandle, byte nodeId, CDataBaseCO data)
         {
             KeyHandle = keyHandle;
             NodeId = nodeId;

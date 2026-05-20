@@ -41,7 +41,7 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
 
         _refreshTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(100) // 10 Hz refresh rate
+            Interval = TimeSpan.FromMilliseconds(50) // 20 Hz refresh rate
         };
         _refreshTimer.Tick += OnRefreshTick;
         _refreshTimer.Start();

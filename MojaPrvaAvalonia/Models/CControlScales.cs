@@ -23,17 +23,6 @@ public partial class CControlScales : CPlcScale
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC1"));
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC2"));
     }
-
-    public override async Task ConnectAsync()
-    {
-        await base.ConnectAsync();
-
-        if (Connection == EnStatusConnection.Connected)
-        {
-           
-        }
-    }
-
     public override int RunStep(int step)
     {
         switch (step)

@@ -91,10 +91,6 @@ namespace EposCmd.Net
                                 switch (msg.Event.evt_type)
                                 {
                                     case COP_k_NMT_EVT:
-                                    {
-                                        ;
-                                    }
-                                        break;
                                     case COP_k_RPDO_EVT:
                                     case COP_k_WPDO_EVT:
                                         if (DeviceList.TryGetValue(msg.Event.evt_data2, out var deviceEvent))

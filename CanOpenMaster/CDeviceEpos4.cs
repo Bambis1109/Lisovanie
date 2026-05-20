@@ -10,37 +10,24 @@ namespace EposCmd.Net
     public class CDeviceEpos4 : CDeviceCO
     {
         public CDataEpos4 EposData => (CDataEpos4)Data;
+        public Configuration Configuration { get; }
+        public Initialization Initialization { get; }
+     public Operation Operation { get; }
 
-        public CDeviceEpos4(ushort keyHandle, byte nodeId, string name, double gear)
-        {
-            Name = name;
-            NodeId = nodeId;
-            Data = new CDataEpos4(nodeId, Name, gear);
-            
-            // ZMENA: Predávame EposData do všetkých modulov
-            Configuration = new Configuration(keyHandle, nodeId);
-            Initialization = new Initialization(keyHandle, nodeId);
-            LowLayer = new LowLayer(keyHandle, nodeId, EposData);
-            Operation = new Operation(keyHandle, nodeId, EposData);
-        }
-
-        public CDeviceEpos4(ushort keyHandle, byte nodeId, string name, double gear, double pulse)
+     public CDeviceEpos4(ushort keyHandle, byte nodeId, string name, double gear, double pulse)
         {
             Name = name;
             NodeId = nodeId;
             Data = new CDataEpos4(nodeId, Name, gear, pulse);
+
             
-            // ZMENA: Predávame EposData do všetkých modulov
             Configuration = new Configuration(keyHandle, nodeId);
             Initialization = new Initialization(keyHandle, nodeId);
             LowLayer = new LowLayer(keyHandle, nodeId, EposData);
             Operation = new Operation(keyHandle, nodeId, EposData);
         }
 
-        public Configuration Configuration { get; }
-        public Initialization Initialization { get; }
-        public override LowLayer LowLayer { get; }
-        public Operation Operation { get; }
+    
 
         public override void ReadPdo(COP_t_RX_PDO spPdo)
         {
@@ -84,6 +71,7 @@ namespace EposCmd.Net
                     Data.WpdoErrorPdoNumber = eventMsg.evt_data3;
                     break;
             }
+
             RecStatus(EventArgs.Empty);
         }
 
@@ -95,7 +83,8 @@ namespace EposCmd.Net
 
         public override string GetLastEmergencyMsg()
         {
-            return $" Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}({Operation.DeviceErrorHandling.GetErrorDescription(Data.LastEmergency.err_value)}) ";
+            return
+                $" Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}({Operation.DeviceErrorHandling.GetErrorDescription(Data.LastEmergency.err_value)}) ";
         }
     }
 }

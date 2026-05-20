@@ -12,7 +12,7 @@ namespace EposCmd
             public string Name = "Unknow";
             public byte NodeId;
           
-            public abstract LowLayer LowLayer { get; }
+            public LowLayer LowLayer { get; set; }
          
             public event EventHandler ReceivePdo;
             public event EventHandler ReceiveEmergency;

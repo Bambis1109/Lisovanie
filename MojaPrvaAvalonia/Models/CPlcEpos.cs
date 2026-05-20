@@ -41,7 +41,7 @@ public partial class CPlcEpos : CPlc
             await Task.Delay(500);
         });
 
-        // 1. Čakanie na Boot-up (Pre-Operational)
+        // 1. Čakanie na Boot-up 
         var resetResult = await WaitForResetAllNodeAsync();
         if (resetResult == enmError.Error)
         {
@@ -105,7 +105,8 @@ public partial class CPlcEpos : CPlc
                 await Task.Delay(50);
                 try
                 {
-                    if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                   // if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                   if(item.LowLayer.Can.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
                     {
                         Log.Logger.ForContext("Name", Name)
                             .Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
@@ -127,66 +128,86 @@ public partial class CPlcEpos : CPlc
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
-    protected async Task<enmError> WaitForResetAllNodeAsync()
+protected async Task<enmError> WaitForResetAllNodeAsync()
+{
+    var tasks = Motors.Select(async item =>
     {
-        var tasks = Motors.Select(async item =>
+        enmError resultNode = enmError.Error;
+
+        // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
+        for (int i = 0; i < 30; i++)
         {
-            enmError resultNode = enmError.Error;
-
-            // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
-            for (int i = 0; i < 30; i++)
+            await Task.Delay(100);
+            try
             {
-                await Task.Delay(100);
-                try
+                if (item.LowLayer?.Can == null) continue;
+
+                // OPRAVA 1: Aktívne sa pýtame Ixxat API na reálny NMT stav uzla.
+                // Toto číta reálny stav z Heartbeatu, ktorý Ixxat drží vo svojej pamäti.
+                ENmtStatus status = item.LowLayer.Can.GetNMTState();
+
+                // Aktualizujeme lokálnu premennú, aby UI a zvyšok aplikácie mali správny stav
+                item.Data.NmtStatus = status;
+
+                // OPRAVA 2: Akonáhle EPOS4 dokončí bootovanie, prejde do Pre-Operational (alebo Bootup)
+                if (status == ENmtStatus.NcsBOOTUP || 
+                    status == ENmtStatus.NcsPREOPERATIONAL || 
+                    status == ENmtStatus.NcsOPERATIONAL)
                 {
-                    if (item.LowLayer?.Can == null) continue;
+                    // OPRAVA 3: BEZPEČNOSTNÁ POISTKA
+                    // Uzol síce žije a posiela Heartbeat, ale jeho SDO server sa môže ešte inicializovať.
+                    // Počkáme 500ms pred prvým SDO dotazom, inak by sme dostali SDO Abort (garbage dáta).
+                    await Task.Delay(500);
 
-                    // Pýtame sa Ixxat API na aktuálny NMT stav uzla (nevyvoláva SDO komunikáciu)
-                    ENmtStatus status = item.LowLayer.Can.GetNMTState();
-
-                    // Akonáhle EPOS4 dokončí bootovanie, sám odošle Boot-up správu a prejde do Pre-Operational
-                    if (status == ENmtStatus.NcsPREOPERATIONAL)
+                    // Teraz môžeme bezpečne vyčítať FW verziu cez SDO
+                    int fw = 0;
+                    if (item.Operation?.MotionInfo != null)
                     {
-                        // Teraz môžeme bezpečne vyčítať FW verziu cez SDO
-                        int fw = 0;
-                        if (item.Operation?.MotionInfo != null)
+                        try 
                         {
                             fw = item.Operation.MotionInfo.GetFwVersion();
                         }
-
-                        Log.Logger.ForContext("Name", Name).Information(
-                            $"Node {item.NodeId} ({item.Name}) úspešne nabootoval. FW:[0x{fw:X4}]");
-
-                        resultNode = enmError.NoError;
-                        break;
+                        catch (Exception sdoEx)
+                        {
+                            // Ak SDO zlyhá, nevadí, hlavne že uzol žije a komunikuje cez NMT
+                            Log.Logger.ForContext("Name", Name).Warning($"Node {item.NodeId} žije, ale SDO čítanie FW zlyhalo: {sdoEx.Message}");
+                            fw = 0xFFFF; // Dummy hodnota
+                        }
                     }
-                }
-                catch (Exception)
-                {
-                    // Ignorujeme výnimky počas bootovania
+
+                    Log.Logger.ForContext("Name", Name).Information(
+                        $"Node {item.NodeId} ({item.Name}) úspešne nabootoval (Stav: {status}). FW:[0x{fw:X4}]");
+
+                    resultNode = enmError.NoError;
+                    break; // Úspech, vyskakujeme z for-cyklu
                 }
             }
-
-            if (resultNode == enmError.Error)
+            catch (Exception)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal($"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)!");
+                // Ignorujeme výnimky počas bootovania. 
+                // GetNMTState môže hodiť výnimku (Abort), ak uzol ešte vôbec nekomunikuje a Ixxat ho eviduje ako Disconnected.
             }
-
-            return resultNode;
-        });
-
-        var results = await Task.WhenAll(tasks);
-
-        if (results.Length == 0)
-        {
-            Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
-            return enmError.Error;
         }
 
-        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
+        if (resultNode == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Fatal($"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)! Posledný známy stav: {item.Data.NmtStatus}");
+        }
+
+        return resultNode;
+    });
+
+    var results = await Task.WhenAll(tasks);
+
+    if (results.Length == 0)
+    {
+        Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
+        return enmError.Error;
     }
-    
+
+    return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
+}
     /// <summary>
     /// Skontroluje, či sú všetky motory v stave OPERATIONAL.
     /// Pri prvej chybe okamžite preruší kontrolu a vyhodí výnimku.
