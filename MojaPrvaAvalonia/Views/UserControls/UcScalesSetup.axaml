@@ -6,7 +6,7 @@
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
              x:Class="MojaPrvaAvalonia.Views.UserControls.UcScalesSetup"
-             x:DataType="models:CScales">
+             x:DataType="models:CControlScales">
 
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10">
         <StackPanel Spacing="15">
@@ -24,7 +24,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <uc:UcScale />
+                        <uc:UcDeviceScale />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

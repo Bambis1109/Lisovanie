@@ -8,7 +8,7 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.ViewModels;
 
-public partial class UcMotorViewModel : ObservableObject, IDisposable
+public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
 {
     private CDeviceEpos4? _device;
     private DispatcherTimer? _refreshTimer;
@@ -18,7 +18,7 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
         _device = device;
     }
     
-    [ObservableProperty] private CDataMotor _motorData;
+    [ObservableProperty] private CDeviceEpos4Data _deviceEpos4Data;
 
     [ObservableProperty] private string _modeShorthand = "---";
     [ObservableProperty] private string _statusText = "OFFLINE";
@@ -29,10 +29,10 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
     [ObservableProperty] private IBrush _remoteColor = Brushes.DarkGray;
     [ObservableProperty] private IBrush _nmtColor = Brushes.DarkGray; // Farba pre NMT
 
-    public UcMotorViewModel(CDeviceEpos4? device, string motorName)
+    public UcDeviceEpos4ViewModel(CDeviceEpos4? device, string motorName)
     {
         _device = device;
-        MotorData = new CDataMotor { MotorName = motorName };
+        DeviceEpos4Data = new CDeviceEpos4Data { MotorName = motorName };
     }
 
     public void StartRefresh()
@@ -74,18 +74,18 @@ public partial class UcMotorViewModel : ObservableObject, IDisposable
             }
 
             // 2. Motor žije, ťaháme aktuálne dáta
-            MotorData.NodeId = _device.NodeId;
-            MotorData.ActualGearPosition = _device.EposData.PositionActualGear;
-            MotorData.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2Float;
-            MotorData.ActualVelocity = _device.EposData.VelocityActual;
-            MotorData.ActualCurrent = _device.EposData.CurrentActualAveragePercentage;
-            MotorData.ActualAnalog1 = _device.EposData.AnalogInput1Weight;
+            DeviceEpos4Data.NodeId = _device.NodeId;
+            DeviceEpos4Data.ActualGearPosition = _device.EposData.PositionActualGear;
+            DeviceEpos4Data.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2Float;
+            DeviceEpos4Data.ActualVelocity = _device.EposData.VelocityActual;
+            DeviceEpos4Data.ActualCurrent = _device.EposData.CurrentActualAveragePercentage;
+            DeviceEpos4Data.ActualAnalog1 = _device.EposData.AnalogInput1Weight;
 
             UpdateStatusAndColors(nmtState);
         }
         catch (Exception ex)
         {
-            Log.Error($"UcMotorViewModel [{MotorData.MotorName}] Refresh Error: {ex.Message}");
+            Log.Error($"UcMotorViewModel [{DeviceEpos4Data.MotorName}] Refresh Error: {ex.Message}");
         }
     }
 

@@ -5,8 +5,8 @@
              xmlns:models="using:MojaPrvaAvalonia.Models"
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcLis"
-             x:DataType="models:CLis">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcControlLis"
+             x:DataType="models:CControlLis">
 
     <UserControl.Styles>
         <Style Selector="Button">
@@ -37,7 +37,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <uc:UcMotorReduced />
+                            <uc:UcDeviceEpos4Reduced />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

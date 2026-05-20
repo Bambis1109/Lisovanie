@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CDataMotor : ObservableObject
+public partial class CDeviceEpos4Data : ObservableObject
 {
     [ObservableProperty]
     private string _motorName = string.Empty;

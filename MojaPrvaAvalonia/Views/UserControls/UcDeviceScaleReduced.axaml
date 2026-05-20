@@ -4,8 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
              mc:Ignorable="d" d:DesignWidth="120" d:DesignHeight="100"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcScaleReduced"
-             x:DataType="vm:UcScaleViewModel">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcDeviceScaleReduced"
+             x:DataType="vm:UcDeviceScaleViewModel">
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="3">
             <TextBlock Text="{Binding ScaleName}" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11"/>

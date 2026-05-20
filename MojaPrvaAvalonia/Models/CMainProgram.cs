@@ -31,9 +31,9 @@ public partial class CMainProgram : ObservableObject
 
     public CMainProgram()
     {
-        ZoznamPlc.Add(new CManipulator("Manipulator"));
-        ZoznamPlc.Add(new CLis("Lis"));
-        ZoznamPlc.Add(new CScales("Vahy"));
+        ZoznamPlc.Add(new CControlManipulator("Manipulator"));
+        ZoznamPlc.Add(new CControlLis("Lis"));
+        ZoznamPlc.Add(new CControlScales("Vahy"));
     }
 
     public async Task<bool> Connect()
@@ -48,8 +48,8 @@ public partial class CMainProgram : ObservableObject
                 return false;
             }
 
-            CManipulator? manipulator = ZoznamPlc[0] as CManipulator;
-            CLis? lis = ZoznamPlc[1] as CLis;
+            CControlManipulator? manipulator = ZoznamPlc[0] as CControlManipulator;
+            CControlLis? lis = ZoznamPlc[1] as CControlLis;
 
             lis.MotorStred = CreateDevices(DeviceManagerCO, 1, "Sred", 1000, 2048);
             lis.MotorSlave = CreateDevices(DeviceManagerCO, 2, "Slave", 12417.34737, 16384);
@@ -88,7 +88,7 @@ public partial class CMainProgram : ObservableObject
                 return false;
             }
 
-            CScales? _scales = ZoznamPlc[2] as CScales;
+            CControlScales? _scales = ZoznamPlc[2] as CControlScales;
 
             _scales.Scale1 = CreateScale(DeviceManagerScale, 6, "Scale1");
             _scales.Scale2 = CreateScale(DeviceManagerScale, 3, "Scale2");
@@ -250,7 +250,7 @@ public partial class CMainProgram : ObservableObject
         {
             foreach (var plc in ZoznamPlc)
             {
-                if (plc is CManipulator m)
+                if (plc is CControlManipulator m)
                 {
                     foreach (var motor in m.Motors)
                     {
@@ -267,7 +267,7 @@ public partial class CMainProgram : ObservableObject
                         }
                     }
                 }
-                else if (plc is CLis l)
+                else if (plc is CControlLis l)
                 {
                     foreach (var motor in l.Motors)
                     {

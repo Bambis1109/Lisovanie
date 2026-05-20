@@ -3,17 +3,17 @@ using MojaPrvaAvalonia.Models;
 
 namespace MojaPrvaAvalonia.Views;
 
-public partial class frmScalesSetup : Window
+public partial class frmControlScalesSetup : Window
 {
-    public frmScalesSetup()
+    public frmControlScalesSetup()
     {
         InitializeComponent();
     }
 
-    public frmScalesSetup(CScales scales)
+    public frmControlScalesSetup(CControlScales controlScales)
     {
         InitializeComponent();
-        DataContext = scales;
+        DataContext = controlScales;
     }
 
     private void BtnClose_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

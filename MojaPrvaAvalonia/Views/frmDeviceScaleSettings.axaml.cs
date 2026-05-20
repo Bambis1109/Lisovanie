@@ -6,20 +6,20 @@ using MojaPrvaAvalonia.ViewModels;
 
 namespace MojaPrvaAvalonia.Views;
 
-public partial class frmScale : Window
+public partial class frmDeviceScaleSettings : Window
 {
-    public frmScale()
+    public frmDeviceScaleSettings()
     {
         InitializeComponent();
     }
 
-    public frmScale(CDeviceScale deviceScale)
+    public frmDeviceScaleSettings(CDeviceScale deviceScale)
     {
         InitializeComponent();
         
         // Vytvoríme nový ViewModel pre túto inštanciu UcScale v okne.
         // Týmto sa pripájame na rovnakú fyzickú inštanciu CDeviceScale.
-        var vm = new UcScaleViewModel(deviceScale, deviceScale.Name);
+        var vm = new UcDeviceScaleViewModel(deviceScale, deviceScale.Name);
         
         // Skryjeme tlačidlo Setup, aby nevznikla nekonečná slučka vnorovaní
         vm.IsSetupVisible = false;
@@ -43,7 +43,7 @@ public partial class frmScale : Window
         base.OnClosed(e);
         // Zastavíme timer pre refresh pri zatvorení okna, 
         // aby sme neuvoľňovali zbytočne prostriedky.
-        if (DataContext is UcScaleViewModel vm)
+        if (DataContext is UcDeviceScaleViewModel vm)
         {
             vm.StopRefresh();
         }

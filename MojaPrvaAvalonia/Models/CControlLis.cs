@@ -12,7 +12,7 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CLis : CPlcEpos
+public partial class CControlLis : CPlcEpos
 {
     public CDeviceEpos4 MotorStred { get; set; }
     public CDeviceEpos4 MotorSlave { get; set; }
@@ -27,12 +27,12 @@ public partial class CLis : CPlcEpos
     [ObservableProperty] private double _limitLisUp = 0.0;
     [ObservableProperty] private double _limitLisDown = -220.0;
 
-    public CLis(string name) : base(name)
+    public CControlLis(string name) : base(name)
     {
         LoadParameters();
-        MotorViewModels.Add(new UcMotorViewModel(null, "Stred"));
-        MotorViewModels.Add(new UcMotorViewModel(null, "Slave"));
-        MotorViewModels.Add(new UcMotorViewModel(null, "Master"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Stred"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Slave"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Master"));
     }
 
     public override async Task ConnectAsync()

@@ -61,14 +61,14 @@
 
                 <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
                     <ItemsControl.DataTemplates>
-                        <DataTemplate DataType="models:CManipulator">
-                            <uc:UcManipulator />
+                        <DataTemplate DataType="models:CControlManipulator">
+                            <uc:UcControlManipulator />
                         </DataTemplate>
-                        <DataTemplate DataType="models:CLis">
-                            <uc:UcLis />
+                        <DataTemplate DataType="models:CControlLis">
+                            <uc:UcControlLis />
                         </DataTemplate>
-                        <DataTemplate DataType="models:CScales">
-                            <uc:UcScales />
+                        <DataTemplate DataType="models:CControlScales">
+                            <uc:UcControlScales />
                         </DataTemplate>
                     </ItemsControl.DataTemplates>
                 </ItemsControl>

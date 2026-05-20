@@ -12,10 +12,10 @@ public partial class frmLisSetup : Window
         InitializeComponent();
     }
 
-    public frmLisSetup(CLis lis)
+    public frmLisSetup(CControlLis controlLis)
     {
         InitializeComponent();
-        DataContext = lis;
+        DataContext = controlLis;
     }
 
     private void BtnClose_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -25,7 +25,7 @@ public partial class frmLisSetup : Window
 
     private void BtnSettings_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (DataContext is CLis lis)
+        if (DataContext is CControlLis lis)
         {
             var frm = new FrmLisSettingsPar(lis);
             frm.ShowDialog(this);

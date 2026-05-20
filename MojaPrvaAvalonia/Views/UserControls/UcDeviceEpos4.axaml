@@ -4,30 +4,30 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
              mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="280"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotor"
-             x:DataType="vm:UcMotorViewModel">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcDeviceEpos4"
+             x:DataType="vm:UcDeviceEpos4ViewModel">
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="5">
-            <TextBlock Text="{Binding MotorData.MotorName}" FontWeight="Bold" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding DeviceEpos4Data.MotorName}" FontWeight="Bold" HorizontalAlignment="Center"/>
             
             <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Node: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MotorData.NodeId}"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DeviceEpos4Data.NodeId}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Pos Gear: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MotorData.ActualGearPosition, StringFormat={}{0:F2}}"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualGearPosition, StringFormat={}{0:F2}}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Pos SSI: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MotorData.ActualPositionSensor2Float, StringFormat={}{0:F3}}"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualPositionSensor2Float, StringFormat={}{0:F3}}"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Velocity: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding MotorData.ActualVelocity}"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualVelocity}"/>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Current: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding MotorData.ActualCurrent, StringFormat={}{0:F1}}"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualCurrent, StringFormat={}{0:F1}}"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Analog 1: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding MotorData.ActualAnalog1}"/>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualAnalog1}"/>
             </Grid>
 
             <!-- Status and Mode Indicators -->
@@ -65,7 +65,7 @@
                     <Line StartPoint="0,40" EndPoint="180,40" Stroke="Silver" StrokeThickness="1" StrokeDashArray="2,2"/>
                     
                     <!-- Data line -->
-                    <Polyline Points="{Binding MotorData.CurrentGraphPoints}" Stroke="Blue" StrokeThickness="1.5" />
+                    <Polyline Points="{Binding DeviceEpos4Data.CurrentGraphPoints}" Stroke="Blue" StrokeThickness="1.5" />
                 </Grid>
             </Border>
         </StackPanel>

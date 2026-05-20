@@ -10,7 +10,7 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.ViewModels;
 
-public partial class UcScaleViewModel : ObservableObject, IDisposable
+public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
 {
     private CDeviceScale? _device;
     private DispatcherTimer? _refreshTimer;
@@ -50,9 +50,9 @@ public partial class UcScaleViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private string _weightResult = "---";
 
-    public UcScaleViewModel() {}
+    public UcDeviceScaleViewModel() {}
 
-    public UcScaleViewModel(CDeviceScale? device, string scaleName)
+    public UcDeviceScaleViewModel(CDeviceScale? device, string scaleName)
     {
         _device = device;
         ScaleName = scaleName;

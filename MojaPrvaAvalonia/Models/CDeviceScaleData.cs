@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CScaleData : ObservableObject
+public partial class CDeviceScaleData : ObservableObject
 {
     [ObservableProperty] private string _scaleName = string.Empty;
     [ObservableProperty] private int _nodeId;

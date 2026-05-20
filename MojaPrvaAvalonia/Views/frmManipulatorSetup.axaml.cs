@@ -12,10 +12,10 @@ public partial class frmManipulatorSetup : Window
         InitializeComponent();
     }
 
-    public frmManipulatorSetup(CManipulator manipulator)
+    public frmManipulatorSetup(CControlManipulator controlManipulator)
     {
         InitializeComponent();
-        DataContext = manipulator;
+        DataContext = controlManipulator;
     }
 
     private void BtnClose_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

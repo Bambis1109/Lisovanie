@@ -5,14 +5,14 @@
              xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
              mc:Ignorable="d" d:DesignWidth="150" d:DesignHeight="120"
              Width="150"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcMotorReduced"
-             x:DataType="vm:UcMotorViewModel">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcDeviceEpos4Reduced"
+             x:DataType="vm:UcDeviceEpos4ViewModel">
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
         <StackPanel Spacing="5">
             <!-- 1. riadok: Name a Node bez popisu -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">
-                <TextBlock Text="{Binding MotorData.MotorName}" FontWeight="Bold"/>
-                <TextBlock Text="{Binding MotorData.NodeId}"/>
+                <TextBlock Text="{Binding DeviceEpos4Data.MotorName}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding DeviceEpos4Data.NodeId}"/>
             </StackPanel>
 
             <!-- 2. riadok: Status and Mode Indicators (Split 1/3 and 2/3) -->

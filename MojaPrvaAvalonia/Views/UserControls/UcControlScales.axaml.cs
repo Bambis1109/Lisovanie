@@ -1,33 +1,30 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using System;
 using MojaPrvaAvalonia.Models;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcLis : UserControl
+public partial class UcControlScales : UserControl
 {
-    private frmLisSetup? _setupWindow;
+    private frmControlScalesSetup? _setupWindow;
 
-    public UcLis()
+    public UcControlScales()
     {
         InitializeComponent();
     }
 
     private void BtnSetup_OnClick(object? sender, RoutedEventArgs e)
     {
-        // Skontrolujeme, či okno už náhodou nie je otvorené
         if (_setupWindow != null)
         {
-            _setupWindow.Activate(); // Ak áno, len ho prenesieme do popredia
+            _setupWindow.Activate();
             return;
         }
 
-        if (DataContext is CLis lis)
+        if (DataContext is CControlScales scales)
         {
-            _setupWindow = new frmLisSetup(lis);
+            _setupWindow = new frmControlScalesSetup(scales);
             
-            // Keď sa okno zatvorí, vymažeme referenciu, aby sa dalo znova otvoriť
             _setupWindow.Closed += (s, args) => _setupWindow = null;
             
             var parentWindow = VisualRoot as Window;

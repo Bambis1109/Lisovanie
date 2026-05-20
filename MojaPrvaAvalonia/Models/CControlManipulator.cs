@@ -12,7 +12,7 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CManipulator : CPlcEpos
+public partial class CControlManipulator : CPlcEpos
 {
     public CDeviceEpos4 MotorDown { get; set; }
     public CDeviceEpos4 MotorUp { get; set; }
@@ -22,13 +22,13 @@ public partial class CManipulator : CPlcEpos
     public CJaws jaws { get; set; } = new CJaws();
     public Matrix matrix { get; set; }
 
-    public CManipulator(string name) : base(name)
+    public CControlManipulator(string name) : base(name)
     {
         LoadParameters();
-        MotorViewModels.Add(new UcMotorViewModel(null, "Up"));
-        MotorViewModels.Add(new UcMotorViewModel(null, "Down"));
-        MotorViewModels.Add(new UcMotorViewModel(null, "Jaws"));
-        MotorViewModels.Add(new UcMotorViewModel(null, "Z"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Up"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Down"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Jaws"));
+        MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Z"));
     }
 
     public override async Task ConnectAsync()

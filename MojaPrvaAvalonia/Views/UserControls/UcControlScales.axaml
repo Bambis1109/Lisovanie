@@ -5,8 +5,8 @@
              xmlns:models="using:MojaPrvaAvalonia.Models"
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcManipulator"
-             x:DataType="models:CManipulator">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcControlScales"
+             x:DataType="models:CControlScales">
 
     <UserControl.Styles>
         <Style Selector="Button">
@@ -22,14 +22,12 @@
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8" Margin="5">
         <StackPanel Spacing="5">
             
-            <!-- Base PLC Ovládanie -->
             <uc:UcStatusPlc />
 
             <Separator Height="1" Background="Gray" Margin="0,5"/>
 
-            <!-- Reálne motory a Setup tlačidlo pre Manipulátor -->
             <Grid ColumnDefinitions="*, Auto">
-                <ItemsControl Grid.Column="0" ItemsSource="{Binding MotorViewModels}" HorizontalAlignment="Left">
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding ScaleViewModels}" HorizontalAlignment="Left">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal" Spacing="5"/>
@@ -37,12 +35,11 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <uc:UcMotorReduced />
+                            <uc:UcDeviceScaleReduced />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                
-                <!-- Setup Tlačidlo tváriace sa ako motor block -->
+
                 <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick" 
                         Background="DodgerBlue" Foreground="White" 
                         Width="80" Height="60" Margin="2"

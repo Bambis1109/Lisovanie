@@ -4,9 +4,9 @@ using MojaPrvaAvalonia.ViewModels;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcMotor : UserControl
+public partial class UcDeviceEpos4 : UserControl
 {
-    public UcMotor()
+    public UcDeviceEpos4()
     {
         InitializeComponent();
     }
@@ -14,7 +14,7 @@ public partial class UcMotor : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        if (DataContext is UcMotorViewModel viewModel)
+        if (DataContext is UcDeviceEpos4ViewModel viewModel)
         {
             viewModel.StartRefresh();
         }
@@ -23,7 +23,7 @@ public partial class UcMotor : UserControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        if (DataContext is UcMotorViewModel viewModel)
+        if (DataContext is UcDeviceEpos4ViewModel viewModel)
         {
             viewModel.StopRefresh();
         }
@@ -33,7 +33,7 @@ public partial class UcMotor : UserControl
     {
         base.OnDataContextChanged(e);
         
-        if (VisualRoot != null && DataContext is UcMotorViewModel viewModel)
+        if (VisualRoot != null && DataContext is UcDeviceEpos4ViewModel viewModel)
         {
              viewModel.StartRefresh();
         }

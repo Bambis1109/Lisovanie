@@ -8,18 +8,18 @@ namespace MojaPrvaAvalonia.Views;
 
 public partial class FrmLisSettingsPar : Window
 {
-    private CLis? _lis;
+    private CControlLis? _controlLis;
 
     public FrmLisSettingsPar()
     {
         InitializeComponent();
     }
 
-    public FrmLisSettingsPar(CLis lis)
+    public FrmLisSettingsPar(CControlLis controlLis)
     {
         InitializeComponent();
-        _lis = lis;
-        DataContext = lis.ParametersLis;
+        _controlLis = controlLis;
+        DataContext = controlLis.ParametersLis;
     }
 
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e)
@@ -29,12 +29,12 @@ public partial class FrmLisSettingsPar : Window
 
     private void BtnSave_OnClick(object? sender, RoutedEventArgs e)
     {
-        _lis?.SaveParameters();
+        _controlLis?.SaveParameters();
     }
 
     private void BtnLoad_OnClick(object? sender, RoutedEventArgs e)
     {
-        _lis?.LoadParameters();
+        _controlLis?.LoadParameters();
     }
 
     private void BtnRecalculate_OnClick(object? sender, RoutedEventArgs e)

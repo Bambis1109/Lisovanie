@@ -6,14 +6,14 @@
         xmlns:models="using:MojaPrvaAvalonia.Models"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="750"
         x:Class="MojaPrvaAvalonia.Views.frmLisSetup"
-        x:DataType="models:CLis"
+        x:DataType="models:CControlLis"
         Width="780" Height="900"
         WindowStartupLocation="CenterOwner"
         Topmost="True"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
 
     <Grid RowDefinitions="*, Auto">
-        <uc:UcLisSetup Name="UcSetup" Grid.Row="0" />
+        <uc:UcControlLisSetup Name="UcSetup" Grid.Row="0" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
             <Button Content="Settings" Click="BtnSettings_OnClick" 
                     Padding="20,10" Background="SteelBlue" Foreground="White" 

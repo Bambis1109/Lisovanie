@@ -5,11 +5,11 @@ using MojaPrvaAvalonia.Models;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcManipulator : UserControl
+public partial class UcControlManipulator : UserControl
 {
     private frmManipulatorSetup? _setupWindow;
 
-    public UcManipulator()
+    public UcControlManipulator()
     {
         InitializeComponent();
     }
@@ -23,7 +23,7 @@ public partial class UcManipulator : UserControl
             return;
         }
 
-        if (DataContext is CManipulator manipulator)
+        if (DataContext is CControlManipulator manipulator)
         {
             _setupWindow = new frmManipulatorSetup(manipulator);
             

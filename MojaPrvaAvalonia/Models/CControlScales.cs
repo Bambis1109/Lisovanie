@@ -12,16 +12,16 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.Models;
 
-public partial class CScales : CPlcScale
+public partial class CControlScales : CPlcScale
 {
     public CDeviceScale Scale1 { get; set; }
     public CDeviceScale Scale2 { get; set; }
 
-    public CScales(string name) : base(name)
+    public CControlScales(string name) : base(name)
     {
         LoadParameters();
-        ScaleViewModels.Add(new UcScaleViewModel(null, "SC1"));
-        ScaleViewModels.Add(new UcScaleViewModel(null, "SC2"));
+        ScaleViewModels.Add(new UcDeviceScaleViewModel(null, "SC1"));
+        ScaleViewModels.Add(new UcDeviceScaleViewModel(null, "SC2"));
     }
 
     public override async Task ConnectAsync()

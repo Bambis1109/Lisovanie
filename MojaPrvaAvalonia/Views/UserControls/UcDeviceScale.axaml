@@ -4,8 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="400"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcScale"
-             x:DataType="vm:UcScaleViewModel"
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcDeviceScale"
+             x:DataType="vm:UcDeviceScaleViewModel"
              IsEnabled="{Binding IsUiEnabled}">
 
     <!-- UX vylepšenia cez Styles -->

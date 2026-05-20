@@ -5,11 +5,11 @@ using Serilog;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcScale : UserControl
+public partial class UcDeviceScale : UserControl
 {
-    private frmScale? _frmScale;
+    private frmDeviceScaleSettings? _frmScale;
 
-    public UcScale()
+    public UcDeviceScale()
     {
         InitializeComponent();
     }
@@ -25,14 +25,14 @@ public partial class UcScale : UserControl
             return;
         }
 
-        if (DataContext is UcScaleViewModel vm)
+        if (DataContext is UcDeviceScaleViewModel vm)
         {
             if (vm.Device != null)
             {
                 Log.Information($"Vytváram frmScale pre zariadenie: {vm.Device.Name}");
                 try
                 {
-                    _frmScale = new frmScale(vm.Device);
+                    _frmScale = new frmDeviceScaleSettings(vm.Device);
                     _frmScale.Closed += (s, args) => _frmScale = null;
                     
                     var parentWindow = TopLevel.GetTopLevel(this) as Window;

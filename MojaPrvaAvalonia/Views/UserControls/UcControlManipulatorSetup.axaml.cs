@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcLisSetup : UserControl
+public partial class UcControlManipulatorSetup : UserControl
 {
-    public UcLisSetup()
+    public UcControlManipulatorSetup()
     {
         InitializeComponent();
     }

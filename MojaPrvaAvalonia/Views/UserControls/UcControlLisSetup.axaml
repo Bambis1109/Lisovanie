@@ -6,8 +6,8 @@
              xmlns:uc="using:MojaPrvaAvalonia.Views.UserControls"
              xmlns:converters="using:MojaPrvaAvalonia.Converters"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
-             x:Class="MojaPrvaAvalonia.Views.UserControls.UcLisSetup"
-             x:DataType="models:CLis">
+             x:Class="MojaPrvaAvalonia.Views.UserControls.UcControlLisSetup"
+             x:DataType="models:CControlLis">
 
     <UserControl.Resources>
         <converters:BargraphColorConverter x:Key="BargraphColorConverter" />
@@ -32,7 +32,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <uc:UcMotor />
+                        <uc:UcDeviceEpos4 />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -53,10 +53,10 @@
                         <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" VerticalAlignment="Center"
                                      Minimum="{Binding LimitStredDown, Converter={StaticResource NegateConverter}}" 
                                      Maximum="{Binding LimitStredUp, Converter={StaticResource NegateConverter}}"
-                                     Value="{Binding MotorViewModels[0].MotorData.ActualGearPosition, Converter={StaticResource NegateConverter}}">
+                                     Value="{Binding MotorViewModels[0].DeviceEpos4Data.ActualGearPosition, Converter={StaticResource NegateConverter}}">
                             <ProgressBar.Foreground>
                                 <MultiBinding Converter="{StaticResource BargraphColorConverter}">
-                                    <Binding Path="MotorViewModels[0].MotorData.ActualGearPosition" />
+                                    <Binding Path="MotorViewModels[0].DeviceEpos4Data.ActualGearPosition" />
                                     <Binding Path="LimitStredUp" />
                                     <Binding Path="LimitStredDown" />
                                 </MultiBinding>
@@ -83,10 +83,10 @@
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="*">
                         <ProgressBar Grid.Column="0" Orientation="Vertical" Margin="0,0,15,0" Width="20" VerticalAlignment="Center"
                                      Minimum="{Binding LimitLisDown}" Maximum="{Binding LimitLisUp}"
-                                     Value="{Binding MotorViewModels[2].MotorData.ActualGearPosition}">
+                                     Value="{Binding MotorViewModels[2].DeviceEpos4Data.ActualGearPosition}">
                             <ProgressBar.Foreground>
                                 <MultiBinding Converter="{StaticResource BargraphColorConverter}">
-                                    <Binding Path="MotorViewModels[2].MotorData.ActualGearPosition" />
+                                    <Binding Path="MotorViewModels[2].DeviceEpos4Data.ActualGearPosition" />
                                     <Binding Path="LimitLisDown" />
                                     <Binding Path="LimitLisUp" />
                                 </MultiBinding>

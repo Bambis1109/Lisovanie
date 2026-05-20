@@ -29,4 +29,10 @@
     <ItemGroup>
       <ProjectReference Include="..\CanMasterEpos4\CanMasterEpos4.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Views\UserControls\UcDeviceScale.axaml.cs">
+        <DependentUpon>UcDeviceScale.axaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
 </Project>

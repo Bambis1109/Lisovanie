@@ -13,7 +13,7 @@ namespace MojaPrvaAvalonia.Models;
 public partial class CPlcEpos : CPlc
 {
     public List<CDeviceEpos4> Motors { get; } = new();
-    public ObservableCollection<UcMotorViewModel> MotorViewModels { get; } = new();
+    public ObservableCollection<UcDeviceEpos4ViewModel> MotorViewModels { get; } = new();
 
     public CPlcEpos(string name) : base(name)
     {

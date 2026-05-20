@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace MojaPrvaAvalonia.Views.UserControls;
 
-public partial class UcScaleReduced : UserControl
+public partial class UcDeviceScaleReduced : UserControl
 {
-    public UcScaleReduced()
+    public UcDeviceScaleReduced()
     {
         InitializeComponent();
     }
