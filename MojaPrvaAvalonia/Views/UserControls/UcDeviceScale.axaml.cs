@@ -1,3 +1,7 @@
+// ==========================================
+// Súbor: MojaPrvaAvalonia\Views\UserControls\UcDeviceScale.axaml.cs
+// ==========================================
+
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using MojaPrvaAvalonia.ViewModels;
@@ -20,7 +24,6 @@ public partial class UcDeviceScale : UserControl
         
         if (_frmScale != null)
         {
-            Log.Information("frmScale už existuje, aktivujem ho.");
             _frmScale.Activate();
             return;
         }
@@ -29,21 +32,19 @@ public partial class UcDeviceScale : UserControl
         {
             if (vm.Device != null)
             {
-                Log.Information($"Vytváram frmScale pre zariadenie: {vm.Device.Name}");
                 try
                 {
-                    _frmScale = new frmDeviceScaleSettings(vm.Device);
+                    // ZMENA: Pridanie vm.ControlScales do konštruktora
+                    _frmScale = new frmDeviceScaleSettings(vm.ControlScales, vm.Device);
                     _frmScale.Closed += (s, args) => _frmScale = null;
                     
                     var parentWindow = TopLevel.GetTopLevel(this) as Window;
                     if (parentWindow != null)
                     {
-                        Log.Information("Otváram frmScale s parent oknom.");
                         _frmScale.Show(parentWindow);
                     }
                     else
                     {
-                        Log.Information("Otváram frmScale bez parent okna.");
                         _frmScale.Show();
                     }
                 }
@@ -56,10 +57,6 @@ public partial class UcDeviceScale : UserControl
             {
                 Log.Warning("Zariadenie (Device) vo ViewModele je null! Najskôr sa pripoj (Connect).");
             }
-        }
-        else
-        {
-            Log.Warning($"DataContext nie je UcScaleViewModel, je to: {DataContext?.GetType().Name}");
         }
     }
 }

@@ -1,7 +1,12 @@
+// ==========================================
+// Súbor: MojaPrvaAvalonia\Views\frmDeviceScaleSettings.axaml.cs
+// ==========================================
+
 using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using EposCmd.Net;
+using MojaPrvaAvalonia.Models;
 using MojaPrvaAvalonia.ViewModels;
 
 namespace MojaPrvaAvalonia.Views;
@@ -13,21 +18,16 @@ public partial class frmDeviceScaleSettings : Window
         InitializeComponent();
     }
 
-    public frmDeviceScaleSettings(CDeviceScale deviceScale)
+    // ZMENA: Pridaný parameter CControlScales
+    public frmDeviceScaleSettings(CControlScales? controlScales, CDeviceScale deviceScale)
     {
         InitializeComponent();
         
-        // Vytvoríme nový ViewModel pre túto inštanciu UcScale v okne.
-        // Týmto sa pripájame na rovnakú fyzickú inštanciu CDeviceScale.
-        var vm = new UcDeviceScaleViewModel(deviceScale, deviceScale.Name);
+        // ZMENA: Odovzdanie controlScales do ViewModelu
+        var vm = new UcDeviceScaleViewModel(controlScales, deviceScale, deviceScale.Name);
         
-        // Skryjeme tlačidlo Setup, aby nevznikla nekonečná slučka vnorovaní
         vm.IsSetupVisible = false;
-        
-        // Spustíme obnovu dát z rovnakej inštancie CDeviceScale
         vm.StartRefresh();
-        
-        // Priradíme ViewModel do globálneho DataContext okna
         DataContext = vm;
         
         Title = $"Scale Setup - {deviceScale.Name}";
@@ -41,8 +41,6 @@ public partial class frmDeviceScaleSettings : Window
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
-        // Zastavíme timer pre refresh pri zatvorení okna, 
-        // aby sme neuvoľňovali zbytočne prostriedky.
         if (DataContext is UcDeviceScaleViewModel vm)
         {
             vm.StopRefresh();

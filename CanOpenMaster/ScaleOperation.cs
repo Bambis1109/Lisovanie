@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EposCmd.Net.DeviceScaleSet
+﻿namespace EposCmd.Net.DeviceScaleSet
 {
     public class ScaleOperation
     {
@@ -28,30 +26,30 @@ namespace EposCmd.Net.DeviceScaleSet
     {
         public ScaleMasterPlc(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(EMasterCommand cmd) => ExecuteCommandWithAck(0x6206, (uint)cmd);
+        public void SendCommand(EMasterCommand cmd) => SendCommandFireAndForget(0x6206, (uint)cmd);
     }
 
     public class ScaleDoser : CScaleCommandGroupCO
     {
         public ScaleDoser(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(EDoserCommand cmd) => ExecuteCommandWithAck(0x6205, (uint)cmd);
+        public void SendCommand(EDoserCommand cmd) => SendCommandFireAndForget(0x6205, (uint)cmd);
     }
 
     public class ScaleBoom : CScaleCommandGroupCO
     {
         public ScaleBoom(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(EBoomCommand cmd) => ExecuteCommandWithAck(0x6203, (uint)cmd);
+        public void SendCommand(EBoomCommand cmd) => SendCommandFireAndForget(0x6203, (uint)cmd);
     }
 
     public class ScaleLock : CScaleCommandGroupCO
     {
         public ScaleLock(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(ELockCommand cmd) => ExecuteCommandWithAck(0x6201, (uint)cmd);
+        public void SendCommand(ELockCommand cmd) => SendCommandFireAndForget(0x6201, (uint)cmd);
         
-        // Čítanie statusu cez SDO (pre ladenie)
+        // Čítanie statusu cez SDO (pre ladenie, neblokuje UI ak sa volá správne)
         public uint GetStatus() => (uint)ReadSdo(0x6201, 0x02, 4);
     }
 
@@ -59,7 +57,7 @@ namespace EposCmd.Net.DeviceScaleSet
     {
         public ScaleWeigher(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(EScaleCommand cmd) => ExecuteCommandWithAck(0x6202, (uint)cmd);
+        public void SendCommand(EScaleCommand cmd) => SendCommandFireAndForget(0x6202, (uint)cmd);
         
         public uint GetStatus() => (uint)ReadSdo(0x6202, 0x02, 4);
     }
@@ -68,6 +66,6 @@ namespace EposCmd.Net.DeviceScaleSet
     {
         public ScaleSystem(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
-        public void SendCommand(ESystemCommand cmd) => ExecuteCommandWithAck(0x6100, (uint)cmd);
+        public void SendCommand(ESystemCommand cmd) => SendCommandFireAndForget(0x6100, (uint)cmd);
     }
 }

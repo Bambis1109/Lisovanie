@@ -1,11 +1,15 @@
+// ==========================================
+// Súbor: MojaPrvaAvalonia\ViewModels\UcDeviceScaleViewModel.cs
+// ==========================================
+
 using System;
-using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using EposCmd.Net.DeviceScaleSet;
+using MojaPrvaAvalonia.Models;
 using Serilog;
 
 namespace MojaPrvaAvalonia.ViewModels;
@@ -13,6 +17,7 @@ namespace MojaPrvaAvalonia.ViewModels;
 public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
 {
     private CDeviceScale? _device;
+    public CControlScales? ControlScales { get; } // Referencia na PLC vrstvu
     private DispatcherTimer? _refreshTimer;
 
     public void AssignDevice(CDeviceScale device)
@@ -27,9 +32,6 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _isSetupVisible = true;
     [ObservableProperty] private string _nmtText = "UNKNOWN";
     [ObservableProperty] private IBrush _nmtColor = Brushes.DarkGray;
-    
-    // Zablokovanie UI počas vykonávania Async príkazu
-    [ObservableProperty] private bool _isUiEnabled = true;
 
     // --- Telemetria (Hmotnosť) v kg ---
     [ObservableProperty] private double _weight32InterKg;
@@ -50,10 +52,13 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private string _weightResult = "---";
 
+    // Konštruktor pre XAML Designer
     public UcDeviceScaleViewModel() {}
 
-    public UcDeviceScaleViewModel(CDeviceScale? device, string scaleName)
+    // Hlavný konštruktor s injekciou PLC vrstvy
+    public UcDeviceScaleViewModel(CControlScales? controlScales, CDeviceScale? device, string scaleName)
     {
+        ControlScales = controlScales;
         _device = device;
         ScaleName = scaleName;
     }
@@ -64,7 +69,7 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
 
         _refreshTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(100)
+            Interval = TimeSpan.FromMilliseconds(100) // 10 Hz refresh
         };
         _refreshTimer.Tick += OnRefreshTick;
         _refreshTimer.Start();
@@ -140,71 +145,63 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     }
 
     // ========================================================================
-    // ASYNCHRÓNNE PRÍKAZY PRE OVLÁDANIE (ČASŤ B)
+    // PRÍKAZY PRE OVLÁDANIE (Delegované na CControlScales)
     // ========================================================================
-    private async Task ExecuteCommandAsync(Func<Task> commandAction)
+    
+    private void ExecuteCommand(Action<CDeviceScale> commandAction, string commandName)
     {
         if (_device == null) return;
 
-        IsUiEnabled = false;
-        try
+        if (ControlScales == null)
         {
-            await Task.Run(commandAction);
+            Log.Warning($"[{ScaleName}] Chýba referencia na CControlScales. Povel {commandName} nebol odoslaný.");
+            return;
         }
-        catch (CDeviceException dex)
-        {
-            Log.Error($"Chyba zariadenia [{ScaleName}]: {dex.ErrorMessage}");
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Kritická chyba pri zápise na [{ScaleName}]: {ex.Message}");
-        }
-        finally
-        {
-            IsUiEnabled = true;
-        }
+
+        // Delegovanie na PLC vrstvu (Fire-and-Forget)
+        ControlScales.SendScaleCommand(_device, commandAction, commandName);
     }
 
     // --- MAIN ---
-    [RelayCommand] public Task MasterInit() => ExecuteCommandAsync(async () => _device!.Operation.Master.SendCommand(EMasterCommand.Init));
-    [RelayCommand] public Task MasterProdukcia() => ExecuteCommandAsync(async () => _device!.Operation.Master.SendCommand(EMasterCommand.Produkcia));
-    [RelayCommand] public Task MasterNext() => ExecuteCommandAsync(async () => _device!.Operation.Master.SendCommand(EMasterCommand.Next));
-    [RelayCommand] public Task MasterStop() => ExecuteCommandAsync(async () => _device!.Operation.Master.SendCommand(EMasterCommand.Stop));
+    [RelayCommand] public void MasterInit() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Init), nameof(MasterInit));
+    [RelayCommand] public void MasterProdukcia() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Produkcia), nameof(MasterProdukcia));
+    [RelayCommand] public void MasterNext() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Next), nameof(MasterNext));
+    [RelayCommand] public void MasterStop() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Stop), nameof(MasterStop));
 
     // --- DOSER ---
-    [RelayCommand] public Task DoserInit() => ExecuteCommandAsync(async () => _device!.Operation.Doser.SendCommand(EDoserCommand.Init));
-    [RelayCommand] public Task DoserTune() => ExecuteCommandAsync(async () => _device!.Operation.Doser.SendCommand(EDoserCommand.Tune));
-    [RelayCommand] public Task DoserProd() => ExecuteCommandAsync(async () => _device!.Operation.Doser.SendCommand(EDoserCommand.Prod));
-    [RelayCommand] public Task DoserVyklop() => ExecuteCommandAsync(async () => _device!.Operation.Doser.SendCommand(EDoserCommand.Vyklop));
-    [RelayCommand] public Task DoserStop() => ExecuteCommandAsync(async () => _device!.Operation.Doser.SendCommand(EDoserCommand.Stop));
+    [RelayCommand] public void DoserInit() => ExecuteCommand(d => d.Operation.Doser.SendCommand(EDoserCommand.Init), nameof(DoserInit));
+    [RelayCommand] public void DoserTune() => ExecuteCommand(d => d.Operation.Doser.SendCommand(EDoserCommand.Tune), nameof(DoserTune));
+    [RelayCommand] public void DoserProd() => ExecuteCommand(d => d.Operation.Doser.SendCommand(EDoserCommand.Prod), nameof(DoserProd));
+    [RelayCommand] public void DoserVyklop() => ExecuteCommand(d => d.Operation.Doser.SendCommand(EDoserCommand.Vyklop), nameof(DoserVyklop));
+    [RelayCommand] public void DoserStop() => ExecuteCommand(d => d.Operation.Doser.SendCommand(EDoserCommand.Stop), nameof(DoserStop));
 
     // --- BOOM ---
-    [RelayCommand] public Task BoomInit() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Init));
-    [RelayCommand] public Task BoomVysun1() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Vysun1));
-    [RelayCommand] public Task BoomVysun2() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Vysun2));
-    [RelayCommand] public Task BoomVyloz1() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Vyloz1));
-    [RelayCommand] public Task BoomVyloz2() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Vyloz2));
-    [RelayCommand] public Task BoomVysyp() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Vysyp));
-    [RelayCommand] public Task BoomZasun() => ExecuteCommandAsync(async () => _device!.Operation.Boom.SendCommand(EBoomCommand.Zasun));
+    [RelayCommand] public void BoomInit() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Init), nameof(BoomInit));
+    [RelayCommand] public void BoomVysun1() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Vysun1), nameof(BoomVysun1));
+    [RelayCommand] public void BoomVysun2() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Vysun2), nameof(BoomVysun2));
+    [RelayCommand] public void BoomVyloz1() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Vyloz1), nameof(BoomVyloz1));
+    [RelayCommand] public void BoomVyloz2() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Vyloz2), nameof(BoomVyloz2));
+    [RelayCommand] public void BoomVysyp() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Vysyp), nameof(BoomVysyp));
+    [RelayCommand] public void BoomZasun() => ExecuteCommand(d => d.Operation.Boom.SendCommand(EBoomCommand.Zasun), nameof(BoomZasun));
 
     // --- LOCK ---
-    [RelayCommand] public Task LockInit() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.Init));
-    [RelayCommand] public Task LockOdomkni() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.Odomkni));
-    [RelayCommand] public Task LockZamkni() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.Zamkni));
-    [RelayCommand] public Task LockVysypVlavo() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.VysypVlavo));
-    [RelayCommand] public Task LockVysypVpravo() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.VysypVpravo));
-    [RelayCommand] public Task LockKalibruj() => ExecuteCommandAsync(async () => _device!.Operation.Lock.SendCommand(ELockCommand.Kalibruj));
+    [RelayCommand] public void LockInit() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.Init), nameof(LockInit));
+    [RelayCommand] public void LockOdomkni() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.Odomkni), nameof(LockOdomkni));
+    [RelayCommand] public void LockZamkni() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.Zamkni), nameof(LockZamkni));
+    [RelayCommand] public void LockVysypVlavo() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.VysypVlavo), nameof(LockVysypVlavo));
+    [RelayCommand] public void LockVysypVpravo() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.VysypVpravo), nameof(LockVysypVpravo));
+    [RelayCommand] public void LockKalibruj() => ExecuteCommand(d => d.Operation.Lock.SendCommand(ELockCommand.Kalibruj), nameof(LockKalibruj));
 
     // --- WEIGHER (SCALE) ---
-    [RelayCommand] public Task ScaleInit() => ExecuteCommandAsync(async () => _device!.Operation.Weigher.SendCommand(EScaleCommand.Init));
-    [RelayCommand] public Task ScaleKalibrujMin() => ExecuteCommandAsync(async () => _device!.Operation.Weigher.SendCommand(EScaleCommand.KalibrujMin));
-    [RelayCommand] public Task ScaleKalibrujMax() => ExecuteCommandAsync(async () => _device!.Operation.Weigher.SendCommand(EScaleCommand.KalibrujMax));
-    [RelayCommand] public Task ScaleTara() => ExecuteCommandAsync(async () => _device!.Operation.Weigher.SendCommand(EScaleCommand.Tara));
+    [RelayCommand] public void ScaleInit() => ExecuteCommand(d => d.Operation.Weigher.SendCommand(EScaleCommand.Init), nameof(ScaleInit));
+    [RelayCommand] public void ScaleKalibrujMin() => ExecuteCommand(d => d.Operation.Weigher.SendCommand(EScaleCommand.KalibrujMin), nameof(ScaleKalibrujMin));
+    [RelayCommand] public void ScaleKalibrujMax() => ExecuteCommand(d => d.Operation.Weigher.SendCommand(EScaleCommand.KalibrujMax), nameof(ScaleKalibrujMax));
+    [RelayCommand] public void ScaleTara() => ExecuteCommand(d => d.Operation.Weigher.SendCommand(EScaleCommand.Tara), nameof(ScaleTara));
 
     // --- SYSTEM ---
-    [RelayCommand] public Task SystemSave() => ExecuteCommandAsync(async () => _device!.Operation.System.SendCommand(ESystemCommand.Save));
-    [RelayCommand] public Task SystemLoad() => ExecuteCommandAsync(async () => _device!.Operation.System.SendCommand(ESystemCommand.Load));
-    [RelayCommand] public Task SystemRestart() => ExecuteCommandAsync(async () => _device!.Operation.System.SendCommand(ESystemCommand.Restart));
+    [RelayCommand] public void SystemSave() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Save), nameof(SystemSave));
+    [RelayCommand] public void SystemLoad() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Load), nameof(SystemLoad));
+    [RelayCommand] public void SystemRestart() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Restart), nameof(SystemRestart));
 
     public void Dispose()
     {

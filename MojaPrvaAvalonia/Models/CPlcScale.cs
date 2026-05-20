@@ -56,9 +56,6 @@ public partial class CPlcScale : CPlc
             scale.Operation.System.SendCommand(ESystemCommand.Restart);
         }
     }
-
-  
-
    
     protected async Task<enmError> WaitForResetAllNodeAsync()
     {
@@ -99,8 +96,36 @@ public partial class CPlcScale : CPlc
 
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
+    public void SendScaleCommand(CDeviceScale scale, Action<CDeviceScale> commandAction, string commandName)
+    {
+        if (scale.Data.NmtStatus != ENmtStatus.NcsOPERATIONAL)
+        {
+            Log.Logger.ForContext("Name", Name).Warning($"Povel {commandName} ignorovaný. Váha {scale.NodeId} nie je OPERATIONAL.");
+            return;
+        }
 
-  
+        try
+        {
+            commandAction.Invoke(scale);
+            Log.Logger.ForContext("Name", Name).Debug($"Povel odoslaný: {scale.Name} -> {commandName}");
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.ForContext("Name", Name).Error($"Chyba pri odosielaní povelu {commandName} na {scale.Name}: {ex.Message}");
+        }
+    }
+
+    // Príklady konkrétnych metód pre UI (ViewModel ich bude volať)
+    
+    public void StartDoserProduction(CDeviceScale scale) 
+        => SendScaleCommand(scale, s => s.Operation.Doser.SendCommand(EDoserCommand.Prod), "Doser_Prod");
+
+    public void ClearDoserCommand(CDeviceScale scale) 
+        => SendScaleCommand(scale, s => s.Operation.Doser.SendCommand(EDoserCommand.Clear), "Doser_Clear");
+        
+    public void UnloadBoom(CDeviceScale scale) 
+        => SendScaleCommand(scale, s => s.Operation.Boom.SendCommand(EBoomCommand.Vyloz1), "Boom_Vyloz1");
+    
     public override void FinishNOKHandle()
     {
         base.FinishNOKHandle();
