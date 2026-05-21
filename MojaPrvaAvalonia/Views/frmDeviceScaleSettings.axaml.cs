@@ -38,6 +38,20 @@ public partial class frmDeviceScaleSettings : Window
         Close();
     }
 
+    private void BtnAllParams_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is UcDeviceScaleViewModel vm && vm.Device != null)
+        {
+            var parameters = new DeviceParameters();
+            var paramsVm = new ParametersViewModel(parameters, vm.Device);
+            var window = new ParametersWindow
+            {
+                DataContext = paramsVm
+            };
+            window.ShowDialog(this);
+        }
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);

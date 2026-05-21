@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="700"
+        x:Class="MojaPrvaAvalonia.Views.ParametersWindow"
+        x:DataType="vm:ParametersViewModel"
+        Title="Parametre zariadenia" Width="600" Height="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+
+    <Grid RowDefinitions="Auto, *, Auto, 100">
+        <!-- Horná lišta s tlačidlami -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="10">
+            <Button Content="Load from Device" Command="{Binding LoadFromDeviceCommand}" IsEnabled="{Binding !IsBusy}" Padding="10,5"/>
+            <Button Content="Save to Device" Command="{Binding SaveToDeviceCommand}" IsEnabled="{Binding !IsBusy}" Classes="accent" Padding="10,5"/>
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="100" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Dynamické záložky -->
+        <TabControl Grid.Row="1" ItemsSource="{Binding Categories}">
+            <TabControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CategoryViewModel">
+                    <TextBlock Text="{Binding Header}" />
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:CategoryViewModel">
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Parameters}" Margin="10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ParameterItemViewModel">
+                                    <Grid ColumnDefinitions="*, 150" Margin="0,5">
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                        <NumericUpDown Grid.Column="1" 
+                                                       Value="{Binding Value}" 
+                                                       FormatString="0"
+                                                       GotFocus="Control_GotFocus"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+        <Separator Grid.Row="2"/>
+
+        <!-- Panel popisu (Description) -->
+        <Border Grid.Row="3" Background="#252526" BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Padding="10" Margin="5">
+            <StackPanel>
+                <TextBlock Text="{Binding SelectedParameter.DisplayName}" FontWeight="Bold" Margin="0,0,0,5"/>
+                <TextBlock Text="{Binding SelectedParameter.Description}" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
