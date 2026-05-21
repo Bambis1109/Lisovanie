@@ -201,7 +201,7 @@ public partial class CPlcScale : CPlc
 
     public void SendScaleCommand(CDeviceScale scale, Action<CDeviceScale> commandAction, string commandName)
     {
-        if (scale.Data.NmtStatus != ENmtStatus.NcsOPERATIONAL)
+        if (scale.LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL)
         {
             Log.Logger.ForContext("Name", Name)
                 .Warning($"Povel {commandName} ignorovaný. Váha {scale.NodeId} nie je OPERATIONAL.");
