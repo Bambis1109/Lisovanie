@@ -70,7 +70,7 @@ public partial class CPlcEpos : CPlc
             Message = "Chyba: Zariadenia neštartujú.";
             return;
         }
-
+        await SetHearbeatNodes(200, true);
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
     }
@@ -92,6 +92,14 @@ public partial class CPlcEpos : CPlc
         
             // 3. 'await' teraz môže legálne fungovať
             await Task.Delay(10);
+        }
+    }
+    
+    public async Task SetHearbeatNodes(ushort hearbeatTime,bool enable)
+    {
+        foreach (var motor in Motors)
+        {
+            motor.LowLayer?.Can?.SetHeartbeat(hearbeatTime,enable);
         }
     }
 
@@ -150,14 +158,14 @@ public partial class CPlcEpos : CPlc
                 item.Data.NmtStatus = status;
 
                 // OPRAVA 2: Akonáhle EPOS4 dokončí bootovanie, prejde do Pre-Operational (alebo Bootup)
-                if (status == ENmtStatus.NcsBOOTUP || 
+                if ( 
                     status == ENmtStatus.NcsPREOPERATIONAL || 
                     status == ENmtStatus.NcsOPERATIONAL)
                 {
                     // OPRAVA 3: BEZPEČNOSTNÁ POISTKA
                     // Uzol síce žije a posiela Heartbeat, ale jeho SDO server sa môže ešte inicializovať.
                     // Počkáme 500ms pred prvým SDO dotazom, inak by sme dostali SDO Abort (garbage dáta).
-                    await Task.Delay(500);
+                    await Task.Delay(1000);
 
                     // Teraz môžeme bezpečne vyčítať FW verziu cez SDO
                     int fw = 0;

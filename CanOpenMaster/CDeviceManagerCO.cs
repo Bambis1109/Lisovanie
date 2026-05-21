@@ -162,7 +162,7 @@ namespace EposCmd.Net
                 _keyHandle = 0;
                 throw new CDeviceException("Error add node:" + device.NodeId, (uint)result);
             }
-
+/*
             result = COP_ChangeNodeParameter(_keyHandle, device.NodeId, (byte)COP_k_HEARTBEAT, (ushort)200, 2);
             if (COP_k_OK != result)
             {
@@ -170,7 +170,7 @@ namespace EposCmd.Net
                 _keyHandle = 0;
                 throw new CDeviceException("Error add node:" + device.NodeId, (uint)result);
             }
-
+*/
             DeviceList.Add(device.NodeId, device);
         }
 

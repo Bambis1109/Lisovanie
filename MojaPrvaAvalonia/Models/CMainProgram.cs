@@ -82,7 +82,7 @@ public partial class CMainProgram : ObservableObject
             lis.MotorViewModels[2].AssignDevice(lis.MotorMaster);
 
 //*************************Vahy*********************************
-            if (!CreateCanConector(1, 0,ref  DeviceManagerScale))
+            if (!CreateCanConector(1, 0, ref DeviceManagerScale))
             {
                 IxxatState = EnIxxatState.Disconnected;
                 return false;
@@ -111,7 +111,7 @@ public partial class CMainProgram : ObservableObject
             {
                 vm.StartRefresh();
             }
-            
+
             foreach (var vms in _scales.ScaleViewModels)
             {
                 vms.StartRefresh();
@@ -173,6 +173,7 @@ public partial class CMainProgram : ObservableObject
         var motor = new CDeviceEpos4(deviceManagerCO._keyHandle, nodeId, name, gear, pulse);
         DeviceManagerCO.AddDevice(motor);
         motor.ReceiveEmergency += OnMotorEmergency;
+        motor.ReceiveStatus += OnMotorStatus;
         Log.Information($"Created device: {name} (ID: {nodeId})");
         return motor;
     }
@@ -187,6 +188,7 @@ public partial class CMainProgram : ObservableObject
 
         // 3. Odber udalostí (Eventy)
         scale.ReceiveEmergency += OnScaleEmergency;
+        scale.ReceiveStatus += OnScaleStatus;
 
         // 4. Logovanie
         Log.Information($"Created scale device: {name} (ID: {nodeId})");
@@ -221,10 +223,40 @@ public partial class CMainProgram : ObservableObject
         if (sender is CDeviceScale scale)
         {
             // Využijeme metódu GetLastEmergencyMsg, ktorú sme definovali v CDeviceScale
-           // string errorMsg = scale.GetLastEmergencyMsg();
+            // string errorMsg = scale.GetLastEmergencyMsg();
             Log.Error($"[SCALE EMERGENCY] ");
 
             // Tu môžeš pridať logiku pre UI, napr. zobrazenie chybovej hlášky
+        }
+    }
+
+    private void OnMotorStatus(object? sender, EventArgs e)
+    {
+        if (sender is CDeviceEpos4 motor)
+        {
+            // Tu skontrolujeme aktuálny NMT stav uzla
+            if (motor.LowLayer.Can.GetNMTState() == ENmtStatus.NcsDISCONNECTED)
+            {
+                Log.Fatal(
+                    $"[NMT ALARM] (Heartbeat timeout)  {motor.Name} (ID: {motor.NodeId})! ");
+
+                // Reagujeme rovnako ako pri zlyhaní zbernice
+                Dispatcher.UIThread.Post(() => { Shutdown(); });
+            }
+        }
+    }
+
+    private void OnScaleStatus(object? sender, EventArgs e)
+    {
+        if (sender is CDeviceScale scale)
+        {
+            // Tu skontrolujeme aktuálny NMT stav uzla
+            if (scale.LowLayer.Can.GetNMTState() == ENmtStatus.NcsDISCONNECTED)
+            {
+                Log.Fatal(
+                    $"[NMT ALARM] (Heartbeat timeout) {scale.Name} (ID: {scale.NodeId})! ");
+
+            }
         }
     }
 

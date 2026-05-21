@@ -85,5 +85,28 @@ namespace EposCmd.Net
                 }
             }
         }
+        /// <summary>
+        /// Zapne alebo vypne sledovanie Heartbeat pre tento konkrétny uzol.
+        /// </summary>
+        /// <param name="heartbeatTime">Čas v milisekundách (odporúčané napr. 150).</param>
+        /// <param name="enable">True pre zapnutie, False pre vypnutie (pošle čas 0).</param>
+        public void SetHeartbeat(ushort heartbeatTime, bool enable)
+        {
+            // Ak vypíname, parameter času musí byť 0
+            ushort timeToSet = enable ? heartbeatTime : (ushort)0;
+
+            // Parameter lifetimefactor (posledná 0) sa pri Heartbeate ignoruje, používa sa len pri Node Guarding
+            short res = COP_ChangeNodeParameter(
+                KeyHandle, 
+                NodeId, 
+                COP_k_HEARTBEAT, 
+                timeToSet, 
+                0);
+
+            if (res != COP_k_OK)
+            {
+                throw new CDeviceException($"SetHeartbeat Node:{NodeId} failed. ({CopErrorString(res)})", (uint)res);
+            }
+        }
     }
 }

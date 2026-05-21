@@ -51,6 +51,7 @@ public partial class CPlcScale : CPlc
             Message = "Chyba: Zariadenia neodpovedajú po resete.";
             return;
         }
+
         // 2. Odoslanie povelu na štart uzlov (NMT Start Remote Node)
         await Task.Run(async () =>
         {
@@ -69,28 +70,38 @@ public partial class CPlcScale : CPlc
             return;
         }
 
+        await SetHearbeatNodes(200, true);
         Connection = EnStatusConnection.Connected;
         Message = "Pripojené. Čaká na Init.";
-
     }
 
     public void ResetScales()
     {
-        foreach (var scale in Scales)
+        foreach (var item in Scales)
         {
-            scale.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsResetNode);
+            item.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsResetNode);
         }
     }
+
     public async Task StartNodesAsync()
     {
-        foreach (var scale in Scales)
+        foreach (var item in Scales)
         {
-            scale.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
-        
+            item.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
+
             // 3. 'await' teraz môže legálne fungovať
             await Task.Delay(10);
         }
     }
+
+    public async Task SetHearbeatNodes(ushort hearbeatTime,bool enable)
+    {
+        foreach (var item in Scales)
+        {
+            item.LowLayer?.Can?.SetHeartbeat(hearbeatTime,enable);
+        }
+    }
+
     protected async Task<enmError> WaitForStartNodeAsync()
     {
         var tasks = Scales.Select(async item =>
@@ -101,7 +112,7 @@ public partial class CPlcScale : CPlc
                 try
                 {
                     // if (item.LowLayer?.Can?.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
-                    if(item.LowLayer.Can.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
+                    if (item.LowLayer.Can.GetNMTState() == ENmtStatus.NcsOPERATIONAL)
                     {
                         Log.Logger.ForContext("Name", Name)
                             .Information($"Node {item.NodeId} ({item.Name}) je OPERATIONAL.");
@@ -122,75 +133,78 @@ public partial class CPlcScale : CPlc
         var results = await Task.WhenAll(tasks);
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
-     protected async Task<enmError> WaitForResetAllNodeAsync()
-{
-    var tasks = Scales.Select(async item =>
+
+    protected async Task<enmError> WaitForResetAllNodeAsync()
     {
-        enmError resultNode = enmError.Error;
-
-        // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
-        for (int i = 0; i < 30; i++)
+        var tasks = Scales.Select(async item =>
         {
-            await Task.Delay(100);
-            try
+            enmError resultNode = enmError.Error;
+
+            // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
+            for (int i = 0; i < 30; i++)
             {
-                if (item.LowLayer?.Can == null) continue;
-
-                // OPRAVA 1: Aktívne sa pýtame Ixxat API na reálny NMT stav uzla.
-                // Toto číta reálny stav z Heartbeatu, ktorý Ixxat drží vo svojej pamäti.
-                ENmtStatus status = item.LowLayer.Can.GetNMTState();
-
-                // Aktualizujeme lokálnu premennú, aby UI a zvyšok aplikácie mali správny stav
-                item.Data.NmtStatus = status;
-
-                // OPRAVA 2: Akonáhle EPOS4 dokončí bootovanie, prejde do Pre-Operational (alebo Bootup)
-                if (status == ENmtStatus.NcsBOOTUP || 
-                    status == ENmtStatus.NcsPREOPERATIONAL || 
-                    status == ENmtStatus.NcsOPERATIONAL)
+                await Task.Delay(100);
+                try
                 {
-                    // OPRAVA 3: BEZPEČNOSTNÁ POISTKA
-                    // Uzol síce žije a posiela Heartbeat, ale jeho SDO server sa môže ešte inicializovať.
-                    // Počkáme 500ms pred prvým SDO dotazom, inak by sme dostali SDO Abort (garbage dáta).
-                    await Task.Delay(500);
+                    if (item.LowLayer?.Can == null) continue;
 
-                    Log.Logger.ForContext("Name", Name).Information(
-                        $"Node {item.NodeId} ({item.Name}) úspešne nabootoval (Stav: {status}). FW:[0x0000]");
+                    // OPRAVA 1: Aktívne sa pýtame Ixxat API na reálny NMT stav uzla.
+                    // Toto číta reálny stav z Heartbeatu, ktorý Ixxat drží vo svojej pamäti.
+                    ENmtStatus status = item.LowLayer.Can.GetNMTState();
 
-                    resultNode = enmError.NoError;
-                    break; // Úspech, vyskakujeme z for-cyklu
+                    // Aktualizujeme lokálnu premennú, aby UI a zvyšok aplikácie mali správny stav
+                    item.Data.NmtStatus = status;
+
+                    // OPRAVA 2: Akonáhle EPOS4 dokončí bootovanie, prejde do Pre-Operational (alebo Bootup)
+                    if (status == ENmtStatus.NcsPREOPERATIONAL ||
+                        status == ENmtStatus.NcsOPERATIONAL)
+                    {
+                        // OPRAVA 3: BEZPEČNOSTNÁ POISTKA
+                        // Uzol síce žije a posiela Heartbeat, ale jeho SDO server sa môže ešte inicializovať.
+                        // Počkáme 500ms pred prvým SDO dotazom, inak by sme dostali SDO Abort (garbage dáta).
+                        await Task.Delay(500);
+
+                        Log.Logger.ForContext("Name", Name).Information(
+                            $"Node {item.NodeId} ({item.Name}) úspešne nabootoval (Stav: {status}). FW:[0x0000]");
+
+                        resultNode = enmError.NoError;
+                        break; // Úspech, vyskakujeme z for-cyklu
+                    }
+                }
+                catch (Exception)
+                {
+                    // Ignorujeme výnimky počas bootovania. 
+                    // GetNMTState môže hodiť výnimku (Abort), ak uzol ešte vôbec nekomunikuje a Ixxat ho eviduje ako Disconnected.
                 }
             }
-            catch (Exception)
+
+            if (resultNode == enmError.Error)
             {
-                // Ignorujeme výnimky počas bootovania. 
-                // GetNMTState môže hodiť výnimku (Abort), ak uzol ešte vôbec nekomunikuje a Ixxat ho eviduje ako Disconnected.
+                Log.Logger.ForContext("Name", Name)
+                    .Fatal(
+                        $"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)! Posledný známy stav: {item.Data.NmtStatus}");
             }
-        }
 
-        if (resultNode == enmError.Error)
+            return resultNode;
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        if (results.Length == 0)
         {
-            Log.Logger.ForContext("Name", Name)
-                .Fatal($"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)! Posledný známy stav: {item.Data.NmtStatus}");
+            Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
+            return enmError.Error;
         }
 
-        return resultNode;
-    });
-
-    var results = await Task.WhenAll(tasks);
-
-    if (results.Length == 0)
-    {
-        Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
-        return enmError.Error;
+        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
-    return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
-}
     public void SendScaleCommand(CDeviceScale scale, Action<CDeviceScale> commandAction, string commandName)
     {
         if (scale.Data.NmtStatus != ENmtStatus.NcsOPERATIONAL)
         {
-            Log.Logger.ForContext("Name", Name).Warning($"Povel {commandName} ignorovaný. Váha {scale.NodeId} nie je OPERATIONAL.");
+            Log.Logger.ForContext("Name", Name)
+                .Warning($"Povel {commandName} ignorovaný. Váha {scale.NodeId} nie je OPERATIONAL.");
             return;
         }
 
@@ -201,25 +215,25 @@ public partial class CPlcScale : CPlc
         }
         catch (Exception ex)
         {
-            Log.Logger.ForContext("Name", Name).Error($"Chyba pri odosielaní povelu {commandName} na {scale.Name}: {ex.Message}");
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Chyba pri odosielaní povelu {commandName} na {scale.Name}: {ex.Message}");
         }
     }
 
     // Príklady konkrétnych metód pre UI (ViewModel ich bude volať)
-    
-    public void StartDoserProduction(CDeviceScale scale) 
+
+    public void StartDoserProduction(CDeviceScale scale)
         => SendScaleCommand(scale, s => s.Operation.Doser.SendCommand(EDoserCommand.Prod), "Doser_Prod");
 
-    public void ClearDoserCommand(CDeviceScale scale) 
+    public void ClearDoserCommand(CDeviceScale scale)
         => SendScaleCommand(scale, s => s.Operation.Doser.SendCommand(EDoserCommand.Clear), "Doser_Clear");
-        
-    public void UnloadBoom(CDeviceScale scale) 
+
+    public void UnloadBoom(CDeviceScale scale)
         => SendScaleCommand(scale, s => s.Operation.Boom.SendCommand(EBoomCommand.Vyloz1), "Boom_Vyloz1");
-    
+
     public override void FinishNOKHandle()
     {
         base.FinishNOKHandle();
-        
     }
 
     public override void FinishOKHandle()
