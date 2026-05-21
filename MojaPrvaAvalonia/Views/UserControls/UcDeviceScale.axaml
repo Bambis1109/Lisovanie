@@ -45,16 +45,16 @@
                     <TextBlock Text="Informácie o hmotnosti" FontWeight="Bold" Foreground="LightGray" Margin="0,0,0,5"/>
                     <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Inter:" Width="80"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Weight32InterKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Weight32InterGr, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
                         
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Tare:"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Weight32TareKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Weight32TareGr, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
                         
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Actual:"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Weight32ActualKg, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Weight32ActualGr, StringFormat={}{0:F3} kg}" FontWeight="Bold"/>
                         
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Final:"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding WeightFinalKg, StringFormat={}{0:F3} kg}" FontWeight="Bold" Foreground="Cyan"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding WeightFinalGr, StringFormat={}{0:F3} kg}" FontWeight="Bold" Foreground="Cyan"/>
                     </Grid>
                 </StackPanel>
             </Border>

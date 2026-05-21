@@ -12,7 +12,7 @@
             
             <Grid RowDefinitions="Auto" ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="W: " FontWeight="Bold" FontSize="11"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding WeightFinalKg, StringFormat={}{0:F3} kg}" FontSize="11"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding WeightFinalGr, StringFormat={}{0:F3} kg}" FontSize="11"/>
             </Grid>
 
             <Border Background="{Binding NmtColor}" CornerRadius="3" Margin="0,2,0,0" Padding="2">

@@ -35,10 +35,10 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [ObservableProperty] private IBrush _nmtColor = Brushes.DarkGray;
 
     // --- Telemetria (Hmotnosť) v kg ---
-    [ObservableProperty] private double _weight32InterKg;
-    [ObservableProperty] private double _weight32TareKg;
-    [ObservableProperty] private double _weight32ActualKg;
-    [ObservableProperty] private double _weightFinalKg;
+    [ObservableProperty] private double _weight32InterGr;
+    [ObservableProperty] private double _weight32TareGr;
+    [ObservableProperty] private double _weight32ActualGr;
+    [ObservableProperty] private double _weightFinalGr;
 
     // --- Stavy ---
     [ObservableProperty] private string _statusMainProc = "---";
@@ -102,10 +102,10 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
             }
 
             // Prepočty z miligramov na kilogramy
-            Weight32InterKg = data.Weight32Inter / 1000.0;
-            Weight32TareKg = data.Weight32Tare / 1000.0;
-            Weight32ActualKg = data.Weight32Actual / 1000.0;
-            WeightFinalKg = data.WeightFinal / 1000.0;
+            Weight32InterGr = data.Weight32Inter / 10000000.0;
+            Weight32TareGr = data.Weight32Tare / 10000000.0;
+            Weight32ActualGr = data.Weight32Actual / 10000000.0;
+            WeightFinalGr = data.WeightFinal / 10000000.0;
 
             // Zobrazenie stavov ako string
             StatusMainProc = data.StatusMainProc.ToString();

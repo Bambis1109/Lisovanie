@@ -11,6 +11,7 @@ namespace MojaPrvaAvalonia.Models;
 
 public partial class CPlc : ObservableObject
 {
+    public System.Diagnostics.Stopwatch _initStopwatch = new();
     [ObservableProperty] private string _name = string.Empty;
 
     [ObservableProperty]
