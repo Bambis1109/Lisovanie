@@ -3,11 +3,17 @@
 // ==========================================
 
 using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using EposCmd.Net;
 using MojaPrvaAvalonia.Models;
 using MojaPrvaAvalonia.ViewModels;
+using MojaPrvaAvalonia.Logging;
+using Serilog;
 
 namespace MojaPrvaAvalonia.Views;
 
@@ -49,6 +55,54 @@ public partial class frmDeviceScaleSettings : Window
                 DataContext = paramsVm
             };
             window.ShowDialog(this);
+        }
+    }
+
+    private async void BtnProcessLog_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Načítať log z dávkovača",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Log súbory") { Patterns = new[] { "*.log", "*.txt" } },
+                new FilePickerFileType("Všetky súbory") { Patterns = new[] { "*.*" } }
+            }
+        });
+
+        if (files.Count > 0)
+        {
+            var filePath = files[0].Path.LocalPath;
+
+            if (!File.Exists(filePath))
+            {
+                Log.Error("Súbor neexistuje: {FilePath}", filePath);
+                return;
+            }
+
+            try
+            {
+                // Zavoláme našu konverznú metódu
+                bool ok = LogToCsvConverter.ProcessLogFile(filePath);
+
+                if (!ok)
+                {
+                    Log.Error("Spracovanie logu zlyhalo. Skontrolujte formát súboru: {FilePath}", filePath);
+                }
+                else
+                {
+                    string csvPath = Path.ChangeExtension(filePath, ".csv");
+                    Log.Information("Log úspešne spracovaný a uložený ako: {CsvPath}", csvPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Kritická chyba pri spracovaní logu: {Message}", ex.Message);
+            }
         }
     }
 

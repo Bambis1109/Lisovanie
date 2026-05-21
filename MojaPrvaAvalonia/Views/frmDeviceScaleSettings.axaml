@@ -97,6 +97,7 @@
                             <Button Classes="cmd" Content="Save" Command="{Binding SystemSaveCommand}"/>
                             <Button Classes="cmd" Content="Load" Command="{Binding SystemLoadCommand}"/>
                             <Button Classes="cmd" Content="Všetky Parametre" Click="BtnAllParams_OnClick" Background="DarkOrange"/>
+                            <Button Classes="cmd" Content="Spracuj log pre AI" Click="BtnProcessLog_OnClick" Background="DodgerBlue"/>
                             <Button Classes="cmd" Content="Restart" Command="{Binding SystemRestartCommand}" Background="DarkRed"/>
                         </StackPanel>
                     </TabItem>
