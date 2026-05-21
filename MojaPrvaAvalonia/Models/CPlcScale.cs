@@ -38,12 +38,25 @@ public partial class CPlcScale : CPlc
         // Vykonanie CAN/Sériovej komunikácie na pozadí - Reset
         await Task.Run(async () =>
         {
-            ResetScales(); // Tvrdý reštart všetkých Scale povelom cez SDO
-            await Task.Delay(100);
+            ResetScales(); // (NMT Reset Node)
+            await Task.Delay(200);
         });
-
-       
-
+        // 1. Čakanie na Boot-up 
+        var resetResult = await WaitForResetAllNodeAsync();
+        if (resetResult == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Pripojenie zlyhalo: Niektoré motory nenabootovali.");
+            StatusPlc = EnStatusPlc.Error;
+            Connection = EnStatusConnection.Disconnect;
+            Message = "Chyba: Zariadenia neodpovedajú po resete.";
+            return;
+        }
+        // 2. Odoslanie povelu na štart uzlov (NMT Start Remote Node)
+        await Task.Run(async () =>
+        {
+            await StartNodesAsync(); // Odoslanie príkazu na prechod do Operational
+            await Task.Delay(500); // Poskytnutie času zbernici a meničom na spracovanie
+        });
         // 3. Čakanie na overenie stavu Operational
         var startResult = await WaitForStartNodeAsync();
         if (startResult == enmError.Error)
@@ -65,7 +78,17 @@ public partial class CPlcScale : CPlc
     {
         foreach (var scale in Scales)
         {
-            scale.Operation.System.SendCommand(ESystemCommand.Restart);
+            scale.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsResetNode);
+        }
+    }
+    public async Task StartNodesAsync()
+    {
+        foreach (var scale in Scales)
+        {
+            scale.LowLayer?.Can?.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
+        
+            // 3. 'await' teraz môže legálne fungovať
+            await Task.Delay(10);
         }
     }
     protected async Task<enmError> WaitForStartNodeAsync()
@@ -99,45 +122,70 @@ public partial class CPlcScale : CPlc
         var results = await Task.WhenAll(tasks);
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
-    protected async Task<enmError> WaitForResetAllNodeAsync()
+     protected async Task<enmError> WaitForResetAllNodeAsync()
+{
+    var tasks = Scales.Select(async item =>
     {
-        var tasks = Scales.Select(async item =>
-        {
-            enmError resultNode = enmError.Error;
+        enmError resultNode = enmError.Error;
 
-            // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
-            for (int i = 0; i < 30; i++)
+        // Zvýšený počet pokusov na 30 (3 sekundy). EPOS4 tvrdý reštart trvá 1 až 2 sekundy.
+        for (int i = 0; i < 30; i++)
+        {
+            await Task.Delay(100);
+            try
             {
-                await Task.Delay(100);
-                try
+                if (item.LowLayer?.Can == null) continue;
+
+                // OPRAVA 1: Aktívne sa pýtame Ixxat API na reálny NMT stav uzla.
+                // Toto číta reálny stav z Heartbeatu, ktorý Ixxat drží vo svojej pamäti.
+                ENmtStatus status = item.LowLayer.Can.GetNMTState();
+
+                // Aktualizujeme lokálnu premennú, aby UI a zvyšok aplikácie mali správny stav
+                item.Data.NmtStatus = status;
+
+                // OPRAVA 2: Akonáhle EPOS4 dokončí bootovanie, prejde do Pre-Operational (alebo Bootup)
+                if (status == ENmtStatus.NcsBOOTUP || 
+                    status == ENmtStatus.NcsPREOPERATIONAL || 
+                    status == ENmtStatus.NcsOPERATIONAL)
                 {
-                   //ToDo Budeme sa na nieco pytat
-                }
-                catch (Exception)
-                {
-                    // Ignorujeme výnimky počas bootovania
+                    // OPRAVA 3: BEZPEČNOSTNÁ POISTKA
+                    // Uzol síce žije a posiela Heartbeat, ale jeho SDO server sa môže ešte inicializovať.
+                    // Počkáme 500ms pred prvým SDO dotazom, inak by sme dostali SDO Abort (garbage dáta).
+                    await Task.Delay(500);
+
+                    Log.Logger.ForContext("Name", Name).Information(
+                        $"Node {item.NodeId} ({item.Name}) úspešne nabootoval (Stav: {status}). FW:[0x0000]");
+
+                    resultNode = enmError.NoError;
+                    break; // Úspech, vyskakujeme z for-cyklu
                 }
             }
-
-            if (resultNode == enmError.Error)
+            catch (Exception)
             {
-                Log.Logger.ForContext("Name", Name)
-                    .Fatal($"Scale {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)!");
+                // Ignorujeme výnimky počas bootovania. 
+                // GetNMTState môže hodiť výnimku (Abort), ak uzol ešte vôbec nekomunikuje a Ixxat ho eviduje ako Disconnected.
             }
-
-            return resultNode;
-        });
-
-        var results = await Task.WhenAll(tasks);
-
-        if (results.Length == 0)
-        {
-            Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
-            return enmError.Error;
         }
 
-        return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
+        if (resultNode == enmError.Error)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Fatal($"Node {item.NodeId} ({item.Name}) nenabootoval v časovom limite (3s)! Posledný známy stav: {item.Data.NmtStatus}");
+        }
+
+        return resultNode;
+    });
+
+    var results = await Task.WhenAll(tasks);
+
+    if (results.Length == 0)
+    {
+        Log.Logger.ForContext("Name", Name).Error("Reset zlyhal: Žiadne zariadenia na zbernici.");
+        return enmError.Error;
     }
+
+    return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
+}
     public void SendScaleCommand(CDeviceScale scale, Action<CDeviceScale> commandAction, string commandName)
     {
         if (scale.Data.NmtStatus != ENmtStatus.NcsOPERATIONAL)

@@ -37,7 +37,7 @@ public partial class CPlcEpos : CPlc
         // Vykonanie CAN/Sériovej komunikácie na pozadí - Reset
         await Task.Run(async () =>
         {
-            ResetNodes(); // Tvrdý reštart všetkých EPOS4 (NMT Reset Node)
+            ResetNodes(); // (NMT Reset Node)
             await Task.Delay(500);
         });
 
@@ -128,7 +128,7 @@ public partial class CPlcEpos : CPlc
         return results.Any(r => r == enmError.Error) ? enmError.Error : enmError.NoError;
     }
 
-protected async Task<enmError> WaitForResetAllNodeAsync()
+    protected async Task<enmError> WaitForResetAllNodeAsync()
 {
     var tasks = Motors.Select(async item =>
     {

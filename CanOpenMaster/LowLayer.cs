@@ -87,9 +87,7 @@ namespace EposCmd.Net.DeviceCmdSet.LowLayer
                 case ECommandSpecifier.NcsResetNode: res = CANopenMasterAPI6.COP_ResetNode(KeyHandle, NodeId); break;
                 case ECommandSpecifier.NcsResetCommunication: res = CANopenMasterAPI6.COP_ResetComm(KeyHandle, NodeId); break;
             }
-
-            Data.Statusword = 0;
-            Data.ModeOfOperationDisplay = 0;
+        
             if (CANopenMasterAPI6.COP_k_OK != res)
             {
                 throw new CDeviceException(commandSpecifier + string.Format(" - Remote Node {0:d}: Abort ", NodeId) + CANopenMasterAPI6.CopErrorString(res), (uint)res);
