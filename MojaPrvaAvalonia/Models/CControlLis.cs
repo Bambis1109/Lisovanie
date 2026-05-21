@@ -129,8 +129,8 @@ public partial class CControlLis : CPlcEpos
             EHomingMethod.HmActualPosition);
         MotorMaster.Operation.HomingMode.FindHome();
         MotorSlave.Operation.HomingMode.FindHome();
-        MotorMaster.Operation.MotionInfo.WaitForHomingAttained(100000);
-        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(100000);
+        MotorMaster.Operation.MotionInfo.WaitForHomingAttained(20000);
+        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(20000);
 
         return 40;
     } //Lis: Nulovanie polohy

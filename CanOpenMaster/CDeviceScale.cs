@@ -87,5 +87,42 @@ namespace EposCmd.Net
         {
             return $"Scale Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}";
         }
+        
+        public void WaitForInitAttained(uint timeoutMs)
+        {
+            long startTime = Environment.TickCount64;
+
+            while (true)
+            {
+                // 1. Atomické načítanie stavov z PDO
+                EProcStatus currentStatus = ScaleData.StatusMainProc;
+                bool wpdoError = ScaleData.WpdoError;
+
+                // 2. Aktívne dopytovanie reálneho NMT stavu cez LowLayer
+                ENmtStatus nmtStatus = LowLayer.Can.GetNMTState();
+
+                // 3. Fail-Fast: Kontrola chýb zbernice a NMT
+                if (wpdoError)
+                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Async WPDO Error na PDO {ScaleData.WpdoErrorPdoNumber}.", 0);
+
+                if (nmtStatus != ENmtStatus.NcsOPERATIONAL)
+                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Zariadenie stratilo stav OPERATIONAL (Aktuálny: {nmtStatus}).", 0);
+
+                // 4. Fail-Fast: Kontrola chybového stavu procesu v STM32
+                if (currentStatus == EProcStatus.Error)
+                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Zariadenie hlási chybový stav (EProcStatus.Error).", 0);
+
+                // 5. Úspešné dokončenie
+                if (currentStatus == EProcStatus.Ready)
+                    return;
+
+                // 6. Kontrola pretečenia času (Timeout)
+                if (Environment.TickCount64 - startTime > timeoutMs)
+                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Timeout {timeoutMs}ms vypršal. Aktuálny stav: {currentStatus}.", 0);
+
+                // 7. Uvoľnenie CPU pre OS (Makro-čakanie)
+                Thread.Sleep(10);
+            }
+        }
     }
 }

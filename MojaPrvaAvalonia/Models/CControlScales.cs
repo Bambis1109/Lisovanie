@@ -71,80 +71,30 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Štart inicializácie váh...";
 
-        // Súčasné odoslanie povelov pre obe váhy (paralelný štart)
+        // 1. Odoslanie povelov (Fire-and-Forget)
         Scale1.Operation.Master.SendCommand(EMasterCommand.Init);
         Scale2.Operation.Master.SendCommand(EMasterCommand.Init);
-
-        // Spustíme stopky - budeme strážiť, či váhy do 3 sekúnd skočia do Busy
-        _initStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
         return 20;
     }
 
     private int InitStep20(int step)
     {
-        Message = "Čakám na potvrdenie štartu (Busy)...";
+        Message = "Čakám na dokončenie inicializácie (STM32)...";
+        StatusCycle = EnStatusCycle.WaitForStep;
+        // Čakáme max 15 sekúnd na k
+        Scale1.WaitForInitAttained(15000);
+        Scale2.WaitForInitAttained(15000);
 
-        // Bezpečné vyčítanie stavov cez Pattern Matching (operátor 'is')
-        bool s1Busy = Scale1.Data is CDataScale d1 && d1.StatusMainProc == EProcStatus.Busy;
-        bool s2Busy = Scale2.Data is CDataScale d2 && d2.StatusMainProc == EProcStatus.Busy;
-
-        bool s1Error = Scale1.Data is CDataScale e1 && e1.StatusMainProc == EProcStatus.Error;
-        bool s2Error = Scale2.Data is CDataScale e2 && e2.StatusMainProc == EProcStatus.Error;
-
-        // KROK A: Obe váhy úspešne prepli do Busy (trvá to min. 5s, zachytili sme to)
-        if (s1Busy && s2Busy)
-        {
-            // Resetujeme stopky, teraz budeme merať čas samotnej inicializácie v kroku 30
-            _initStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            return 30;
-        }
-
-        // KROK B: Ochrana proti zamrznutiu (Timeout 3s) alebo okamžitá chyba na zbernici
-        if (s1Error || s2Error || _initStopwatch.ElapsedMilliseconds > 3000)
-        {
-            Log.Logger.ForContext("Name", Name).Error(
-                $"Inicializácia zlyhala v kroku 20 (Čakanie na Busy). " +
-                $"S1_Busy: {s1Busy}, S2_Busy: {s2Busy}, S1_Err: {s1Error}, S2_Err: {s2Error}, Čas: {_initStopwatch.ElapsedMilliseconds}ms");
-
-            Message = "Chyba: Váhy nepotvrdili štart (Busy).";
-            _initStopwatch.Stop();
-            return 0; // Bezpečný výskok do kroku 0 (krokomat nenastaví stav Ready)
-        }
-
-        return step; // Obe ešte nie sú Busy a čas nevypršal -> zostaň tu (slučka počká 10ms)
+        return 30;
     }
 
     private int InitStep30(int step)
     {
-        Message = "Prebieha inicializácia (5-10s)...";
+        Message = "Čakám na dokončenie inicializácie (STM32)...";
+        StatusCycle = EnStatusCycle.WaitForStep;
 
-        bool s1Ready = Scale1.Data is CDataScale d1 && d1.StatusMainProc == EProcStatus.Ready;
-        bool s2Ready = Scale2.Data is CDataScale d2 && d2.StatusMainProc == EProcStatus.Ready;
 
-        bool s1Error = Scale1.Data is CDataScale e1 && e1.StatusMainProc == EProcStatus.Error;
-        bool s2Error = Scale2.Data is CDataScale e2 && e2.StatusMainProc == EProcStatus.Error;
-
-        // KROK A: Obe váhy úspešne dokončili inicializáciu a sú Ready
-        if (s1Ready && s2Ready)
-        {
-            _initStopwatch.Stop();
-            return 40;
-        }
-
-        // KROK B: Kontrola chýb alebo timeoutu (fáza trvá 5-10s, dáme rezervu 15 sekúnd)
-        if (s1Error || s2Error || _initStopwatch.ElapsedMilliseconds > 15000)
-        {
-            Log.Logger.ForContext("Name", Name).Error(
-                $"Inicializácia zlyhala v kroku 30 (Čakanie na Ready). " +
-                $"S1_Ready: {s1Ready}, S2_Ready: {s2Ready}, S1_Err: {s1Error}, S2_Err: {s2Error}, Čas: {_initStopwatch.ElapsedMilliseconds}ms");
-
-            Message = "Chyba: Inicializácia váh zlyhala.";
-            _initStopwatch.Stop();
-            return 0; // Bezpečný výskok do kroku 0
-        }
-
-        return step; // Váhy stále pracujú, čakáme ďalej
+        return 40;
     }
 
     private int InitStep40(int step)
