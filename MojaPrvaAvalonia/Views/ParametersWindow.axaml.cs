@@ -11,6 +11,11 @@ namespace MojaPrvaAvalonia.Views
             InitializeComponent();
         }
 
+        private void BtnClose_OnClick(object? sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
         private void Control_GotFocus(object? sender, RoutedEventArgs e)
         {
             if (sender is Control control && control.DataContext is ParameterItemViewModel vm)

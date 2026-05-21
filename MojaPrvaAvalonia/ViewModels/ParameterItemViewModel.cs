@@ -30,4 +30,9 @@ public partial class ParameterItemViewModel : ObservableObject
             OnPropertyChanged();
         }
     }
+
+    public void Refresh()
+    {
+        OnPropertyChanged(nameof(Value));
+    }
 }

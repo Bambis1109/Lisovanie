@@ -6,6 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
@@ -147,6 +150,95 @@ public partial class ParametersViewModel : ViewModelBase
         catch (Exception ex)
         {
             Log.Error($"Chyba pri hromadnom ukladaní parametrov: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadFromFile(Window window)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            var topLevel = TopLevel.GetTopLevel(window);
+            if (topLevel == null) return;
+
+            var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Načítať parametre zo súboru",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { new FilePickerFileType("JSON File") { Patterns = new[] { "*.json" } } }
+            });
+
+            if (files.Count > 0)
+            {
+                await using var stream = await files[0].OpenReadAsync();
+                using var jsonDoc = await JsonDocument.ParseAsync(stream);
+                
+                var props = typeof(DeviceParameters).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                foreach (var prop in props)
+                {
+                    if (jsonDoc.RootElement.TryGetProperty(prop.Name, out var element))
+                    {
+                        if (element.TryGetInt32(out int val))
+                        {
+                            prop.SetValue(_parameters, val);
+                        }
+                    }
+                }
+                
+                foreach (var cat in Categories)
+                {
+                    foreach (var param in cat.Parameters)
+                    {
+                        param.Refresh();
+                    }
+                }
+                Log.Information("Parametre úspešne načítané zo súboru.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Chyba pri načítaní zo súboru: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveToFile(Window window)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            var topLevel = TopLevel.GetTopLevel(window);
+            if (topLevel == null) return;
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Uložiť parametre do súboru",
+                SuggestedFileName = $"ScaleNode{_device.NodeId}.json",
+                DefaultExtension = "json",
+                FileTypeChoices = new[] { new FilePickerFileType("JSON File") { Patterns = new[] { "*.json" } } }
+            });
+
+            if (file != null)
+            {
+                await using var stream = await file.OpenWriteAsync();
+                await JsonSerializer.SerializeAsync(stream, _parameters, new JsonSerializerOptions { WriteIndented = true });
+                Log.Information("Parametre úspešne uložené do súboru.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Chyba pri ukladaní do súboru: {ex.Message}");
         }
         finally
         {
