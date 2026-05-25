@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
+using MojaPrvaAvalonia.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
 
@@ -161,13 +159,20 @@ public partial class CControlLis : CPlcEpos
         Message = "Lis: Čakám na diel";
         StatusCycle = EnStatusCycle.Moving;
 
-        if (RequestToEnd)
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
         {
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
 
-        return 110;
+        // Lis čaká, kým mu váha nenechá InputFull
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
+        {
+            // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
+            IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            return 110;
+        }
+        return step;
     }
 
     private int MainStep110(int step)
@@ -194,10 +199,10 @@ public partial class CControlLis : CPlcEpos
         Message = "Caka na ready vahy";
         StatusCycle = EnStatusCycle.WaitForStep;
         // if (Vaha1.DeviceESD.Data.VaStatus == EVaStatus.Ready)
-       // {
-            Thread.Sleep(2000);
-            return 140;
-       // }
+        // {
+        Thread.Sleep(2000);
+        return 140;
+        // }
 
         return step;
     } //Caka na ready vahy
@@ -207,11 +212,11 @@ public partial class CControlLis : CPlcEpos
         Message = "Test pripraveni davky";
         StatusCycle = EnStatusCycle.Inspecting;
         Thread.Sleep(100);
-      //  if (Vaha1.DeviceESD.Data.VaStatus2 == EVaStatus2.Full)
-      //  {
-      
-            return 50;
-      //  }
+        //  if (Vaha1.DeviceESD.Data.VaStatus2 == EVaStatus2.Full)
+        //  {
+
+        return 50;
+        //  }
         return 40;
     } //Test pripraveni davky
 

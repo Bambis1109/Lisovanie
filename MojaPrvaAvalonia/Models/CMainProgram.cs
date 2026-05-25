@@ -13,7 +13,7 @@ namespace MojaPrvaAvalonia.Models;
 
 public partial class CMainProgram : ObservableObject
 {
-    [ObservableProperty] private EnIxxatState _ixxatState = EnIxxatState.Disconnected;
+  [ObservableProperty] private EnIxxatState _ixxatState = EnIxxatState.Disconnected;
 
     partial void OnIxxatStateChanged(EnIxxatState oldValue, EnIxxatState newValue)
     {
@@ -42,7 +42,7 @@ public partial class CMainProgram : ObservableObject
         IxxatState = EnIxxatState.Connecting;
         try
         {
-            if (!CreateCanConector(0, 0, ref DeviceManagerCO))
+            if (!CreateCanConector(1, 0, ref DeviceManagerCO))
             {
                 IxxatState = EnIxxatState.Disconnected;
                 return false;
@@ -82,7 +82,7 @@ public partial class CMainProgram : ObservableObject
             lis.MotorViewModels[2].AssignDevice(lis.MotorMaster);
 
 //*************************Vahy*********************************
-            if (!CreateCanConector(1, 0, ref DeviceManagerScale))
+            if (!CreateCanConector(0, 0, ref DeviceManagerScale))
             {
                 IxxatState = EnIxxatState.Disconnected;
                 return false;
