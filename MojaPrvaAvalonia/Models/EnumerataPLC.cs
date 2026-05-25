@@ -68,19 +68,21 @@ public enum EnGlydCheckStatus
     Wrong
 }
 
-public enum EnZoneOwner 
-{ 
-    Free, 
-    Scale, 
-    Press, 
-    Manipulator 
+public enum EnZoneOwner
+{
+    Main,
+    Free,
+    Scale,
+    Press,
+    Manipulator
 }
 
-public enum EnZoneStatus 
-{ 
-    InputEmpty,     // Šachta je prázdna, čaká na váhu
-    InputFull,      // Dávka je nasypaná, čaká na lis
-    OutputProced,   // Prebieha lisovanie (ochrana proti výpadku napájania/havárii)
-    OutputFullOk,   // Úspešne zlisované, čaká na manipulátor (dobrý kus)
-    OutputFullNoK   // Zlisované s chybou, čaká na manipulátor (vyhodiť do RED ZONE)
+public enum EnZoneStatus
+{
+    Unknown, // Nedefinovaný stav po štarte stroja
+    InputEmpty, // Šachta je prázdna, čaká na váhu
+    InputFull, // Dávka je nasypaná, čaká na lis
+    OutputProced, // Prebieha lisovanie (ochrana proti výpadku napájania/havárii)
+    OutputFullOk, // Úspešne zlisované, čaká na manipulátor (dobrý kus)
+    OutputFullNoK // Zlisované s chybou, čaká na manipulátor (vyhodiť do RED ZONE)
 }

@@ -11,11 +11,13 @@ public partial class CMutexZone : ObservableObject
 
     public string Name { get; }
 
+    // Zóna po zapnutí aplikácie patrí Main programu, kým sa nepotvrdí bezpečný stav
     [ObservableProperty]
-    private EnZoneOwner _owner = EnZoneOwner.Free;
+    private EnZoneOwner _owner = EnZoneOwner.Main;
 
+    // Fyzický stav je po štarte neznámy
     [ObservableProperty]
-    private EnZoneStatus _status = EnZoneStatus.InputEmpty;
+    private EnZoneStatus _status = EnZoneStatus.Unknown;
 
     public CMutexZone(string name)
     {
@@ -31,7 +33,7 @@ public partial class CMutexZone : ObservableObject
     {
         lock (_syncRoot)
         {
-            // Re-entrancy: Ak už zónu vlastním, nepotrebujem ju znovu zamykať (krok naprázdno)
+            // Re-entrancy: Ak už zónu vlastním, nepotrebujem ju znovu zamykať
             if (Owner == requester)
             {
                 return true; 
@@ -46,7 +48,6 @@ public partial class CMutexZone : ObservableObject
                 return true;
             }
 
-            // Zóna je obsadená, alebo nemá správny stav (napr. požaduje sa InputEmpty, ale je InputFull)
             return false;
         }
     }
@@ -65,12 +66,11 @@ public partial class CMutexZone : ObservableObject
                 Log.Logger.ForContext("Name", Name)
                           .Verbose($"Uvoľňuje riadenie: {requester}. Nový stav zóny: {newStatus}");
                 
-                Owner = EnZoneOwner.Free; // Až na konci uvoľníme zámok
+                Owner = EnZoneOwner.Free; 
                 return true;
             }
             else
             {
-                // Ak niekto cudzí skúša odomknúť zónu
                 if (Owner != EnZoneOwner.Free)
                 {
                     Log.Logger.ForContext("Name", Name)
@@ -83,7 +83,7 @@ public partial class CMutexZone : ObservableObject
 
     /// <summary>
     /// Násilný reset zóny do základného stavu.
-    /// Volá sa z centrálneho Resetu/Initu (napr. po havárii stroja, keď obsluha potvrdí vyčistenie).
+    /// Volá ho MainProgram (alebo nadradená logika lisu) počas Initu, aby zónu uvoľnil do bežnej prevádzky.
     /// </summary>
     public void ForceReset()
     {
