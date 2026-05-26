@@ -59,6 +59,48 @@
                             CornerRadius="5"/>
                 </Grid>
 
+                <Border Background="#2D2D30"
+                        BorderBrush="#555"
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Padding="10"
+                        Margin="0,0,0,10">
+                    <Grid ColumnDefinitions="Auto, *, Auto, Auto, Auto, Auto"
+                          ColumnSpacing="10">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding ZonePress.Name}"
+                                   Foreground="White"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ZonePress}"
+                                   Foreground="LightGray"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <TextBlock Grid.Column="2"
+                                   Text="Owner:"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+
+                        <ComboBox Grid.Column="3"
+                                  ItemsSource="{Binding ZoneOwners}"
+                                  SelectedItem="{Binding ZonePress.Owner, Mode=TwoWay}"
+                                  Width="130"/>
+
+                        <TextBlock Grid.Column="4"
+                                   Text="Status:"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+
+                        <ComboBox Grid.Column="5"
+                                  ItemsSource="{Binding ZoneStatuses}"
+                                  SelectedItem="{Binding ZonePress.Status, Mode=TwoWay}"
+                                  Width="150"/>
+                    </Grid>
+                </Border>
+
                 <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
                     <ItemsControl.DataTemplates>
                         <DataTemplate DataType="models:CControlManipulator">

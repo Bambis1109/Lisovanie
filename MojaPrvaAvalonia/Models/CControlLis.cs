@@ -170,6 +170,7 @@ public partial class CControlLis : CPlcEpos
         {
             // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
             IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            Thread.Sleep(2000); 
             return 110;
         }
         return step;
@@ -177,8 +178,10 @@ public partial class CControlLis : CPlcEpos
 
     private int MainStep110(int step)
     {
-        Message = "";
-        return 120;
+        Message = " Vylisujem diel";
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
+        Thread.Sleep(2000);
+        return 100;
     } //
 
     private int MainStep120(int step)
