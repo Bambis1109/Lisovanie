@@ -190,13 +190,11 @@ public partial class CControlLis : CPlcEpos
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputEmpty);
         return 110;
-    }
+    } // Presun do nasypacej polohy
 
     private int MainStep110(int step)
     {
         Message = "Čakám na material";
-        StatusCycle = EnStatusCycle.Moving;
-
         if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
         {
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
@@ -212,7 +210,7 @@ public partial class CControlLis : CPlcEpos
         }
 
         return step;
-    } //Zaciatok lisovania -> 120
+    } //Cakanie na material
 
     private int MainStep120(int step)
     {
@@ -220,7 +218,7 @@ public partial class CControlLis : CPlcEpos
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaPriblizenie, true, true);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         return 130;
-    } //Priblize nie lisy -> 130
+    } //Priblizenie lisu -> 130
 
     private int MainStep130(int step)
     {
@@ -233,7 +231,7 @@ public partial class CControlLis : CPlcEpos
 
     private int MainStep140(int step)
     {
-        Message = "Merania sily a vzdialenosti";
+        Message = "Merania sily a hrubky";
         if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana)
         {
             SW = new Stopwatch(); // ak je sila vatsia ako pozadovana spusti meranie casu a skoc na 160
@@ -248,8 +246,8 @@ public partial class CControlLis : CPlcEpos
 
         return 150;
     }
-    //SilaActual > SilaPozadovana Dosiahnutie sily StopWatch start -> 160
-    //DistanceActual < VyskaMin dosiahnutie hrubky lisovania ->  0
+    //(SilaActual > SilaPozadovana) Dosiahnutie sily StopWatch start -> 160
+    //(DistanceActual < VyskaMin) dosiahnutie minimalnej hrubky lisovania ->  0
     //->150
 
     private int MainStep150(int step)
@@ -263,7 +261,7 @@ public partial class CControlLis : CPlcEpos
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(pos, false, true);
         Thread.Sleep(10);
         return 140;
-    } // zatlac dolu podla sily  a vrat sa na meranie sily a hrubky-> 140
+    } // Zatlaci dolu podla sily  a vrati sa na meranie sily a hrubky-> 140
 
     private int MainStep160(int step)
     {
@@ -274,7 +272,7 @@ public partial class CControlLis : CPlcEpos
         }
 
         return 170; // Presun na udrzanie sily
-    } //  //ak je cas vatsi tak koniec  -> 180 inac  udrzuj silu ->170 
+    } // Ak je cas vatsi tak koniec  -> 180 inac  udrzuj silu ->170 
 
     private int MainStep170(int step)
     {
@@ -308,7 +306,7 @@ public partial class CControlLis : CPlcEpos
         Message = "Uvolnenie zony a nastavenie priznaku";
         IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
         return 200;
-    } // 
+    } // Uvolni zony a nastavi priznak
 
     private int MainStep200(int step)
     {
@@ -318,14 +316,14 @@ public partial class CControlLis : CPlcEpos
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
-
+        // caka pokial manipulator nastavi EnZoneStatus.OutputEmpty
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.OutputEmpty))
         {
-          return 100;
+            return 100;
         }
 
         return step;
-    } // 
+    } // Caka na odobratie vyrobku
 
     [RelayCommand]
     public void SaveParameters()
