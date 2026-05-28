@@ -35,12 +35,12 @@ public partial class CControlLis : CPlcEpos
     public double PositionActualSensor2Float
     {
         get => (double)MotorMaster.EposData.PositionActualSensor2 / 1000;
-    }// ToDo doplnit do zobrazenia  frmLisSetup
+    } // ToDo doplnit do zobrazenia  frmLisSetup
 
     public Double DistanceActual
     {
         get => ParametersLis.ParLis.RecomputedDistance(SilaActual, PositionActualSensor2Float);
-    }// ToDo doplnit do zobrazenia  frmLisSetup
+    } // ToDo doplnit do zobrazenia  frmLisSetup
 
     public CControlLis(string name) : base(name)
     {
@@ -85,7 +85,11 @@ public partial class CControlLis : CPlcEpos
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
-
+            case 160: return MainStep160(step);
+            case 170: return MainStep170(step);
+            case 180: return MainStep180(step);
+            case 190: return MainStep190(step);
+            case 200: return MainStep200(step);
             default: return base.RunStep(step);
         }
     }
@@ -177,6 +181,19 @@ public partial class CControlLis : CPlcEpos
     // ==========================================
     private int MainStep100(int step)
     {
+        Message = "Presun do nasypacej polohy";
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaNasypacia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputEmpty);
+        return 110;
+    }
+
+    private int MainStep110(int step)
+    {
         Message = "Čakám na material";
         StatusCycle = EnStatusCycle.Moving;
 
@@ -191,18 +208,10 @@ public partial class CControlLis : CPlcEpos
         {
             // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
             IL.ZonePress.Status = EnZoneStatus.OutputProced;
-            Thread.Sleep(2000);
-            return 110;
+            return 120;
         }
 
         return step;
-    }
-
-    private int MainStep110(int step)
-    {
-        Message = "Zaciatok lisovania ";
-        Thread.Sleep(100);
-        return 120;
     } //Zaciatok lisovania -> 120
 
     private int MainStep120(int step)
@@ -224,20 +233,28 @@ public partial class CControlLis : CPlcEpos
 
     private int MainStep140(int step)
     {
-        Message = "Merania tlaku";
+        Message = "Merania sily a vzdialenosti";
         if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana)
         {
             SW = new Stopwatch(); // ak je sila vatsia ako pozadovana spusti meranie casu a skoc na 160
             SW.Start();
-            return 160;
+            return 160; // testovanie uplynutia casu
+        }
+
+        if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
+        {
+            return 180; // zatlac dolu ??????????????????????????????????????
         }
 
         return 150;
-    } //Meranie sily  ak je sila vatsia ako pozadovana spusti meranie casu -> 160 inac  ->150
+    }
+    //SilaActual > SilaPozadovana Dosiahnutie sily StopWatch start -> 160
+    //DistanceActual < VyskaMin dosiahnutie hrubky lisovania ->  0
+    //->150
 
     private int MainStep150(int step)
     {
-        Message = "Dotlac na silu";
+        Message = "Zatlac dolu podla sily";
         if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
             return 140;
         double pos = -0.5;
@@ -245,8 +262,70 @@ public partial class CControlLis : CPlcEpos
         if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana - 100) pos = -0.02;
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(pos, false, true);
         Thread.Sleep(10);
-        return 140; // vrat sa na meranie tlaku
-    } // Dotlac na silu ak nie je  -> 140
+        return 140;
+    } // zatlac dolu podla sily  a vrat sa na meranie sily a hrubky-> 140
+
+    private int MainStep160(int step)
+    {
+        Message = "Meranie doby OK tlaku";
+        if (SW.ElapsedMilliseconds > 2000)
+        {
+            return 180; //ak je cas vatsi tak koniec  
+        }
+
+        return 170; // Presun na udrzanie sily
+    } //  //ak je cas vatsi tak koniec  -> 180 inac  udrzuj silu ->170 
+
+    private int MainStep170(int step)
+    {
+        Message = "Skontroluje a doplni silu";
+        if (SilaActual < ParametersLis.ParVyrobok.SilaPozadovana)
+        {
+            MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(-0.01, false, true);
+        }
+
+        Thread.Sleep(50);
+        return 160;
+    } // Udrzuje silu
+
+    private int MainStep180(int step)
+    {
+        Message = "Uvolnenie koniec lisovania";
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
+        Thread.Sleep(1000);
+        MotorStred.Operation.StateMachine.SetEnableState();
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(50, 1000, 1000);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+
+        return 190;
+    } // Koniec lisovania uvolnenie
+
+    private int MainStep190(int step)
+    {
+        Message = "Uvolnenie zony a nastavenie priznaku";
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
+        return 200;
+    } // 
+
+    private int MainStep200(int step)
+    {
+        Message = "Cakanie na odobratie vyrobku";
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
+        {
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.OutputEmpty))
+        {
+          return 100;
+        }
+
+        return step;
+    } // 
 
     [RelayCommand]
     public void SaveParameters()

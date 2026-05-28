@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
+using MojaPrvaAvalonia.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
 
@@ -197,7 +198,7 @@ public partial class CControlManipulator : CPlcEpos
     // ==========================================
     private int MainStep100(int step)
     {
-        Message = "Main 100: Kontrola parkovania";
+        Message = "Cakanie na vyrobok";
         StatusCycle = EnStatusCycle.Moving;
 
         if (RequestToEnd)
@@ -205,8 +206,9 @@ public partial class CControlManipulator : CPlcEpos
             return 0;
         }
 
+
         return 110;
-    }
+    } // cakanie na vyrobok
 
     private int MainStep110(int step)
     {
@@ -236,8 +238,14 @@ public partial class CControlManipulator : CPlcEpos
             return 0;
         }
 
-        if (!resultUchopenie) Thread.Sleep(3000);
-        return 140;
+        // Manipulator caka Lis zanechá OutputFullXXX
+        if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk) ||
+            IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullNoK))
+        {
+         
+            return 140;
+        }
+        return step;
     } // Cakanie na lis
 
     private int MainStep140(int step)
@@ -291,7 +299,8 @@ public partial class CControlManipulator : CPlcEpos
         Message = "Zasunutie";
         deltaRobot.MoveToPolar(0, 140);
         deltaRobot.WaitForTargetReached(5000);
-       
+  
+        IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.OutputEmpty);
         return 220;
     } //Zasunutie
 
@@ -315,12 +324,12 @@ public partial class CControlManipulator : CPlcEpos
     {
         Message = "Vysunutie na vykladanie";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
-      
+
         deltaRobot.MoveToXY(matrix.Xactual, matrix.Yactual);
         //  deltaRobot.MoveToPolar(-90, 300);
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-      
+
 
         return 230;
     } //Vysunutie na vykladanie
@@ -348,13 +357,13 @@ public partial class CControlManipulator : CPlcEpos
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         if (matrix.SetNextItemTestLast()) return 260; // Ak je pocet OK koniec
-        return 100; 
+        return 100;
     } //Vyska nad box test naplnenia OK->260 koniec, NOK opakuj ->100
 
     private int MainStep260(int step)
     {
         Message = "Parkuj";
-       
+
         deltaRobot.MoveToPolar(0, 160);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
