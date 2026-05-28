@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,7 +25,12 @@ public partial class CControlLis : CPlcEpos
     [ObservableProperty] private double _limitStredDown = -14.0;
     [ObservableProperty] private double _limitLisUp = 0.0;
     [ObservableProperty] private double _limitLisDown = -220.0;
-
+    private Stopwatch SW;
+    
+    public Double SilaActual { get => (int)(((double) MotorSlave.EposData.AnalogInput1-2000)*1.25); } // ToDo doplnit do zobrazenia  frmLisSetup
+    
+  
+   
     public CControlLis(string name) : base(name)
     {
         LoadParameters();
@@ -148,15 +154,19 @@ public partial class CControlLis : CPlcEpos
         MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
         MotorStred.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorStred.Operation.StateMachine.SetEnableState();
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(-10, true, true);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-21, true, true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(3000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         return 99;
-    } //Lis: Pripravený
+    } //Lis: Pripravený koniec inicializacie
 
     // ==========================================
     // METÓDY PRE MAIN PROGRAM
     // ==========================================
     private int MainStep100(int step)
     {
-        Message = "Lis: Čakám na diel";
+        Message = "Čakám na material";
         StatusCycle = EnStatusCycle.Moving;
 
         if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
@@ -170,58 +180,47 @@ public partial class CControlLis : CPlcEpos
         {
             // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
             IL.ZonePress.Status = EnZoneStatus.OutputProced;
-            Thread.Sleep(2000); 
+            Thread.Sleep(2000);
             return 110;
         }
+
         return step;
     }
 
     private int MainStep110(int step)
     {
-        Message = " Vylisujem diel";
-        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
-        Thread.Sleep(2000);
-        return 100;
-    } //
+        Message = "Zaciatok lisovania ";
+        Thread.Sleep(100);
+        return 120;
+    } //Zaciatok lisovania -> 120
 
     private int MainStep120(int step)
     {
-        Message = "Presun do nasypacich poloh";
-        StatusCycle = EnStatusCycle.Moving;
-
-        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
-        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaNasypacia, true,
-            true);
-        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
+        Message = "Priblizenie";
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaPriblizenie, true, true);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         return 130;
-    } //Presun do nasypacich poloh ->130
+    } //Presun do nasypacich poloh -> 130
 
     private int MainStep130(int step)
     {
-        Message = "Caka na ready vahy";
-        StatusCycle = EnStatusCycle.WaitForStep;
-        // if (Vaha1.DeviceESD.Data.VaStatus == EVaStatus.Ready)
-        // {
-        Thread.Sleep(2000);
+        Message = "Konzola na poziciu lisovania";
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-40, true, true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
         return 140;
-        // }
-
-        return step;
-    } //Caka na ready vahy
+    } //Caka na ready vahy -> 140
 
     private int MainStep140(int step)
     {
-        Message = "Test pripraveni davky";
-        StatusCycle = EnStatusCycle.Inspecting;
-        Thread.Sleep(100);
-        //  if (Vaha1.DeviceESD.Data.VaStatus2 == EVaStatus2.Full)
-        //  {
-
-        return 50;
-        //  }
-        return 40;
-    } //Test pripraveni davky
+        Message = "Merania tlaku";
+        if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana)
+        {
+            SW = new Stopwatch(); // ak je sila vatsia ako pozadovana spusti meranie casu a skoc na 160
+            SW.Start();
+            return 160;
+        }
+        return 150;
+    } //Meranie sily  ak je sila vatsia ako pozadovana spusti meranie casu -> 160 inac  ->150
 
     private int MainStep150(int step)
     {

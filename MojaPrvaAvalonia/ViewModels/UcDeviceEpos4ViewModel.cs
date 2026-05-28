@@ -79,7 +79,7 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
             DeviceEpos4Data.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2Float;
             DeviceEpos4Data.ActualVelocity = _device.EposData.VelocityActual;
             DeviceEpos4Data.ActualCurrent = _device.EposData.CurrentActualAveragePercentage;
-            DeviceEpos4Data.ActualAnalog1 = _device.EposData.AnalogInput1Weight;
+            DeviceEpos4Data.ActualAnalog1 = _device.EposData.AnalogInput1;
 
             UpdateStatusAndColors(nmtState);
         }

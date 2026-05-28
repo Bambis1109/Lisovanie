@@ -104,13 +104,12 @@ namespace EposCmd.Net
             get { lock (LockingAnalogInput1) { return _analogInput1; } }
             set { lock (LockingAnalogInput1) { _analogInput1 = value; } }
         }
-        public int AnalogInput1Weight => (int)(((double)AnalogInput1 - 2000) * 1.25);
-        
-        public short AnalogInput2
+      public short AnalogInput2
         {
             get { lock (LockingAnalogInput2) { return _analogInput2; } }
             set { lock (LockingAnalogInput2) { _analogInput2 = value; } }
         }
+        
         public EOperationMode ModeOfOperationDisplay
         {
             get { lock (LockingModeOfOperationDisplayStatusword) { return _modeOfOperationDisplay; } }
