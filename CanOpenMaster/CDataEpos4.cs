@@ -130,8 +130,7 @@ namespace EposCmd.Net
             get { lock (LockingPositionActualSensor2) { return _positionActualSensor2; } }
             set { lock (LockingPositionActualSensor2) { _positionActualSensor2 = value; } }
         }
-        public double PositionActualSensor2Float => (double)PositionActualSensor2 / 1000;
-        
+       
         public int PositionTarget
         {
             get { lock (LockingPositionTarget) { return _positionTarget; } }

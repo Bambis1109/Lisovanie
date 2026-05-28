@@ -26,11 +26,22 @@ public partial class CControlLis : CPlcEpos
     [ObservableProperty] private double _limitLisUp = 0.0;
     [ObservableProperty] private double _limitLisDown = -220.0;
     private Stopwatch SW;
-    
-    public Double SilaActual { get => (int)(((double) MotorSlave.EposData.AnalogInput1-2000)*1.25); } // ToDo doplnit do zobrazenia  frmLisSetup
-    
-  
-   
+
+    public Double SilaActual
+    {
+        get => (int)(((double)MotorSlave.EposData.AnalogInput1 - 2000) * 1.25);
+    } // ToDo doplnit do zobrazenia  frmLisSetup
+
+    public double PositionActualSensor2Float
+    {
+        get => (double)MotorMaster.EposData.PositionActualSensor2 / 1000;
+    }// ToDo doplnit do zobrazenia  frmLisSetup
+
+    public Double DistanceActual
+    {
+        get => ParametersLis.ParLis.RecomputedDistance(SilaActual, PositionActualSensor2Float);
+    }// ToDo doplnit do zobrazenia  frmLisSetup
+
     public CControlLis(string name) : base(name)
     {
         LoadParameters();
@@ -196,19 +207,20 @@ public partial class CControlLis : CPlcEpos
 
     private int MainStep120(int step)
     {
-        Message = "Priblizenie";
+        Message = "Priblizenie lisu";
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaPriblizenie, true, true);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         return 130;
-    } //Presun do nasypacich poloh -> 130
+    } //Priblize nie lisy -> 130
 
     private int MainStep130(int step)
     {
-        Message = "Konzola na poziciu lisovania";
+        Message = "Konzola na poziciu lisovania a uvolnenie";
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-40, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
+        MotorStred.Operation.StateMachine.SetDisableState();
         return 140;
-    } //Caka na ready vahy -> 140
+    } //Konzola na poziciu lisovania a uvolnenie-> 140
 
     private int MainStep140(int step)
     {
@@ -219,14 +231,22 @@ public partial class CControlLis : CPlcEpos
             SW.Start();
             return 160;
         }
+
         return 150;
     } //Meranie sily  ak je sila vatsia ako pozadovana spusti meranie casu -> 160 inac  ->150
 
     private int MainStep150(int step)
     {
-        Message = "";
-        return 100;
-    } //
+        Message = "Dotlac na silu";
+        if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
+            return 140;
+        double pos = -0.5;
+        if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana - 300) pos = -0.2;
+        if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana - 100) pos = -0.02;
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(pos, false, true);
+        Thread.Sleep(10);
+        return 140; // vrat sa na meranie tlaku
+    } // Dotlac na silu ak nie je  -> 140
 
     [RelayCommand]
     public void SaveParameters()

@@ -17,13 +17,13 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
     {
         _device = device;
     }
-    
+
     [ObservableProperty] private CDeviceEpos4Data _deviceEpos4Data;
 
     [ObservableProperty] private string _modeShorthand = "---";
     [ObservableProperty] private string _statusText = "OFFLINE";
     [ObservableProperty] private string _nmtText = "UNKNOWN"; // Nová property pre NMT stav
-    
+
     [ObservableProperty] private IBrush _modeColor = Brushes.DarkGray;
     [ObservableProperty] private IBrush _statusColor = Brushes.DarkGray;
     [ObservableProperty] private IBrush _remoteColor = Brushes.DarkGray;
@@ -76,7 +76,7 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
             // 2. Motor žije, ťaháme aktuálne dáta
             DeviceEpos4Data.NodeId = _device.NodeId;
             DeviceEpos4Data.ActualGearPosition = _device.EposData.PositionActualGear;
-            DeviceEpos4Data.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2Float;
+            DeviceEpos4Data.ActualPositionSensor2Float = _device.EposData.PositionActualSensor2;
             DeviceEpos4Data.ActualVelocity = _device.EposData.VelocityActual;
             DeviceEpos4Data.ActualCurrent = _device.EposData.CurrentActualAveragePercentage;
             DeviceEpos4Data.ActualAnalog1 = _device.EposData.AnalogInput1;
@@ -93,13 +93,13 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
     {
         NmtText = "OFFLINE";
         NmtColor = Brushes.Red;
-        
+
         StatusText = "---";
         StatusColor = Brushes.DarkGray;
-        
+
         ModeShorthand = "---";
         ModeColor = Brushes.DarkGray;
-        
+
         RemoteColor = Brushes.DarkGray;
     }
 
@@ -130,18 +130,39 @@ public partial class UcDeviceEpos4ViewModel : ObservableObject, IDisposable
         var mode = _device!.EposData.ModeOfOperationDisplay;
         switch (mode)
         {
-            case EOperationMode.OmdProfilePositionMode: ModeShorthand = "PPM"; ModeColor = Brushes.Blue; break;
-            case EOperationMode.OmdProfileVelocityMode: ModeShorthand = "PVM"; ModeColor = Brushes.YellowGreen; break;
-            case EOperationMode.OmdHomingMode: ModeShorthand = "HM"; ModeColor = Brushes.Magenta; break;
-            case EOperationMode.OmdCyclicSynchronousPositionMode: ModeShorthand = "CSPM"; ModeColor = Brushes.Coral; break;
-            case EOperationMode.OmdCyclicSynchronousVelocityMode: ModeShorthand = "CSVM"; ModeColor = Brushes.DarkOrange; break;
-            case EOperationMode.OmdCyclicSyncronicTorqueMode: ModeShorthand = "CSTM"; ModeColor = Brushes.RosyBrown; break;
-            default: ModeShorthand = "Unknown"; ModeColor = Brushes.Brown; break;
+            case EOperationMode.OmdProfilePositionMode:
+                ModeShorthand = "PPM";
+                ModeColor = Brushes.Blue;
+                break;
+            case EOperationMode.OmdProfileVelocityMode:
+                ModeShorthand = "PVM";
+                ModeColor = Brushes.YellowGreen;
+                break;
+            case EOperationMode.OmdHomingMode:
+                ModeShorthand = "HM";
+                ModeColor = Brushes.Magenta;
+                break;
+            case EOperationMode.OmdCyclicSynchronousPositionMode:
+                ModeShorthand = "CSPM";
+                ModeColor = Brushes.Coral;
+                break;
+            case EOperationMode.OmdCyclicSynchronousVelocityMode:
+                ModeShorthand = "CSVM";
+                ModeColor = Brushes.DarkOrange;
+                break;
+            case EOperationMode.OmdCyclicSyncronicTorqueMode:
+                ModeShorthand = "CSTM";
+                ModeColor = Brushes.RosyBrown;
+                break;
+            default:
+                ModeShorthand = "Unknown";
+                ModeColor = Brushes.Brown;
+                break;
         }
 
         // 3. Statusword Logic (CiA 402)
         ushort sw = _device.EposData.Statusword;
-        
+
         if ((sw & 0x0008) == 0x0008) // Bit 3 = Fault
         {
             StatusText = "Fault";
