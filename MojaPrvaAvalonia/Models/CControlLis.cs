@@ -8,6 +8,7 @@ using EposCmd.Net;
 using MojaPrvaAvalonia.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
+using Avalonia.Threading;
 
 namespace MojaPrvaAvalonia.Models;
 
@@ -19,6 +20,9 @@ public partial class CControlLis : CPlcEpos
     public CParametersLis ParametersLis { get; set; } = new();
 
     [ObservableProperty] private double _stepSize = 1.0;
+    [ObservableProperty] private double _silaActual;
+    [ObservableProperty] private double _distanceActual;
+    [ObservableProperty] private double _positionActualSensor2Float;
 
     // --- Limity pre manuálny pohyb ---
     [ObservableProperty] private double _limitStredUp = -90.0;
@@ -26,21 +30,7 @@ public partial class CControlLis : CPlcEpos
     [ObservableProperty] private double _limitLisUp = 0.0;
     [ObservableProperty] private double _limitLisDown = -220.0;
     private Stopwatch SW;
-
-    public Double SilaActual
-    {
-        get => (int)(((double)MotorSlave.EposData.AnalogInput1 - 2000) * 1.25);
-    } // ToDo doplnit do zobrazenia  frmLisSetup
-
-    public double PositionActualSensor2Float
-    {
-        get => (double)MotorMaster.EposData.PositionActualSensor2 / 1000;
-    } // ToDo doplnit do zobrazenia  frmLisSetup
-
-    public Double DistanceActual
-    {
-        get => ParametersLis.ParLis.RecomputedDistance(SilaActual, PositionActualSensor2Float);
-    } // ToDo doplnit do zobrazenia  frmLisSetup
+    private DispatcherTimer? _uiTimer;
 
     public CControlLis(string name) : base(name)
     {
@@ -48,6 +38,28 @@ public partial class CControlLis : CPlcEpos
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Stred"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Slave"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Master"));
+        
+        StartUiTimer();
+    }
+
+    private void StartUiTimer()
+    {
+        _uiTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        _uiTimer.Tick += (s, e) =>
+        {
+            if (MotorSlave?.EposData != null)
+                SilaActual = (int)(((double)MotorSlave.EposData.AnalogInput1 - 2000) * 1.25);
+            
+            if (MotorMaster?.EposData != null)
+                PositionActualSensor2Float = (double)MotorMaster.EposData.PositionActualSensor2 / 1000;
+
+            if (ParametersLis?.ParLis != null)
+                DistanceActual = ParametersLis.ParLis.RecomputedDistance(SilaActual, PositionActualSensor2Float);
+        };
+        _uiTimer.Start();
     }
 
     public override async Task ConnectAsync()

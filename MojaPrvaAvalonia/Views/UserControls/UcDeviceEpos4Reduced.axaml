@@ -15,10 +15,10 @@
                 <TextBlock Text="{Binding DeviceEpos4Data.NodeId}"/>
             </StackPanel>
 
-            <!-- 2. riadok: Status and Mode Indicators (Split 1/3 and 2/3) -->
-            <Grid ColumnDefinitions="1*, 2*">
-                <Border Grid.Column="0" Background="{Binding ModeColor}" CornerRadius="3" Margin="2" Padding="3">
-                    <TextBlock Text="{Binding ModeShorthand}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+            <!-- 2. riadok: Status and NMT Indicators (Equal width) -->
+            <Grid ColumnDefinitions="*, *">
+                <Border Grid.Column="0" Background="{Binding NmtColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding NmtText}" Foreground="White" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold"/>
                 </Border>
                 <Border Grid.Column="1" Background="{Binding StatusColor}" CornerRadius="3" Margin="2" Padding="3">
                     <TextBlock Text="{Binding StatusText}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
