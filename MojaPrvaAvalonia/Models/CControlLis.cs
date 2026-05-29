@@ -18,11 +18,14 @@ public partial class CControlLis : CPlcEpos
     public CDeviceEpos4 MotorSlave { get; set; }
     public CDeviceEpos4 MotorMaster { get; set; }
     public CParametersLis ParametersLis { get; set; } = new();
-
-    [ObservableProperty] private double _stepSize = 1.0;
+    public CProduktLis ProduktLisActual { get; set; } = new();
+    public CProduktLis ProduktLisLast { get; set; } = new();
+    
     [ObservableProperty] private double _silaActual;
     [ObservableProperty] private double _distanceActual;
     [ObservableProperty] private double _positionActualSensor2Float;
+
+    [ObservableProperty] private double _stepSize = 1.0;
 
     // --- Limity pre manuálny pohyb ---
     [ObservableProperty] private double _limitStredUp = -90.0;
@@ -38,7 +41,6 @@ public partial class CControlLis : CPlcEpos
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Stred"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Slave"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Master"));
-        
         StartUiTimer();
     }
 
@@ -52,7 +54,7 @@ public partial class CControlLis : CPlcEpos
         {
             if (MotorSlave?.EposData != null)
                 SilaActual = (int)(((double)MotorSlave.EposData.AnalogInput1 - 2000) * 1.25);
-            
+
             if (MotorMaster?.EposData != null)
                 PositionActualSensor2Float = (double)MotorMaster.EposData.PositionActualSensor2 / 1000;
 
@@ -130,7 +132,6 @@ public partial class CControlLis : CPlcEpos
         return 20;
     } //Mazanie chyb a nastav enable
 
-
     private int InitStep20(int step)
     {
         Message = "Lis: Hladanie horneho dorazu";
@@ -185,6 +186,7 @@ public partial class CControlLis : CPlcEpos
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-21, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(3000);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+        ProduktLisActual.Clear();
         return 99;
     } //Lis: Pripravený koniec inicializacie
 
@@ -253,6 +255,7 @@ public partial class CControlLis : CPlcEpos
 
         if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
         {
+            ProduktLisActual.Status = EnProduktLis.Nok;
             return 180; // zatlac dolu ??????????????????????????????????????
         }
 
@@ -280,6 +283,7 @@ public partial class CControlLis : CPlcEpos
         Message = "Meranie doby OK tlaku";
         if (SW.ElapsedMilliseconds > 2000)
         {
+            ProduktLisActual.Status = EnProduktLis.Ok;
             return 180; //ak je cas vatsi tak koniec  
         }
 
@@ -301,6 +305,9 @@ public partial class CControlLis : CPlcEpos
     private int MainStep180(int step)
     {
         Message = "Uvolnenie koniec lisovania";
+        ProduktLisActual.Sila = SilaActual;
+        ProduktLisActual.Vyska = DistanceActual;
+        
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
         Thread.Sleep(1000);
         MotorStred.Operation.StateMachine.SetEnableState();
@@ -316,7 +323,19 @@ public partial class CControlLis : CPlcEpos
     private int MainStep190(int step)
     {
         Message = "Uvolnenie zony a nastavenie priznaku";
-        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
+
+        switch (ProduktLisActual.Status)
+        {
+            case EnProduktLis.Ok:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
+                break;
+            case EnProduktLis.Nok:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullNok);
+                break;
+            default:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullNok);
+                break;
+        }
         return 200;
     } // Uvolni zony a nastavi priznak
 
@@ -328,6 +347,7 @@ public partial class CControlLis : CPlcEpos
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
+
         // caka pokial manipulator nastavi EnZoneStatus.OutputEmpty
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.OutputEmpty))
         {

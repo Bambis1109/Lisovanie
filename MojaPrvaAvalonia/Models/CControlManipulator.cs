@@ -240,7 +240,7 @@ public partial class CControlManipulator : CPlcEpos
 
         // Manipulator caka Lis zanechá OutputFullXXX
         if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk) ||
-            IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullNoK))
+            IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullNok))
         {
          
             return 140;

@@ -84,6 +84,6 @@ public enum EnZoneStatus
     InputFull, // Dávka je nasypaná, čaká na lis
     OutputProced, // Prebieha lisovanie (ochrana proti výpadku napájania/havárii)
     OutputFullOk, // Úspešne zlisované, čaká na manipulátor (dobrý kus)
-    OutputFullNoK, // Zlisované s chybou, čaká na manipulátor (vyhodiť do RED ZONE)
+    OutputFullNok, // Zlisované s chybou, čaká na manipulátor (vyhodiť do RED ZONE)
     OutputEmpty // Odobraty vyrobok
 }
