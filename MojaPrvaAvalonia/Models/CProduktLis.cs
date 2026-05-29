@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 namespace MojaPrvaAvalonia.Models;
 
-public class CProduktLis: ObservableObject
+public partial class CProduktLis: ObservableObject
 {
-    public double Sila { get; set; }
-    public double Vyska { get; set; }
-    public EnProduktLis Status { get; set; }
+    [ObservableProperty] private double _sila;
+    [ObservableProperty] private double _vyska;
+    [ObservableProperty] private EnProduktLis _status;
 
     public void Clear()
     {

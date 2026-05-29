@@ -12,6 +12,7 @@
     <UserControl.Resources>
         <converters:BargraphColorConverter x:Key="BargraphColorConverter" />
         <converters:NegateConverter x:Key="NegateConverter" />
+        <converters:ProduktStatusColorConverter x:Key="ProduktStatusColorConverter" />
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10">
@@ -138,6 +139,41 @@
             </Grid>
 
             <Separator Height="1" Background="Gray" Margin="0,10"/>
+
+            <!-- Produkt Info Section -->
+            <Grid ColumnDefinitions="*,*" Margin="10,0">
+                <!-- Actual Product -->
+                <StackPanel Grid.Column="0" Spacing="5">
+                    <TextBlock Text="Aktuálny Produkt" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="20,0">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sila:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ProduktLisActual.Sila, StringFormat={}{0:F0} N}" FontWeight="Bold" Foreground="Yellow"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Výška:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProduktLisActual.Vyska, StringFormat={}{0:F2} mm}" FontWeight="Bold" Foreground="Cyan"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProduktLisActual.Status}" FontWeight="Bold"
+                                   Foreground="{Binding ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConverter}}"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Last Product -->
+                <StackPanel Grid.Column="1" Spacing="5">
+                    <TextBlock Text="Posledný Produkt" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="20,0">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sila:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ProduktLisLast.Sila, StringFormat={}{0:F0} N}" FontWeight="Bold" Foreground="Yellow"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Výška:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProduktLisLast.Vyska, StringFormat={}{0:F2} mm}" FontWeight="Bold" Foreground="Cyan"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProduktLisLast.Status}" FontWeight="Bold"
+                                   Foreground="{Binding ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConverter}}"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
             
         </StackPanel>
     </Border>
