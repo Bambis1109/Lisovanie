@@ -14,6 +14,7 @@ public partial class Matrix : ObservableObject
     [ObservableProperty] private int _xnum;
     [ObservableProperty] private int _ynum;
     [ObservableProperty] public int _actualItem;
+    [ObservableProperty] public int _CountItem;
 
     public int Xactual
     {
@@ -53,14 +54,16 @@ public partial class Matrix : ObservableObject
 
     public bool SetNextItemTestLast()
     {
-        
-
-        if (_actualItem >= Items.Count - 1) return true;
+        if (_actualItem >= Items.Count - 1)
+        {
+            _actualItem += 1;
+            return true;
+        }
         _actualItem += 1;
         return false;
     }
 
-private void OnItemToggled(Item item)
+    private void OnItemToggled(Item item)
     {
         LastToggledItem = $"#{item.Id} [X:{item.X}, Y:{item.Y}]";
     }
@@ -76,21 +79,22 @@ private void OnItemToggled(Item item)
         for (int riadok = 0; riadok < Ynum; riadok++)
         {
             int rowOffset = (riadok % 2 == 1) ? Xdelta / 2 : 0;
-            
+
             for (int stlpec = 0; stlpec < Xnum; stlpec++)
             {
                 if (count >= 100) return;
-                
+
                 int posX = Xfirst + (stlpec * Xdelta) + rowOffset;
                 int posY = Yfirst + (riadok * Ydelta);
-                
+
                 // Id prvku bude od 1 vyššie
                 Items.Add(new Item(count + 1, posX, posY, OnItemToggled));
                 count++;
             }
         }
-    }
 
+        CountItem = Items.Count;
+    }
 
 
     [RelayCommand]
@@ -105,10 +109,10 @@ private void OnItemToggled(Item item)
             for (int stlpec = 0; stlpec < Xnum; stlpec++)
             {
                 if (count >= 100) return;
-                
+
                 int posX = Xfirst + (stlpec * Xdelta);
                 int posY = Yfirst + (riadok * Ydelta);
-                
+
                 // Id prvku bude od 1 vyššie
                 Items.Add(new Item(count + 1, posX, posY, OnItemToggled));
                 count++;
@@ -133,8 +137,7 @@ public partial class Item : ObservableObject
 
     private readonly Action<Item> _onToggled;
 
-    [ObservableProperty]
-    private bool _aktiv;
+    [ObservableProperty] private bool _aktiv;
 
     public Item(int id, int x, int y, Action<Item> onToggled, bool aktiv = false)
     {
