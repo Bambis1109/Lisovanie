@@ -13,6 +13,14 @@ public class CProduktLis: ObservableObject
         Vyska = 0;
         Status = EnProduktLis.Unknow;
     }
+
+    public void Copy(CProduktLis other)
+    {
+        if (other == null) return;
+        Sila = other.Sila;
+        Vyska = other.Vyska;
+        Status = other.Status;
+    }
 }
 
 public enum EnProduktLis

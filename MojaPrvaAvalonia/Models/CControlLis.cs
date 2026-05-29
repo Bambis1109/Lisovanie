@@ -187,6 +187,7 @@ public partial class CControlLis : CPlcEpos
         MotorStred.Operation.MotionInfo.WaitForTargetReached(3000);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         ProduktLisActual.Clear();
+        ProduktLisLast.Clear();
         return 99;
     } //Lis: Pripravený koniec inicializacie
 
@@ -220,6 +221,8 @@ public partial class CControlLis : CPlcEpos
         {
             // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
             IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            ProduktLisLast.Copy(ProduktLisActual);
+            ProduktLisActual.Clear();
             return 120;
         }
 
