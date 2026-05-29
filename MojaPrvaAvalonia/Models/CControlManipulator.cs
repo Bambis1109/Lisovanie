@@ -23,7 +23,8 @@ public partial class CControlManipulator : CPlcEpos
     public CJaws jaws { get; set; } = new CJaws();
     public Matrix MatrixOK { get; set; }
     public Matrix MatrixNOK { get; set; }
-    public CProduktLis ProduktLisActual { get; set; } = new();
+    public CProduktLis ProduktLisActual { get;  set; } = new();
+    public bool ResultUchopenie { get; private set; }
 
     public CControlManipulator(string name) : base(name)
     {
@@ -63,28 +64,23 @@ public partial class CControlManipulator : CPlcEpos
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
-
-            // Vysun
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
-
-            case 160: return MainStep160(step); // Z-axis dole
-            case 170: return MainStep170(step); // Celuste otvor
-
-            // Zasun
+            case 160: return MainStep160(step); 
+            case 170: return MainStep170(step); 
             case 180: return MainStep180(step);
             case 190: return MainStep190(step);
             case 200: return MainStep200(step);
             case 210: return MainStep210(step);
             case 220: return MainStep220(step);
-
             case 230: return MainStep230(step);
             case 240: return MainStep240(step);
             case 250: return MainStep250(step);
             case 260: return MainStep260(step);
+            case 270: return MainStep270(step);
 
             default: return base.RunStep(step);
         }
@@ -212,13 +208,13 @@ public partial class CControlManipulator : CPlcEpos
 
 
         return 110;
-    } // Temp
+    } // -> 110
 
     private int MainStep110(int step)
     {
         Message = "Start";
         return 120;
-    } // Temp
+    } // -> 120
 
     private int MainStep120(int step)
     {
@@ -232,7 +228,7 @@ public partial class CControlManipulator : CPlcEpos
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
 
         return 130;
-    } // Vychodiskova poloha
+    } // Vychodiskova poloha ->130
 
     private int MainStep130(int step)
     {
@@ -253,8 +249,9 @@ public partial class CControlManipulator : CPlcEpos
             ProduktLisActual.Status = EnProduktLis.Nok;
             return 140;
         }
+
         return step;
-    } // Cakanie na lis
+    } // Cakanie na lis ->140
 
     private int MainStep140(int step)
     {
@@ -262,7 +259,7 @@ public partial class CControlManipulator : CPlcEpos
         deltaRobot.MoveToPolar(0, 255);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
-    } //Vysunutie k lisu
+    } // Vysunutie k lisu ->150
 
     private int MainStep150(int step)
     {
@@ -270,22 +267,20 @@ public partial class CControlManipulator : CPlcEpos
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-13, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 160;
-    } // Dolu nad vyrobok
-
-    bool resultUchopenie;
-
+    } // Dolu nad vyrobok -> 160
+    
     private int MainStep160(int step)
     {
         Message = "Uchopenie";
         if (!jaws.SetPosCurrent("kv4", -6.7, -30, 1, 2000))
         {
-            resultUchopenie = false;
+            ResultUchopenie = false;
             return 170;
         }
 
-        resultUchopenie = true;
+        ResultUchopenie = true;
         return 170;
-    } //Uchopenie OK->170  NOK->120
+    } //Uchopenie OK->170  NOK->170
 
     private int MainStep170(int step)
     {
@@ -307,32 +302,28 @@ public partial class CControlManipulator : CPlcEpos
         Message = "Zasunutie";
         deltaRobot.MoveToPolar(0, 140);
         deltaRobot.WaitForTargetReached(5000);
-
         IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.OutputEmpty);
         return 220;
     } //Zasunutie a uvolnenie zony -> 220
 
     private int MainStep200(int step)
     {
-        Message = "Otocenie na vykladanie";
-        deltaRobot.MoveToPolar(-90, 140);
-        deltaRobot.WaitForTargetReached(5000);
+        Message = "";
+
         return 210;
-    } //Otocenie na vykladanie
+    } //
 
     private int MainStep210(int step)
     {
-        Message = "Vyska nad box";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+        Message = "";
+
         return 220;
-    } //Vyska nad box
+    } //
 
     private int MainStep220(int step)
     {
         Message = "Vysunutie na vykladanie";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
-
         if (ProduktLisActual.Status == EnProduktLis.Ok)
         {
             deltaRobot.MoveToXY(MatrixOK.Xactual, MatrixOK.Yactual);
@@ -341,11 +332,11 @@ public partial class CControlManipulator : CPlcEpos
         {
             deltaRobot.MoveToXY(MatrixNOK.Xactual, MatrixNOK.Yactual);
         }
-        
+
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 230;
-    } //Vysunutie na vykladanie 
+    } //Vysunutie na vykladanie -> 230
 
     private int MainStep230(int step)
     {
@@ -353,7 +344,7 @@ public partial class CControlManipulator : CPlcEpos
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-37, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 240;
-    } //Vyska na vylozenie
+    } //Vyska na vylozenie ->240
 
     private int MainStep240(int step)
     {
@@ -362,20 +353,32 @@ public partial class CControlManipulator : CPlcEpos
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, true, true);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 250;
-    } //Celuste vyloz
+    } //Celuste vyloz - > 250
 
     private int MainStep250(int step)
     {
         Message = "Vyska nad box";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        
-        if (MatrixOK.SetNextItemTestLast()) return 260; // Ak je pocet OK koniec
-        if (MatrixNOK.SetNextItemTestLast()) return 260; // Ak je pocet NOK koniec
         return 100;
-    } //Vyska nad box test naplnenia OK->260 koniec, NOK opakuj ->100
+    } //Vyska nad box test  -> 260
 
     private int MainStep260(int step)
+    {
+        Message = "Test naplnenia zasobnikov";
+        if (ProduktLisActual.Status == EnProduktLis.Ok)
+        {
+            if (MatrixOK.SetNextItemTestLast()) return 270; // Ak je pocet OK  posledny parkuj ->270
+        }
+        else
+        {
+            if (MatrixNOK.SetNextItemTestLast()) return 270; // Ak je pocet NOK posledny parkuj ->270
+        }
+
+        return 100;
+    } // Test naplnenia OK/NOK parkuj a koniec->270 , ak nie ideme dalsi cyklus ->100
+
+    private int MainStep270(int step)
     {
         Message = "Parkuj";
 
@@ -387,7 +390,7 @@ public partial class CControlManipulator : CPlcEpos
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 0;
-    } // Parkuj
+    } // Parkuj Koniec-> 0 
 
     // Dodatočné metódy z CDelta
     [RelayCommand]
