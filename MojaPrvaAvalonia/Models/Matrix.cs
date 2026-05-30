@@ -13,17 +13,17 @@ public partial class Matrix : ObservableObject
     [ObservableProperty] private int _ydelta;
     [ObservableProperty] private int _xnum;
     [ObservableProperty] private int _ynum;
-    [ObservableProperty] public int _actualItem;
-    [ObservableProperty] public int _CountItem;
+    [ObservableProperty] private int _actualItem;
+    [ObservableProperty] private int _countItem;
 
     public int Xactual
     {
-        get => Items[_actualItem].X;
+        get => Items[ActualItem].X;
     }
 
     public int Yactual
     {
-        get => Items[_actualItem].Y;
+        get => Items[ActualItem].Y;
     }
 
     [ObservableProperty] private string _lastToggledItem = "-";
@@ -48,18 +48,17 @@ public partial class Matrix : ObservableObject
         Ydelta = ydelta;
         Xnum = xnum;
         Ynum = ynum;
-        _actualItem = 0;
-        ;
+        ActualItem = 0;
     }
 
     public bool SetNextItemTestLast()
     {
-        if (_actualItem >= Items.Count - 1)
+        if (ActualItem >= Items.Count - 1)
         {
-            _actualItem += 1;
+            ActualItem += 1;
             return true;
         }
-        _actualItem += 1;
+        ActualItem += 1;
         return false;
     }
 

@@ -203,7 +203,7 @@ public partial class CControlLis : CPlcEpos
             true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
-        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputEmpty);
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty);
         return 110;
     } // Presun do nasypacej polohy
 

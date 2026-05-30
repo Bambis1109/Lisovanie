@@ -21,8 +21,8 @@ public partial class CControlManipulator : CPlcEpos
     public CDeviceEpos4 MotorZ { get; set; }
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
     public CJaws jaws { get; set; } = new CJaws();
-    public Matrix MatrixOK { get; set; }
-    public Matrix MatrixNOK { get; set; }
+    [ObservableProperty] private Matrix _matrixOK;
+    [ObservableProperty] private Matrix _matrixNOK;
     public CProduktLis ProduktLisActual { get;  set; } = new();
     public bool ResultUchopenie { get; private set; }
 
@@ -93,9 +93,9 @@ public partial class CControlManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        MatrixOK = new Matrix(-260, -120, 21, 19, 5, 8);
+        MatrixOK = new Matrix(-260, -120, 21, 19, 6, 7);
         MatrixOK.RecalculDIA();
-        MatrixNOK = new Matrix(260 - (21 * 5), -120, 21, 19, 5, 8);
+        MatrixNOK = new Matrix(260 - (21 * 5), -120, 21, 19, 6, 7);
         MatrixNOK.RecalculDIA();
 
         return 10;
@@ -175,7 +175,7 @@ public partial class CControlManipulator : CPlcEpos
         MotorDown.Operation.MotionInfo.WaitForHomingAttained(1000);
         MotorUp.Operation.MotionInfo.WaitForHomingAttained(1000);
 
-        uint velocity = 10;
+        uint velocity = 20;
         uint acceleration = 100;
         uint deceleration = 100;
 
@@ -238,8 +238,8 @@ public partial class CControlManipulator : CPlcEpos
             return 0;
         }
 
-        if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk))
-        {
+       if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk))
+       {
             ProduktLisActual.Status = EnProduktLis.Ok;
             return 140;
         }
@@ -360,7 +360,7 @@ public partial class CControlManipulator : CPlcEpos
         Message = "Vyska nad box";
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
-        return 100;
+        return 260;
     } //Vyska nad box test  -> 260
 
     private int MainStep260(int step)
@@ -375,13 +375,14 @@ public partial class CControlManipulator : CPlcEpos
             if (MatrixNOK.SetNextItemTestLast()) return 270; // Ak je pocet NOK posledny parkuj ->270
         }
 
+     
         return 100;
     } // Test naplnenia OK/NOK parkuj a koniec->270 , ak nie ideme dalsi cyklus ->100
 
     private int MainStep270(int step)
     {
         Message = "Parkuj";
-
+        Log.Logger.ForContext("Name", Name).Information($"Manipulator: Ulozene OK: {MatrixOK.ActualItem}/{MatrixOK.CountItem}, NOK: {MatrixNOK.ActualItem}/{MatrixNOK.CountItem}");
         deltaRobot.MoveToPolar(0, 160);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
