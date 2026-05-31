@@ -87,7 +87,46 @@ namespace EposCmd.Net
         {
             return $"Scale Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}";
         }
+        public void WaitForProcStatus(EProcStatus expectedProc, uint timeoutMs)
+        {
+            long startTime = Environment.TickCount64;
+            while (true)
+            {
+                EProcStatus currentProc = ScaleData.StatusMainProc;
         
+                if (ScaleData.WpdoError) throw new CDeviceException($"Node:{NodeId} Async WPDO Error.", 0);
+                if (LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL) throw new CDeviceException($"Node:{NodeId} Not OPERATIONAL.", 0);
+                if (currentProc == EProcStatus.Error) throw new CDeviceException($"Node:{NodeId} hlási Error state.", 0);
+
+                if (currentProc == expectedProc) return;
+
+                if (Environment.TickCount64 - startTime > timeoutMs)
+                    throw new CDeviceException($"Node:{NodeId} Timeout {timeoutMs}ms pri čakaní na stav {expectedProc}.", 0);
+
+                Thread.Sleep(10);
+            }
+        }
+
+        public void WaitForProcAndZoneStatus(EProcStatus expectedProc, EZoneStatus expectedZone, uint timeoutMs)
+        {
+            long startTime = Environment.TickCount64;
+            while (true)
+            {
+                EProcStatus currentProc = ScaleData.StatusMainProc;
+                EZoneStatus currentZone = ScaleData.StatusMainZone;
+        
+                if (ScaleData.WpdoError) throw new CDeviceException($"Node:{NodeId} Async WPDO Error.", 0);
+                if (LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL) throw new CDeviceException($"Node:{NodeId} Not OPERATIONAL.", 0);
+                if (currentProc == EProcStatus.Error) throw new CDeviceException($"Node:{NodeId} hlási Error state.", 0);
+
+                if (currentProc == expectedProc && currentZone == expectedZone) return;
+
+                if (Environment.TickCount64 - startTime > timeoutMs)
+                    throw new CDeviceException($"Node:{NodeId} Timeout {timeoutMs}ms. Očakávané: {expectedProc}/{expectedZone}. Aktuálne: {currentProc}/{currentZone}.", 0);
+
+                Thread.Sleep(10);
+            }
+        }
         public void WaitForInitAttained(uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
