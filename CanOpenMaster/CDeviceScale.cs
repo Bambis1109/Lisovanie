@@ -11,9 +11,9 @@ namespace EposCmd.Net
     public class CDeviceScale : CDeviceCO
     {
         private CDataScale ScaleData => (CDataScale)Data;
-        
+
         public ScaleOperation Operation { get; }
-    
+
         public CDeviceScale(ushort keyHandle, byte nodeId, string name)
         {
             Name = name;
@@ -21,40 +21,39 @@ namespace EposCmd.Net
             Data = new CDataScale(nodeId, Name);
             LowLayer = new LowLayer(keyHandle, nodeId, ScaleData);
             Operation = new ScaleOperation(keyHandle, nodeId, ScaleData);
-           
         }
 
         public override void ReadPdo(COP_t_RX_PDO spPdo)
         {
             RecPdo(EventArgs.Empty);
-            
+
             // Z pohľadu Mastra sú to RxPDO (1 až 4). Z pohľadu STM32 sú to TPDO1 až TPDO4.
             switch (spPdo.pdo_no)
             {
                 case 1: // TPDO1
                     ScaleData.StatusMainProc = (EProcStatus)spPdo.a_data[0];
-                    ScaleData.StatusMainMat  = (EMatStatus)spPdo.a_data[1];
-                    ScaleData.WeightResult   = (EVaResult)spPdo.a_data[2];
+                    ScaleData.StatusMainMat = (EMatStatus)spPdo.a_data[1];
+                    ScaleData.WeightResult = (EVaResult)spPdo.a_data[2];
                     ScaleData.StatusMainZone = (EZoneStatus)spPdo.a_data[3];
-                    ScaleData.WeightFinal    = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
+                    ScaleData.WeightFinal = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
                 case 2: // TPDO2
                     ScaleData.Weight32Inter = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(0, 4));
-                    ScaleData.Weight32Tare  = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
+                    ScaleData.Weight32Tare = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
                 case 3: // TPDO3
-                    ScaleData.WeightRaw      = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(0, 4));
+                    ScaleData.WeightRaw = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(0, 4));
                     ScaleData.WeightDuration = BinaryPrimitives.ReadInt32LittleEndian(spPdo.a_data.AsSpan(4, 4));
                     break;
 
                 case 4: // TPDO4
-                    ScaleData.StatusDoserProc    = (EProcStatus)spPdo.a_data[0];
-                    ScaleData.StatusDoserMat     = (EMatStatus)spPdo.a_data[1];
+                    ScaleData.StatusDoserProc = (EProcStatus)spPdo.a_data[0];
+                    ScaleData.StatusDoserMat = (EMatStatus)spPdo.a_data[1];
                     // Byte 2 a 3 sú voľné
-                    ScaleData.StatusVyloznikProc =(EProcStatus) spPdo.a_data[4];
-                    ScaleData.StatusVyloznikMat  = (EMatStatus)spPdo.a_data[5];
+                    ScaleData.StatusVyloznikProc = (EProcStatus)spPdo.a_data[4];
+                    ScaleData.StatusVyloznikMat = (EMatStatus)spPdo.a_data[5];
                     // Byte 6 a 7 sú voľné
                     break;
             }
@@ -74,6 +73,7 @@ namespace EposCmd.Net
                     Data.WpdoErrorPdoNumber = eventMsg.evt_data3;
                     break;
             }
+
             RecStatus(EventArgs.Empty);
         }
 
@@ -87,46 +87,51 @@ namespace EposCmd.Net
         {
             return $"Scale Node:{Data.LastEmergency.node_no}, Error code:{Data.LastEmergency.err_value:X04}";
         }
-        public void WaitForProcStatus(EProcStatus expectedProc, uint timeoutMs)
+
+        public bool WaitForProcStatus(EProcStatus expectedProc, uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
             while (true)
             {
                 EProcStatus currentProc = ScaleData.StatusMainProc;
-        
-                if (ScaleData.WpdoError) throw new CDeviceException($"Node:{NodeId} Async WPDO Error.", 0);
-                if (LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL) throw new CDeviceException($"Node:{NodeId} Not OPERATIONAL.", 0);
-                if (currentProc == EProcStatus.Error) throw new CDeviceException($"Node:{NodeId} hlási Error state.", 0);
 
-                if (currentProc == expectedProc) return;
+                // Ak je chyba na zbernici alebo STM32 hlási Error, okamžite končíme s false
+                if (ScaleData.WpdoError || LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL ||
+                    currentProc == EProcStatus.Error)
+                    return false;
+
+                if (currentProc == expectedProc)
+                    return true;
 
                 if (Environment.TickCount64 - startTime > timeoutMs)
-                    throw new CDeviceException($"Node:{NodeId} Timeout {timeoutMs}ms pri čakaní na stav {expectedProc}.", 0);
+                    return false;
 
                 Thread.Sleep(10);
             }
         }
 
-        public void WaitForProcAndZoneStatus(EProcStatus expectedProc, EZoneStatus expectedZone, uint timeoutMs)
+        public bool WaitForProcAndZoneStatus(EProcStatus expectedProc, EZoneStatus expectedZone, uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
             while (true)
             {
                 EProcStatus currentProc = ScaleData.StatusMainProc;
                 EZoneStatus currentZone = ScaleData.StatusMainZone;
-        
-                if (ScaleData.WpdoError) throw new CDeviceException($"Node:{NodeId} Async WPDO Error.", 0);
-                if (LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL) throw new CDeviceException($"Node:{NodeId} Not OPERATIONAL.", 0);
-                if (currentProc == EProcStatus.Error) throw new CDeviceException($"Node:{NodeId} hlási Error state.", 0);
 
-                if (currentProc == expectedProc && currentZone == expectedZone) return;
+                if (ScaleData.WpdoError || LowLayer.Can.GetNMTState() != ENmtStatus.NcsOPERATIONAL ||
+                    currentProc == EProcStatus.Error)
+                    return false;
+
+                if (currentProc == expectedProc && currentZone == expectedZone)
+                    return true;
 
                 if (Environment.TickCount64 - startTime > timeoutMs)
-                    throw new CDeviceException($"Node:{NodeId} Timeout {timeoutMs}ms. Očakávané: {expectedProc}/{expectedZone}. Aktuálne: {currentProc}/{currentZone}.", 0);
+                    return false;
 
                 Thread.Sleep(10);
             }
         }
+
         public void WaitForInitAttained(uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
@@ -142,14 +147,19 @@ namespace EposCmd.Net
 
                 // 3. Fail-Fast: Kontrola chýb zbernice a NMT
                 if (wpdoError)
-                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Async WPDO Error na PDO {ScaleData.WpdoErrorPdoNumber}.", 0);
+                    throw new CDeviceException(
+                        $"WaitForInitAttained Node:{NodeId}. Async WPDO Error na PDO {ScaleData.WpdoErrorPdoNumber}.",
+                        0);
 
                 if (nmtStatus != ENmtStatus.NcsOPERATIONAL)
-                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Zariadenie stratilo stav OPERATIONAL (Aktuálny: {nmtStatus}).", 0);
+                    throw new CDeviceException(
+                        $"WaitForInitAttained Node:{NodeId}. Zariadenie stratilo stav OPERATIONAL (Aktuálny: {nmtStatus}).",
+                        0);
 
                 // 4. Fail-Fast: Kontrola chybového stavu procesu v STM32
                 if (currentStatus == EProcStatus.Error)
-                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Zariadenie hlási chybový stav (EProcStatus.Error).", 0);
+                    throw new CDeviceException(
+                        $"WaitForInitAttained Node:{NodeId}. Zariadenie hlási chybový stav (EProcStatus.Error).", 0);
 
                 // 5. Úspešné dokončenie
                 if (currentStatus == EProcStatus.Ready)
@@ -157,7 +167,9 @@ namespace EposCmd.Net
 
                 // 6. Kontrola pretečenia času (Timeout)
                 if (Environment.TickCount64 - startTime > timeoutMs)
-                    throw new CDeviceException($"WaitForInitAttained Node:{NodeId}. Timeout {timeoutMs}ms vypršal. Aktuálny stav: {currentStatus}.", 0);
+                    throw new CDeviceException(
+                        $"WaitForInitAttained Node:{NodeId}. Timeout {timeoutMs}ms vypršal. Aktuálny stav: {currentStatus}.",
+                        0);
 
                 // 7. Uvoľnenie CPU pre OS (Makro-čakanie)
                 Thread.Sleep(10);

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using EposCmd.Net.DeviceScaleSet;
+using MojaPrvaAvalonia.Net;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
 
@@ -10,7 +11,7 @@ public partial class CControlScales : CPlcScale
 {
     public CDeviceScale Scale1 { get; set; }
     public CDeviceScale Scale2 { get; set; }
-
+    private int _lastUsedScale = 2;
     public CControlScales(string name) : base(name)
     {
         LoadParameters();
@@ -35,20 +36,27 @@ public partial class CControlScales : CPlcScale
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
-
-
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
-            case 121: return MainStep121(step);
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
+            
+            // VETVA 1 (Váha 1)
             case 150: return MainStep150(step);
-
             case 160: return MainStep160(step);
+            case 170: return MainStep170(step);
+            case 180: return MainStep180(step);
+
+            // VETVA 2 (Váha 2)
+            case 250: return MainStep250(step);
+            case 260: return MainStep260(step);
+            case 270: return MainStep270(step);
+            case 280: return MainStep280(step);
 
             default: return base.RunStep(step);
         }
     }
+
 
     // ==========================================
     // METÓDY PRE INIT
@@ -93,76 +101,172 @@ public partial class CControlScales : CPlcScale
     }
 
     // ==========================================
-    // METÓDY PRE MAIN PROGRAM (Prepojené na reálne scale)
+    // METÓDY PRE MAIN PROGRAM
     // ==========================================
+
     private int MainStep100(int step)
     {
-        Message = "Main 100: Kontrola parkovania";
-      
-        if (RequestToEnd)
-        {
-            return 0;
-        }
+        Message = "Kontrola stavu Ready pred produkciou";
+        var data1 = (CDataScale)Scale1.Data;
+        var data2 = (CDataScale)Scale2.Data;
 
-        return 110;
+        if (data1.StatusMainProc == EProcStatus.Ready && data2.StatusMainProc == EProcStatus.Ready)
+        {
+            return 110;
+        }
+        
+        Log.Logger.ForContext("Name", Name).Error("Váhy nie sú v stave Ready pred štartom produkcie.");
+        return 0;
     }
 
     private int MainStep110(int step)
     {
-        Message = "";
-      if (RequestToEnd)
-        {
-            return 0;
-        }
-
+        Message = "Štart produkcie (Povel Produkcia)";
+        Scale1.Operation.Master.SendCommand(EMasterCommand.Produkcia);
+        Scale2.Operation.Master.SendCommand(EMasterCommand.Produkcia);
         return 120;
     }
 
     private int MainStep120(int step)
     {
-        Message = "";
+        Message = "Čakanie na potvrdenie štartu (Busy)";
+        bool ok1 = Scale1.WaitForProcStatus(EProcStatus.Busy, 2000);
+        bool ok2 = Scale2.WaitForProcStatus(EProcStatus.Busy, 2000);
 
-        return 121;
-    }
+        if (ok1 && ok2)
+        {
+            return 130;
+        }
 
-    private int MainStep121(int step)
-    {
-        Message = "Čakám na potvrdenie štartu od STM32...";
-        
-        
-        return 130; 
+        Log.Logger.ForContext("Name", Name).Error("Váhy nepotvrdili štart produkcie (neprešli do Busy).");
+        return 0;
     }
 
     private int MainStep130(int step)
     {
-        Message = "";
-       
-        return 140; 
+        Message = "Čakanie na požiadavku od Lisu";
+        
+        if (RequestToEnd)
+        {
+            Log.Logger.ForContext("Name", Name).Information("Požiadavka na ukončenie. Zastavujem váhy.");
+            Scale1.Operation.Master.SendCommand(EMasterCommand.Stop);
+            Scale2.Operation.Master.SendCommand(EMasterCommand.Stop);
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
+        {
+            return 140;
+        }
+
+        return step; // Zostávame v slučke
     }
 
     private int MainStep140(int step)
     {
-        Message = "";
+        Message = "Prioritizácia dávok";
+        var data1 = (CDataScale)Scale1.Data;
+        var data2 = (CDataScale)Scale2.Data;
 
-     
-        return 140;
+        bool isFull1 = data1.StatusMainMat == EMatStatus.Full;
+        bool isFull2 = data2.StatusMainMat == EMatStatus.Full;
+
+        if (isFull1 && !isFull2) return 150;
+        if (!isFull1 && isFull2) return 250;
+        
+        if (isFull1 && isFull2)
+        {
+            if (_lastUsedScale == 2) return 150;
+            if (_lastUsedScale == 1) return 250;
+        }
+
+        // Ak ani jedna váha nemá pripravenú dávku, vrátime zónu a čakáme ďalej
+        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputEmpty);
+        return 130;
     }
+
+    // ---------------------------------------------------------
+    // VETVA 1: VYSYPANIE VÁHA 1
+    // ---------------------------------------------------------
 
     private int MainStep150(int step)
     {
-        Message = "";
-
+        Message = "Váha 1: Povel na vysypanie (Next)";
+        Scale1.Operation.Master.SendCommand(EMasterCommand.Next);
+        _lastUsedScale = 1;
         return 160;
-    } //
+    }
 
     private int MainStep160(int step)
     {
-        Message = "";
+        Message = "Váha 1: Čakanie na štart sypania (Busy + Occupied)";
+        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 2000);
+        
+        if (ok) return 170;
 
-
+        Log.Logger.ForContext("Name", Name).Error("Váha 1 nezačala sypať (neprešla do Busy/Occupied).");
         return 0;
-    } //
+    }
 
+    private int MainStep170(int step)
+    {
+        Message = "Váha 1: Čakanie na dokončenie sypania (Ready + Free)";
+        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Ready, EZoneStatus.Free, 15000);
+        
+        if (ok) return 180;
+
+        Log.Logger.ForContext("Name", Name).Error("Váha 1 nedokončila sypanie v časovom limite.");
+        return 0;
+    }
+
+    private int MainStep180(int step)
+    {
+        Message = "Váha 1: Uvoľnenie zóny pre Lis";
+        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull);
+        return 130; // Návrat do idle slučky
+    }
+
+    // ---------------------------------------------------------
+    // VETVA 2: VYSYPANIE VÁHA 2
+    // ---------------------------------------------------------
+
+    private int MainStep250(int step)
+    {
+        Message = "Váha 2: Povel na vysypanie (Next)";
+        Scale2.Operation.Master.SendCommand(EMasterCommand.Next);
+        _lastUsedScale = 2;
+        return 260;
+    }
+
+    private int MainStep260(int step)
+    {
+        Message = "Váha 2: Čakanie na štart sypania (Busy + Occupied)";
+        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 2000);
+        
+        if (ok) return 270;
+
+        Log.Logger.ForContext("Name", Name).Error("Váha 2 nezačala sypať (neprešla do Busy/Occupied).");
+        return 0;
+    }
+
+    private int MainStep270(int step)
+    {
+        Message = "Váha 2: Čakanie na dokončenie sypania (Ready + Free)";
+        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Ready, EZoneStatus.Free, 15000);
+        
+        if (ok) return 280;
+
+        Log.Logger.ForContext("Name", Name).Error("Váha 2 nedokončila sypanie v časovom limite.");
+        return 0;
+    }
+
+    private int MainStep280(int step)
+    {
+        Message = "Váha 2: Uvoľnenie zóny pre Lis";
+        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull);
+        return 130; // Návrat do idle slučky
+    }
+  
 
     [RelayCommand]
     public void SaveParameters()
