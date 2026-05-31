@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using EposCmd.Net.DeviceScaleSet;
@@ -63,14 +56,12 @@ public partial class CControlScales : CPlcScale
     private int InitStep1(int step)
     {
         Message = "";
-
         return 10;
     } // Init
 
     private int InitStep10(int step)
     {
         Message = "Štart inicializácie váh...";
-
         // 1. Odoslanie povelov (Fire-and-Forget)
         Scale1.Operation.Master.SendCommand(EMasterCommand.Init);
         Scale2.Operation.Master.SendCommand(EMasterCommand.Init);
@@ -84,7 +75,6 @@ public partial class CControlScales : CPlcScale
         // Čakáme max 15 sekúnd na k
         Scale1.WaitForInitAttained(15000);
         Scale2.WaitForInitAttained(15000);
-
         return 30;
     }
 
@@ -92,8 +82,6 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Čakám na dokončenie inicializácie (STM32)...";
         StatusCycle = EnStatusCycle.WaitForStep;
-
-
         return 40;
     }
 
@@ -101,7 +89,6 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Inicializácia úspešná";
         Log.Logger.ForContext("Name", Name).Information("Obe váhy boli úspešne inicializované.");
-
         return 99; // Skočí do finálneho kroku, kde CPlc nastaví stav EnStatusPlc.Ready
     }
 
@@ -111,8 +98,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep100(int step)
     {
         Message = "Main 100: Kontrola parkovania";
-        StatusCycle = EnStatusCycle.Moving;
-
+      
         if (RequestToEnd)
         {
             return 0;
@@ -123,10 +109,8 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep110(int step)
     {
-        Message = "Main 100: Kontrola parkovania";
-        StatusCycle = EnStatusCycle.Moving;
-
-        if (RequestToEnd)
+        Message = "";
+      if (RequestToEnd)
         {
             return 0;
         }
@@ -136,68 +120,32 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep120(int step)
     {
-        Message = "Štart dávkovania (Doser)";
+        Message = "";
 
-        // 1. Odošleme povel na štart dávkovania (SDO)
-        StartDoserProduction(Scale1);
-
-        // 2. Okamžite prejdeme do ďalšieho kroku, kde budeme čakať na reakciu STM32
         return 121;
     }
 
     private int MainStep121(int step)
     {
         Message = "Čakám na potvrdenie štartu od STM32...";
-        StatusCycle = EnStatusCycle.WaitForStep;
-
-        // Čakáme, kým STM32 nezmení stav v TPDO na Busy
-        //   if (Scale1.Data.StatusDoserProc == EProcStatus.Busy)
-        {
-            // Voliteľné: Ak STM32 vyžaduje zhodenie povelu na 0 (Clear) po prijatí
-            ClearDoserCommand(Scale1);
-            return 130;
-        }
-
-        //    if (Scale1.Data.StatusDoserProc == EProcStatus.Error)
-        {
-            throw new Exception("Chyba dávkovača pri štarte!");
-        }
-
-        return step; // Zostaň v tomto kroku (cyklus sa opakuje každých 10ms)
+        
+        
+        return 130; 
     }
 
     private int MainStep130(int step)
     {
-        Message = "Dávkovanie prebieha (10-20s)...";
-        StatusCycle = EnStatusCycle.Inspecting;
-/*
-        // Čakáme, kým STM32 nedokončí prácu (Ready) a materiál nie je pripravený (Full)
-        if (Scale1.Data.StatusDoserProc == EProcStatus.Ready)
-        {
-            if (Scale1.Data.StatusDoserMat == EMatStatus.Full)
-            {
-                Log.Logger.ForContext("Name", Name).Information($"Dávka pripravená. Hmotnosť: {Scale1.Data.WeightFinal / 1000.0} kg");
-                return 140; // Prejdi na vykladanie
-            }
-            else
-            {
-                // Ak je Ready, ale nie je Full, došiel materiál alebo nastal iný logický problém
-                throw new Exception("Dávkovač skončil, ale materiál nie je Full!");
-            }
-        }
-*/
-        return step; // Zostaň v tomto kroku, kým sa dávkuje
+        Message = "";
+       
+        return 140; 
     }
 
     private int MainStep140(int step)
     {
-        Message = "Čakám na Lis...";
+        Message = "";
 
-        // Tu komunikuješ s CControlLis (napr. cez MainProgram)
-        // Ak je lis pripravený prijať dávku:
-        // return 150;
-
-        return step;
+     
+        return 140;
     }
 
     private int MainStep150(int step)
