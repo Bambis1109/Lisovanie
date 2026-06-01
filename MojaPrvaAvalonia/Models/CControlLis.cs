@@ -94,6 +94,7 @@ public partial class CControlLis : CPlcEpos
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
+            case 105: return MainStep105(step);
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
@@ -196,6 +197,23 @@ public partial class CControlLis : CPlcEpos
     // ==========================================
     private int MainStep100(int step)
     {
+        Message = "Čakám na Init manipulatora";
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
+        {
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
+        }
+        
+        // Lis čaká, kým mu manipulator neuvolni zonu
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown))
+        {
+            return 105;
+        }
+
+        return step;
+    } //Čakám na Init manipulatora
+    private int MainStep105(int step)
+    {
         Message = "Presun do nasypacej polohy";
         MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
@@ -216,13 +234,7 @@ public partial class CControlLis : CPlcEpos
             return 0;
         }
         
-        //Lis otestuje prve spustenie po inicializacii manipulatora vie ze je mimo 
-        if (IL.ZonePress.Status == EnZoneStatus.Unknown && IL.ZonePress.Owner == EnZoneOwner.Free)
-        {
-            IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown);
-           IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty);
-        }
-        
+       
         
         // Lis čaká, kým mu váha nenechá InputFull
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
@@ -362,11 +374,11 @@ public partial class CControlLis : CPlcEpos
         // caka pokial manipulator nastavi EnZoneStatus.OutputEmpty
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.OutputEmpty))
         {
-            return 100;
+            return 105;
         }
 
         return step;
-    } // Caka na odobratie vyrobku
+    } // Caka na odobratie vyrobku a navrat na zaciatok ->105
 
     [RelayCommand]
     public void SaveParameters()
