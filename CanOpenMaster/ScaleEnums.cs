@@ -34,7 +34,6 @@ namespace EposCmd.Net.DeviceScaleSet
         Produkcia = 0x00000201,
         Next = 0x00000003,
         Continue = 0x00000004,
-        NoMaterial = 0x00000004,
         Stop = 0x00000002
     }
 

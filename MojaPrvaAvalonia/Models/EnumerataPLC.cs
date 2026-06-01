@@ -37,7 +37,8 @@ public enum EnStatusCycle
     WaitingForLock,
     WaitForStep,
     WaitForPause,
-    Error
+    Error,
+    Suspended
 }
 
 public enum EnModePlc

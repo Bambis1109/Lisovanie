@@ -39,6 +39,7 @@ public partial class CPlc : ObservableObject
     [ObservableProperty] private bool _requestToNextStep;
     [ObservableProperty] private bool _requestToEnd;
     [ObservableProperty] private bool _stopImmediately;
+    [ObservableProperty] private bool _requestToContinue;
 
     [ObservableProperty] private bool _isStepMode;
 
@@ -180,6 +181,13 @@ public partial class CPlc : ObservableObject
     {
         // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: NextStep");
         RequestToNextStep = true;
+    }
+
+    [RelayCommand]
+    public virtual void ContinueProgram()
+    {
+        RequestToContinue = true;
+        Serilog.Log.Logger.ForContext("Name", Name).Information("[CMD] Stlačené tlačidlo: Pokračovať (Continue)");
     }
 
     private bool CanStopProgramOnEnd() => Connection == EnStatusConnection.Connected &&
