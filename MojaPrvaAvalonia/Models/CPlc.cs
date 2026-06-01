@@ -106,9 +106,9 @@ public partial class CPlc : ObservableObject
     private bool CanConnect() =>
         Program.MainProgram?.IxxatState == EnIxxatState.Connected &&
         ((Connection == EnStatusConnection.Disconnect &&
-         (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Error)) ||
-        (Connection == EnStatusConnection.Connected &&
-         (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)));
+          (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Error)) ||
+         (Connection == EnStatusConnection.Connected &&
+          (StatusPlc == EnStatusPlc.NotInit || StatusPlc == EnStatusPlc.Ready || StatusPlc == EnStatusPlc.Error)));
 
     [RelayCommand(CanExecute = nameof(CanConnect))]
     public virtual async Task ConnectAsync()
@@ -129,7 +129,20 @@ public partial class CPlc : ObservableObject
         StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Initializing;
 
         _cancellationTokenSource = new CancellationTokenSource();
-        Task.Run(() => ProgramLoopAsync(_cancellationTokenSource.Token));
+
+        Task.Factory.StartNew(() =>
+            {
+                // Povieme operačnému systému, že toto je dôležité riadiace vlákno
+                Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+                Thread.CurrentThread.Name = $"PLC_Loop_{Name}"; // Výborné pre ladenie v Rideri/Visual Studiu
+
+                // Spustíme synchrónne (odstránime async z ProgramLoop)
+                ProgramLoop(_cancellationTokenSource.Token);
+            },
+            _cancellationTokenSource.Token,
+            TaskCreationOptions.LongRunning, // TOTO urobí z Tasku dedikované OS vlákno
+            TaskScheduler.Default);
+        //  Task.Run(() => ProgramLoopAsync(_cancellationTokenSource.Token));
     }
 
     private bool CanStartProgram() => Connection == EnStatusConnection.Connected && StatusPlc == EnStatusPlc.Ready;
@@ -137,12 +150,25 @@ public partial class CPlc : ObservableObject
     [RelayCommand(CanExecute = nameof(CanStartProgram))]
     public virtual void StartProgram()
     {
-        // Log.Logger.ForContext("Name", Name).Debug("[CMD] Stlačené tlačidlo: Start");
         Step = 100;
         StatusPlc = IsStepMode ? EnStatusPlc.StepMode : EnStatusPlc.Running;
 
+        // Bezpečnostná poistka pre prípad re-štartu
+        _cancellationTokenSource?.Cancel();
         _cancellationTokenSource = new CancellationTokenSource();
-        Task.Run(() => ProgramLoopAsync(_cancellationTokenSource.Token));
+
+        Task.Factory.StartNew(() =>
+            {
+                // Povieme OS, že toto je riadiace vlákno s vysokou prioritou
+                Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+                Thread.CurrentThread.Name = $"PLC_Loop_{Name}"; // Uľahčí diagnostiku vo Visual Studiu/Rideri
+
+                // Voláme synchrónne
+                ProgramLoop(_cancellationTokenSource.Token);
+            },
+            _cancellationTokenSource.Token,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
     }
 
     private bool CanNextStepProgram() => Connection == EnStatusConnection.Connected &&
@@ -252,10 +278,10 @@ public partial class CPlc : ObservableObject
     // HLAVNÁ SLUČKA
     // ==========================================
 
-    protected async Task ProgramLoopAsync(CancellationToken token)
+    protected void ProgramLoop(CancellationToken token)
     {
         bool success = false;
-        Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka ProgramLoopAsync odštartovaná.");
+        Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka ProgramLoop (dedikované vlákno) odštartovaná.");
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -307,25 +333,24 @@ public partial class CPlc : ObservableObject
 
                 if (!shouldWait || RequestToNextStep)
                 {
-                    //  Log.Logger.ForContext("Name", Name).Debug($"[LOOP] Vykonávam RunStep({Step})");
                     Step = RunStep(Step);
                     RequestToNextStep = false;
-                    await Task.Delay(10, token);
+
+                    // Uspí vlákno na 10ms. Ak niekto zavolá token.Cancel(), čakanie sa okamžite preruší.
+                    token.WaitHandle.WaitOne(10);
                 }
                 else
                 {
                     StatusCycle = EnStatusCycle.WaitForStep;
-                    await Task.Delay(10, token);
+
+                    // Opäť priame uspávanie cez WaitHandle
+                    token.WaitHandle.WaitOne(5);
                 }
             }
 
             success = true;
         }
-        catch (TaskCanceledException)
-        {
-            Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka bola zrušená cez CancellationToken.");
-            success = true;
-        }
+        // TaskCanceledException sa pri WaitOne nevyhadzuje, IsCancellationRequested zabezpečí čistý únik.
         catch (CDeviceException devEx)
         {
             Dispatcher.UIThread.Post(() =>
@@ -352,7 +377,6 @@ public partial class CPlc : ObservableObject
             else FinishNOKHandle();
 
             Log.Logger.ForContext("Name", Name).Debug("[LOOP] Slučka vstupuje do bloku finally (Ukončovanie).");
-
             Dispatcher.UIThread.Post(() =>
             {
                 RequestToEnd = false;
