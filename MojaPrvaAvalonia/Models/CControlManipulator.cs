@@ -190,6 +190,7 @@ public partial class CControlManipulator : CPlcEpos
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
         ProduktLisActual.Clear();
+        IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.Unknown);
         return 99;
     } //Homing Delta ramien - nastavenie parametrov
 
@@ -213,6 +214,10 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep110(int step)
     {
         Message = "Start";
+        if (RequestToEnd)
+        {
+            return 0;
+        }
         return 120;
     } // -> 120
 

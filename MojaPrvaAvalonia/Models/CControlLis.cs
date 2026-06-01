@@ -215,7 +215,15 @@ public partial class CControlLis : CPlcEpos
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
-
+        
+        //Lis otestuje prve spustenie po inicializacii manipulatora vie ze je mimo 
+        if (IL.ZonePress.Status == EnZoneStatus.Unknown && IL.ZonePress.Owner == EnZoneOwner.Free)
+        {
+            IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown);
+           IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty);
+        }
+        
+        
         // Lis čaká, kým mu váha nenechá InputFull
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
         {

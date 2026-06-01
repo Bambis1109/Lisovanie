@@ -200,7 +200,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep160(int step)
     {
         Message = "Váha 1: Čakanie na štart sypania (Busy + Occupied)";
-        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 2000);
+        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 20000);
         
         if (ok) return 170;
 
@@ -211,7 +211,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep170(int step)
     {
         Message = "Váha 1: Čakanie na dokončenie sypania (Ready + Free)";
-        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Ready, EZoneStatus.Free, 15000);
+        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Free, 20000);
         
         if (ok) return 180;
 
@@ -241,7 +241,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep260(int step)
     {
         Message = "Váha 2: Čakanie na štart sypania (Busy + Occupied)";
-        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 2000);
+        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 20000);
         
         if (ok) return 270;
 
@@ -252,7 +252,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep270(int step)
     {
         Message = "Váha 2: Čakanie na dokončenie sypania (Ready + Free)";
-        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Ready, EZoneStatus.Free, 15000);
+        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Free, 20000);
         
         if (ok) return 280;
 

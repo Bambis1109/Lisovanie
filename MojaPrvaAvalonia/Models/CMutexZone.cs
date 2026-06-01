@@ -11,9 +11,9 @@ public partial class CMutexZone : ObservableObject
 
     public string Name { get; }
 
-    // Zóna po zapnutí aplikácie patrí Main programu, kým sa nepotvrdí bezpečný stav
+    // Zóna po zapnutí aplikácie patrí Manipulatoru programu, kým sa nepotvrdí bezpečný stav
     [ObservableProperty]
-    private EnZoneOwner _owner = EnZoneOwner.Main;
+    private EnZoneOwner _owner = EnZoneOwner.Manipulator;
 
     // Fyzický stav je po štarte neznámy
     [ObservableProperty]
