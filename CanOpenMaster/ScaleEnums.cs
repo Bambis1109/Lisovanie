@@ -8,7 +8,8 @@ namespace EposCmd.Net.DeviceScaleSet
         NoInit = 0x00,
         Ready = 0x01,
         Busy = 0x02,
-        Error = 0x03
+        Error = 0x03,
+        Nomaterial = 0x04
     }
 
     public enum EMatStatus : byte
@@ -32,6 +33,7 @@ namespace EposCmd.Net.DeviceScaleSet
         Init = 0x00000101,
         Produkcia = 0x00000201,
         Next = 0x00000003,
+        Continue = 0x00000004,
         Stop = 0x00000002
     }
 
