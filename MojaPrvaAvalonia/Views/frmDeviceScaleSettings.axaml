@@ -41,6 +41,7 @@
                             <Button Classes="cmd" Content="Init" Command="{Binding MasterInitCommand}"/>
                             <Button Classes="cmd" Content="Produkcia" Command="{Binding MasterProdukciaCommand}"/>
                             <Button Classes="cmd" Content="Next" Command="{Binding MasterNextCommand}"/>
+                            <Button Classes="cmd" Content="Continue" Command="{Binding MasterContinueCommand}"/>
                             <Button Classes="cmd" Content="Stop" Command="{Binding MasterStopCommand}" Background="DarkRed"/>
                         </StackPanel>
                     </TabItem>

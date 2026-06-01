@@ -167,6 +167,7 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [RelayCommand] public void MasterInit() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Init), nameof(MasterInit));
     [RelayCommand] public void MasterProdukcia() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Produkcia), nameof(MasterProdukcia));
     [RelayCommand] public void MasterNext() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Next), nameof(MasterNext));
+    [RelayCommand] public void MasterContinue() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Continue), nameof(MasterContinue));
     [RelayCommand] public void MasterStop() => ExecuteCommand(d => d.Operation.Master.SendCommand(EMasterCommand.Stop), nameof(MasterStop));
 
     // --- DOSER ---
