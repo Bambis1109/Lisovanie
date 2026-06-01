@@ -12,6 +12,7 @@ public partial class CControlScales : CPlcScale
     public CDeviceScale Scale1 { get; set; }
     public CDeviceScale Scale2 { get; set; }
     private int _lastUsedScale = 2;
+    
     public CControlScales(string name) : base(name)
     {
         LoadParameters();
@@ -40,6 +41,10 @@ public partial class CControlScales : CPlcScale
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
+            
+            // ČAKANIE NA MATERIÁL
+            case 145: return MainStep145(step);
+            case 148: return MainStep148(step);
             
             // VETVA 1 (Váha 1)
             case 150: return MainStep150(step);
@@ -144,7 +149,7 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep130(int step)
     {
-        Message = "Čakanie na požiadavku od Lisu";
+        Message = "Čakanie na dávku a kontrola materiálu";
         
         if (RequestToEnd)
         {
@@ -154,12 +159,36 @@ public partial class CControlScales : CPlcScale
             return 0;
         }
 
-        if (IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
+        var data1 = (CDataScale)Scale1.Data;
+        var data2 = (CDataScale)Scale2.Data;
+
+        // 1. KONTROLA MATERIÁLU (Ak chýba, ideme do čakacieho stavu)
+        if (data1.StatusMainProc == EProcStatus.Nomaterial && data2.StatusMainProc == EProcStatus.Nomaterial)
         {
-            return 140;
+            Message = "Chýba materiál! Doplňte a stlačte POKRAČOVAŤ.";
+            StatusCycle = EnStatusCycle.Suspended;
+            return 145;
         }
 
-        return step; // Zostávame v slučke
+        // 2. KONTROLA HOTOVEJ DÁVKY
+        bool isFull1 = data1.StatusMainMat == EMatStatus.Full;
+        bool isFull2 = data2.StatusMainMat == EMatStatus.Full;
+
+        // Ak ani jedna váha nemá dávku, zostávame v kroku 130.
+        // Tým pádom ProgramLoop vykoná 10ms Sleep a nezaťažuje CPU ani nesspamuje log.
+        if (!isFull1 && !isFull2)
+        {
+            return step; 
+        }
+
+        // 3. MÁME DÁVKU -> ČAKÁME NA ZÓNU OD LISU
+        Message = "Dávka pripravená, čakám na uvoľnenie zóny Lisom";
+        if (IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
+        {
+            return 140; // Zóna je naša, ideme vybrať, ktorá váha sype
+        }
+
+        return step; // Zóna ešte nie je voľná, čakáme (10ms sleep)
     }
 
     private int MainStep140(int step)
@@ -180,9 +209,47 @@ public partial class CControlScales : CPlcScale
             if (_lastUsedScale == 1) return 250;
         }
 
-        // Ak ani jedna váha nemá pripravenú dávku, vrátime zónu a čakáme ďalej
+        // Fallback (nemalo by nastať, lebo do 140 ideme len ak je aspoň jedna plná)
         IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputEmpty);
         return 130;
+    }
+
+    private int MainStep145(int step)
+    {
+        if (RequestToEnd)
+        {
+            Log.Logger.ForContext("Name", Name).Information("Požiadavka na ukončenie počas čakania na materiál.");
+            Scale1.Operation.Master.SendCommand(EMasterCommand.Stop);
+            Scale2.Operation.Master.SendCommand(EMasterCommand.Stop);
+            return 0;
+        }
+
+        if (RequestToContinue)
+        {
+            RequestToContinue = false;
+            Message = "Odosielam povel Continue do váh...";
+            Scale1.Operation.Master.SendCommand(EMasterCommand.Continue);
+            Scale2.Operation.Master.SendCommand(EMasterCommand.Continue);
+            return 148;
+        }
+
+        return step; // Zostáva v slučke, kým operátor nestlačí tlačidlo
+    }
+
+    private int MainStep148(int step)
+    {
+        Message = "Čakanie na potvrdenie od STM32...";
+        var data1 = (CDataScale)Scale1.Data;
+        var data2 = (CDataScale)Scale2.Data;
+
+        // Čakáme, kým STM32 zhodí stav Nomaterial
+        if (data1.StatusMainProc != EProcStatus.Nomaterial && data2.StatusMainProc != EProcStatus.Nomaterial)
+        {
+            StatusCycle = EnStatusCycle.Moving;
+            return 130; // Návrat k čakaniu na dávku
+        }
+
+        return step;
     }
 
     // ---------------------------------------------------------
@@ -200,23 +267,45 @@ public partial class CControlScales : CPlcScale
     private int MainStep160(int step)
     {
         Message = "Váha 1: Čakanie na štart sypania (Busy + Occupied)";
-        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 20000);
-        
-        if (ok) return 170;
+        var data = (CDataScale)Scale1.Data;
 
-        Log.Logger.ForContext("Name", Name).Error("Váha 1 nezačala sypať (neprešla do Busy/Occupied).");
-        return 0;
+        if (data.StatusMainProc == EProcStatus.Busy && data.StatusMainZone == EZoneStatus.Occupied)
+            return 170;
+
+        if (data.StatusMainProc == EProcStatus.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 1 hlási chybu (Error) pri štarte sypania.");
+            return 0;
+        }
+
+        return step; // Zostávame v slučke, čakáme na reakciu STM32
     }
 
     private int MainStep170(int step)
     {
         Message = "Váha 1: Čakanie na dokončenie sypania (Ready + Free)";
-        bool ok = Scale1.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Free, 20000);
-        
-        if (ok) return 180;
+        var data = (CDataScale)Scale1.Data;
 
-        Log.Logger.ForContext("Name", Name).Error("Váha 1 nedokončila sypanie v časovom limite.");
-        return 0;
+        // 1. AK POČAS SYPANIA DÔJDE MATERIÁL -> Okamžite ideme do čakacieho stavu!
+        if (data.StatusMainProc == EProcStatus.Nomaterial)
+        {
+            Message = "Váha 1: Chýba materiál počas sypania!";
+            StatusCycle = EnStatusCycle.Suspended;
+            return 145; 
+        }
+
+        // 2. ÚSPEŠNÉ DOKONČENIE
+        if (data.StatusMainProc == EProcStatus.Ready && data.StatusMainZone == EZoneStatus.Free)
+            return 180;
+
+        // 3. CHYBA HARDVÉRU
+        if (data.StatusMainProc == EProcStatus.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 1 hlási chybu (Error) počas sypania.");
+            return 0;
+        }
+
+        return step; // Sypanie prebieha, čakáme
     }
 
     private int MainStep180(int step)
@@ -241,23 +330,42 @@ public partial class CControlScales : CPlcScale
     private int MainStep260(int step)
     {
         Message = "Váha 2: Čakanie na štart sypania (Busy + Occupied)";
-        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Occupied, 20000);
-        
-        if (ok) return 270;
+        var data = (CDataScale)Scale2.Data;
 
-        Log.Logger.ForContext("Name", Name).Error("Váha 2 nezačala sypať (neprešla do Busy/Occupied).");
-        return 0;
+        if (data.StatusMainProc == EProcStatus.Busy && data.StatusMainZone == EZoneStatus.Occupied)
+            return 270;
+
+        if (data.StatusMainProc == EProcStatus.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 2 hlási chybu (Error) pri štarte sypania.");
+            return 0;
+        }
+
+        return step;
     }
 
     private int MainStep270(int step)
     {
         Message = "Váha 2: Čakanie na dokončenie sypania (Ready + Free)";
-        bool ok = Scale2.WaitForProcAndZoneStatus(EProcStatus.Busy, EZoneStatus.Free, 20000);
-        
-        if (ok) return 280;
+        var data = (CDataScale)Scale2.Data;
 
-        Log.Logger.ForContext("Name", Name).Error("Váha 2 nedokončila sypanie v časovom limite.");
-        return 0;
+        if (data.StatusMainProc == EProcStatus.Nomaterial)
+        {
+            Message = "Váha 2: Chýba materiál počas sypania!";
+            StatusCycle = EnStatusCycle.Suspended;
+            return 145; 
+        }
+
+        if (data.StatusMainProc == EProcStatus.Ready && data.StatusMainZone == EZoneStatus.Free)
+            return 280;
+
+        if (data.StatusMainProc == EProcStatus.Error)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 2 hlási chybu (Error) počas sypania.");
+            return 0;
+        }
+
+        return step;
     }
 
     private int MainStep280(int step)
