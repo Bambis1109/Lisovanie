@@ -12,7 +12,7 @@ public partial class CControlScales : CPlcScale
     public CDeviceScale Scale1 { get; set; }
     public CDeviceScale Scale2 { get; set; }
     private int _lastUsedScale = 2;
-    
+
     public CControlScales(string name) : base(name)
     {
         LoadParameters();
@@ -37,15 +37,16 @@ public partial class CControlScales : CPlcScale
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
+            case 101: return MainStep101(step);
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
-            
+
             // ČAKANIE NA MATERIÁL
             case 145: return MainStep145(step);
             case 148: return MainStep148(step);
-            
+
             // VETVA 1 (Váha 1)
             case 150: return MainStep150(step);
             case 160: return MainStep160(step);
@@ -111,84 +112,101 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep100(int step)
     {
-        Message = "Kontrola stavu Ready pred produkciou";
-        var data1 = (CDataScale)Scale1.Data;
-        var data2 = (CDataScale)Scale2.Data;
-
-        if (data1.StatusMainProc == EProcStatus.Ready && data2.StatusMainProc == EProcStatus.Ready)
+        Message = "Start Vaha 1";
+        if (((CDataScale)Scale1.Data).StatusMainProc != EProcStatus.Ready) //kontrola ci je ready
         {
-            return 110;
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Váha 1 nie je Ready  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+            return 0;
         }
-        
-        Log.Logger.ForContext("Name", Name).Error("Váhy nie sú v stave Ready pred štartom produkcie.");
-        return 0;
+
+        Scale1.Operation.Master.SendCommand(EMasterCommand.Produkcia); // start vahy 1
+
+        if (!Scale1.WaitForProcStatus(EProcStatus.Busy, 2000))
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Váha 1 nie je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+            return 0;
+        }
+
+        Log.Logger.ForContext("Name", Name)
+            .Error($"Váha 1 je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+        return 101;
+    }
+
+    private int MainStep101(int step)
+    {
+        Message = "Start Vaha 2";
+        if (((CDataScale)Scale2.Data).StatusMainProc != EProcStatus.Ready) //kontrola ci je ready
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Váha 2 nie je Ready  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+            return 0;
+        }
+
+        Scale2.Operation.Master.SendCommand(EMasterCommand.Produkcia); // start vahy 1
+
+        if (!Scale2.WaitForProcStatus(EProcStatus.Busy, 2000))
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Váha 2 nie je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+            return 0;
+        }
+
+        Log.Logger.ForContext("Name", Name)
+            .Error($"Váha 2 je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+        return 110;
     }
 
     private int MainStep110(int step)
     {
-        Message = "Štart produkcie (Povel Produkcia)";
-        Scale1.Operation.Master.SendCommand(EMasterCommand.Produkcia);
-        Scale2.Operation.Master.SendCommand(EMasterCommand.Produkcia);
-        return 120;
+        Message = "Cakanie na uvolnenie zony";
+        if (RequestToEnd)
+        {
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
+        {
+            return 120; // Zóna je naša, ideme vybrať, ktorá váha sype
+        }
+
+        return step; // Zóna ešte nie je voľná, čakáme (10ms sleep)
     }
 
     private int MainStep120(int step)
     {
-        Message = "Čakanie na potvrdenie štartu (Busy)";
-        bool ok1 = Scale1.WaitForProcStatus(EProcStatus.Busy, 2000);
-        bool ok2 = Scale2.WaitForProcStatus(EProcStatus.Busy, 2000);
-
-        if (ok1 && ok2)
-        {
-            return 130;
-        }
-
-        Log.Logger.ForContext("Name", Name).Error("Váhy nepotvrdili štart produkcie (neprešli do Busy).");
-        return 0;
-    }
-
-    private int MainStep130(int step)
-    {
-        Message = "Čakanie na dávku a kontrola materiálu";
-        
-        if (RequestToEnd)
-        {
-            Log.Logger.ForContext("Name", Name).Information("Požiadavka na ukončenie. Zastavujem váhy.");
-            Scale1.Operation.Master.SendCommand(EMasterCommand.Stop);
-            Scale2.Operation.Master.SendCommand(EMasterCommand.Stop);
-            return 0;
-        }
-
+        Message = "Cakam na pripravenie davky";
         var data1 = (CDataScale)Scale1.Data;
         var data2 = (CDataScale)Scale2.Data;
 
         // 1. KONTROLA MATERIÁLU (Ak chýba, ideme do čakacieho stavu)
         if (data1.StatusMainProc == EProcStatus.Nomaterial && data2.StatusMainProc == EProcStatus.Nomaterial)
         {
-            Message = "Chýba materiál! Doplňte a stlačte POKRAČOVAŤ.";
-            StatusCycle = EnStatusCycle.Suspended;
-            return 145;
+            Log.Logger.ForContext("Name", Name).Error($"Obe Vahy nemaju material");
+            Log.Logger.ForContext("Name", Name).Error($"Váha 1  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+            Log.Logger.ForContext("Name", Name).Error($"Váha 2  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+            return 0;
         }
 
         // 2. KONTROLA HOTOVEJ DÁVKY
         bool isFull1 = data1.StatusMainMat == EMatStatus.Full;
         bool isFull2 = data2.StatusMainMat == EMatStatus.Full;
 
-        // Ak ani jedna váha nemá dávku, zostávame v kroku 130.
-        // Tým pádom ProgramLoop vykoná 10ms Sleep a nezaťažuje CPU ani nesspamuje log.
-        if (!isFull1 && !isFull2)
+        // Ak aspon jedna váha ma  dávku, zostávame v kroku 130.
+
+        if (isFull1 || isFull2)
         {
-            return step; 
+            return 140;
         }
 
-        // 3. MÁME DÁVKU -> ČAKÁME NA ZÓNU OD LISU
-        Message = "Dávka pripravená, čakám na uvoľnenie zóny Lisom";
-        if (IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
-        {
-            return 140; // Zóna je naša, ideme vybrať, ktorá váha sype
-        }
+        return step;
+    }
 
-        return step; // Zóna ešte nie je voľná, čakáme (10ms sleep)
+    private int MainStep130(int step)
+    {
+        Message = "......";
+        return 140; // Zóna ešte nie je voľná, čakáme (10ms sleep)
     }
 
     private int MainStep140(int step)
@@ -199,19 +217,19 @@ public partial class CControlScales : CPlcScale
 
         bool isFull1 = data1.StatusMainMat == EMatStatus.Full;
         bool isFull2 = data2.StatusMainMat == EMatStatus.Full;
-
-        if (isFull1 && !isFull2) return 150;
-        if (!isFull1 && isFull2) return 250;
-        
         if (isFull1 && isFull2)
         {
             if (_lastUsedScale == 2) return 150;
             if (_lastUsedScale == 1) return 250;
         }
 
-        // Fallback (nemalo by nastať, lebo do 140 ideme len ak je aspoň jedna plná)
-        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputEmpty);
-        return 130;
+        if (isFull1) return 150;
+        if (isFull2) return 250;
+
+        Log.Logger.ForContext("Name", Name).Error($"Nie je pripravena ziadna vaha");
+        Log.Logger.ForContext("Name", Name).Error($"Váha 1  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+        Log.Logger.ForContext("Name", Name).Error($"Váha 2  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+        return 0;
     }
 
     private int MainStep145(int step)
@@ -283,19 +301,13 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep170(int step)
     {
-        Message = "Váha 1: Čakanie na dokončenie sypania (Ready + Free)";
+        Message = "Váha 1: Čakanie na dokončenie sypania (Busy + Free)";
         var data = (CDataScale)Scale1.Data;
 
-        // 1. AK POČAS SYPANIA DÔJDE MATERIÁL -> Okamžite ideme do čakacieho stavu!
-        if (data.StatusMainProc == EProcStatus.Nomaterial)
-        {
-            Message = "Váha 1: Chýba materiál počas sypania!";
-            StatusCycle = EnStatusCycle.Suspended;
-            return 145; 
-        }
+      
 
         // 2. ÚSPEŠNÉ DOKONČENIE
-        if (data.StatusMainProc == EProcStatus.Ready && data.StatusMainZone == EZoneStatus.Free)
+        if (data.StatusMainProc == EProcStatus.Busy && data.StatusMainZone == EZoneStatus.Free)
             return 180;
 
         // 3. CHYBA HARDVÉRU
@@ -312,7 +324,7 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Váha 1: Uvoľnenie zóny pre Lis";
         IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull);
-        return 130; // Návrat do idle slučky
+        return 110; // Návrat do idle slučky
     }
 
     // ---------------------------------------------------------
@@ -349,14 +361,8 @@ public partial class CControlScales : CPlcScale
         Message = "Váha 2: Čakanie na dokončenie sypania (Ready + Free)";
         var data = (CDataScale)Scale2.Data;
 
-        if (data.StatusMainProc == EProcStatus.Nomaterial)
-        {
-            Message = "Váha 2: Chýba materiál počas sypania!";
-            StatusCycle = EnStatusCycle.Suspended;
-            return 145; 
-        }
-
-        if (data.StatusMainProc == EProcStatus.Ready && data.StatusMainZone == EZoneStatus.Free)
+     
+        if (data.StatusMainProc == EProcStatus.Busy && data.StatusMainZone == EZoneStatus.Free)
             return 280;
 
         if (data.StatusMainProc == EProcStatus.Error)
@@ -372,9 +378,9 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Váha 2: Uvoľnenie zóny pre Lis";
         IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull);
-        return 130; // Návrat do idle slučky
+        return 110; // Návrat do idle slučky
     }
-  
+
 
     [RelayCommand]
     public void SaveParameters()
