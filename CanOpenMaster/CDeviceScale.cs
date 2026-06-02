@@ -132,6 +132,7 @@ namespace EposCmd.Net
             }
         }
 
+        
         public void WaitForInitAttained(uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
