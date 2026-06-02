@@ -166,21 +166,15 @@ public partial class CControlScales : CPlcScale
             return 0;
         }
 
-        var data1 = (CDataScale)Scale1.Data;
-        var data2 = (CDataScale)Scale2.Data;
-
-        if (data1.StatusMainProc == EProcStatus.NoMaterial && data2.StatusMainProc == EProcStatus.NoMaterial)
+        if (Scale1.IsNoMaterial() && Scale2.IsNoMaterial())//ak su obe vahy prazdne koniec
         {
             Log.Logger.ForContext("Name", Name).Error($"Obe Vahy nemaju material");
             Log.Logger.ForContext("Name", Name).Error($"Váha 1  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
             Log.Logger.ForContext("Name", Name).Error($"Váha 2  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
             return 0;
         }
-
-        bool isFull1 = data1.StatusMainMat == EMatStatus.Full;
-        bool isFull2 = data2.StatusMainMat == EMatStatus.Full;
-
-        if (isFull1 || isFull2)
+      
+        if (Scale1.IsFull() || Scale2.IsFull())
         {
             return 140;
         }
@@ -226,8 +220,8 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep160(int step)
     {
-        Message = "Váha 1: Čakanie na štart sypania (Busy + Occupied)";
-        if (Scale1.IsBusy() && Scale1.IsOcupied())
+        Message = "Váha 1: Čakanie na štart sypania (Occupied)";
+        if ( Scale1.IsOcupied())
             return 170;
 
         if (Scale1.IsError())
@@ -241,10 +235,10 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep170(int step)
     {
-        Message = "Váha 1: Čakanie na dokončenie sypania (Busy + Free)";
+        Message = "Váha 1: Čakanie na dokončenie sypania (Free)";
 
         // 2. ÚSPEŠNÉ DOKONČENIE
-        if (Scale1.IsBusy() && Scale1.IsFree())
+        if (Scale1.IsFree())
             return 280;
         // 3. CHYBA HARDVÉRU
         if (Scale1.IsError())
@@ -269,8 +263,8 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep260(int step)
     {
-        Message = "Váha 2: Čakanie na štart sypania (Busy + Occupied)";
-        if (Scale2.IsBusy() && Scale2.IsOcupied())
+        Message = "Váha 2: Čakanie na štart sypania (Occupied)";
+        if (Scale2.IsOcupied())
             return 270;
 
         if (Scale2.IsError())
@@ -284,8 +278,8 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep270(int step)
     {
-        Message = "Váha 2: Čakanie na dokončenie sypania (Busy + Free)";
-        if (Scale2.IsBusy() && Scale2.IsFree())
+        Message = "Váha 2: Čakanie na dokončenie sypania (Free)";
+        if (Scale2.IsFree())
             return 280;
 
         if (Scale2.IsError())
