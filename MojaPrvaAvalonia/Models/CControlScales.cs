@@ -181,7 +181,7 @@ public partial class CControlScales : CPlcScale
         var data2 = (CDataScale)Scale2.Data;
 
         // 1. KONTROLA MATERIÁLU (Ak chýba, ideme do čakacieho stavu)
-        if (data1.StatusMainProc == EProcStatus.Nomaterial && data2.StatusMainProc == EProcStatus.Nomaterial)
+        if (data1.StatusMainProc == EProcStatus.NoMaterial && data2.StatusMainProc == EProcStatus.NoMaterial)
         {
             Log.Logger.ForContext("Name", Name).Error($"Obe Vahy nemaju material");
             Log.Logger.ForContext("Name", Name).Error($"Váha 1  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
@@ -261,7 +261,7 @@ public partial class CControlScales : CPlcScale
         var data2 = (CDataScale)Scale2.Data;
 
         // Čakáme, kým STM32 zhodí stav Nomaterial
-        if (data1.StatusMainProc != EProcStatus.Nomaterial && data2.StatusMainProc != EProcStatus.Nomaterial)
+        if (data1.StatusMainProc != EProcStatus.NoMaterial && data2.StatusMainProc != EProcStatus.NoMaterial)
         {
             StatusCycle = EnStatusCycle.Moving;
             return 130; // Návrat k čakaniu na dávku

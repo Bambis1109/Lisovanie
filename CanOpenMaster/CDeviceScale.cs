@@ -132,6 +132,36 @@ namespace EposCmd.Net
             }
         }
 
+        public  EProcStatus GetStatus()
+        {
+            return ScaleData.StatusMainProc;
+        }
+        
+        public bool IsReady()
+        {
+            return ScaleData.StatusMainProc == EProcStatus.Ready;
+        }
+        public bool IsError()
+        {
+            return ScaleData.StatusMainProc == EProcStatus.Error;
+        }   
+        public bool IsBusy()
+        {
+            return ScaleData.StatusMainProc == EProcStatus.Busy;
+        }   
+        public bool IsNoMaterial()
+        {
+            return ScaleData.StatusMainProc == EProcStatus.NoMaterial;
+        }   
+        
+        public bool IsEmpty()
+        {
+            return ScaleData.StatusMainMat == EMatStatus.Empty;
+        }
+        public bool IsFull()
+        {
+            return ScaleData.StatusMainMat == EMatStatus.Full;
+        }       
         
         public void WaitForInitAttained(uint timeoutMs)
         {
