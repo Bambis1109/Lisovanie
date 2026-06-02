@@ -163,6 +163,16 @@ namespace EposCmd.Net
             return ScaleData.StatusMainMat == EMatStatus.Full;
         }       
         
+        public bool IsOcupied()
+        {
+            return ScaleData.StatusMainZone == EZoneStatus.Occupied;
+        }
+        
+        public bool IsFree ()
+        {
+            return ScaleData.StatusMainZone == EZoneStatus.Free;
+        }
+        
         public void WaitForInitAttained(uint timeoutMs)
         {
             long startTime = Environment.TickCount64;
