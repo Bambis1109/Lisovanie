@@ -15,6 +15,7 @@
             ProfileVelocityMode = new ProfileVelocityMode(keyHandle, nodeId, data);
             StateMachine = new StateMachine(keyHandle, nodeId, data);
             CyclicSynVelocityMode = new CyclicSynVelocityMode(keyHandle, nodeId, data);
+            CyclicSynTorqueMode = new CyclicSynTorqueMode(keyHandle, nodeId, data);
         }
 
         public CyclicSynTorqueMode CurrentMode { get; }
@@ -28,5 +29,6 @@
         public ProfileVelocityMode ProfileVelocityMode { get; }
         public StateMachine StateMachine { get; }
         public CyclicSynVelocityMode CyclicSynVelocityMode { get; }
+        public CyclicSynTorqueMode CyclicSynTorqueMode { get; }
     }
 }

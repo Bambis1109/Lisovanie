@@ -232,7 +232,7 @@ namespace EposCmd.Net
             switch (sync)
             {
                 case ESync.NcsEnable:
-                    res = COP_DefSyncObj(_keyHandle, 20, 20, 0);
+                    res = COP_DefSyncObj(_keyHandle, 2, 2, 0);
                     res = COP_EnableSync(_keyHandle, COP_k_SINGLE_LINE);
 
                     break;

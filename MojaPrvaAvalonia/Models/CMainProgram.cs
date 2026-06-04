@@ -117,9 +117,6 @@ public partial class CMainProgram : ObservableObject
                 vms.StartRefresh();
             }
 
-            DeviceManagerCO.Sync(ESync.NcsEnable);
-            DeviceManagerScale.Sync(ESync.NcsEnable);
-
             IxxatState = EnIxxatState.Connected;
             return true;
         }

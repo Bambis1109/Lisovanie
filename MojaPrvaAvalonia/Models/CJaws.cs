@@ -33,7 +33,7 @@ public class CJaws: ObservableObject
         _motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
 
         // 3. Fáza aplikácie sily (CST)
-        _motorJaws.Operation.CurrentMode.ActivateCurrentMode();
+        _motorJaws.Operation.CurrentMode.ActivateCyclicSyncronicTorqueMode();
         // MotorJaws.Operation.StateMachine.SetEnableState(); // Odstránené - redundantné
 
         // Čaká na dosiahnutie sily a mechanické ustálenie (obsahuje vlastný stabilizačný counter)

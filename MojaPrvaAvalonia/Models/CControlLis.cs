@@ -20,7 +20,7 @@ public partial class CControlLis : CPlcEpos
     public CParametersLis ParametersLis { get; set; } = new();
     public CProduktLis ProduktLisActual { get; set; } = new();
     public CProduktLis ProduktLisLast { get; set; } = new();
-    
+
     [ObservableProperty] private double _silaActual;
     [ObservableProperty] private double _distanceActual;
     [ObservableProperty] private double _positionActualSensor2Float;
@@ -124,69 +124,45 @@ public partial class CControlLis : CPlcEpos
         Message = "Mazanie chyb a nastav enable";
         ClearAllFaults();
         EnableAllMotors();
-        foreach (var motor in Motors)
-        {
-            if (motor.Operation?.StateMachine == null) continue;
-            motor.Operation.HomingMode?.ActivateHomingMode();
-        }
-
+        MotorMaster.Operation.HomingMode.ActivateHomingMode();
+        MotorSlave.Operation.CyclicSynTorqueMode.ActivateCyclicSyncronicTorqueMode();
+        MotorMaster.Operation.StateMachine.SetEnableState();
+        MotorSlave.Operation.StateMachine.SetEnableState();
         return 20;
     } //Mazanie chyb a nastav enable
 
     private int InitStep20(int step)
     {
         Message = "Lis: Hladanie horneho dorazu";
-        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 10000, 2000, 0,
-            EHomingMethod.HmCurrentThresholdPositiveSpeed);
+       
         MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 10000, 2000, 0,
             EHomingMethod.HmCurrentThresholdPositiveSpeed);
         MotorMaster.Operation.HomingMode.FindHome();
-        MotorSlave.Operation.HomingMode.FindHome();
         MotorMaster.Operation.MotionInfo.WaitForHomingAttained(100000);
-        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(100000);
 
-        MotorSlave.Operation.StateMachine.SetDisableState();
-        MotorMaster.Operation.StateMachine.SetDisableState();
-        Thread.Sleep(2000);
-        MotorSlave.Operation.StateMachine.SetEnableState();
-        MotorMaster.Operation.StateMachine.SetEnableState();
         return 30;
     } //Lis: Hladanie horneho dorazu
 
     private int InitStep30(int step)
     {
         Message = "Lis: Nulovanie polohy";
-        MotorSlave.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
-            EHomingMethod.HmActualPosition);
-        MotorMaster.Operation.HomingMode.SetHomingParameter(100, 300, 200, 0, 2000, 0,
-            EHomingMethod.HmActualPosition);
-        MotorMaster.Operation.HomingMode.FindHome();
-        MotorSlave.Operation.HomingMode.FindHome();
-        MotorMaster.Operation.MotionInfo.WaitForHomingAttained(20000);
-        MotorSlave.Operation.MotionInfo.WaitForHomingAttained(20000);
-
+        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 5000, 5000);
+        MotorMaster.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         return 40;
     } //Lis: Nulovanie polohy
 
     private int InitStep40(int step)
     {
         Message = "Lis: Pripravený";
-        MotorSlave.Operation.ProfilePositionMode.SetPositionProfile(1600, 2000, 2000);
-        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 2000, 2000);
-        MotorMaster.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        MotorSlave.Operation.CyclicSynPositionMode.ActivateCyclicSynPositionMode();
-
-        Thread.Sleep(100);
-        MotorMaster.Operation.StateMachine.SetEnableState();
-        MotorSlave.Operation.StateMachine.SetEnableState();
-
+     
+    
         MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
         MotorStred.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorStred.Operation.StateMachine.SetEnableState();
-        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(-10, true, true);
+        
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-21, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(3000);
-        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+        //  MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         ProduktLisActual.Clear();
         ProduktLisLast.Clear();
         return 99;
@@ -203,7 +179,7 @@ public partial class CControlLis : CPlcEpos
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
-        
+
         // Lis čaká, kým mu manipulator neuvolni zonu
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown))
         {
@@ -212,6 +188,7 @@ public partial class CControlLis : CPlcEpos
 
         return step;
     } //Čakám na Init manipulatora
+
     private int MainStep105(int step)
     {
         Message = "Presun do nasypacej polohy";
@@ -233,9 +210,8 @@ public partial class CControlLis : CPlcEpos
             Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
             return 0;
         }
-        
-       
-        
+
+
         // Lis čaká, kým mu váha nenechá InputFull
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
         {
@@ -330,7 +306,7 @@ public partial class CControlLis : CPlcEpos
         Message = "Uvolnenie koniec lisovania";
         ProduktLisActual.Sila = SilaActual;
         ProduktLisActual.Vyska = DistanceActual;
-        
+
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
         Thread.Sleep(1000);
         MotorStred.Operation.StateMachine.SetEnableState();
@@ -359,6 +335,7 @@ public partial class CControlLis : CPlcEpos
                 IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullNok);
                 break;
         }
+
         return 200;
     } // Uvolni zony a nastavi priznak
 

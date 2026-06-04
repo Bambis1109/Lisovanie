@@ -12,14 +12,14 @@
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-                        BaseData = data;;
+                        BaseData = data;
+                        ;
                     }
 
-                    public void ActivateCurrentMode()
+                    public void ActivateCyclicSyncronicTorqueMode()
                     {
-                        SetModeOfOperation(EOperationMode.OmdCyclicSyncronicTorqueMode);
                         SetCurrentMustPercentage(0);
-                        WaitForSetACK(100);
+                        SetModeOfOperation(EOperationMode.OmdCyclicSyncronicTorqueMode);
                     }
 
                     public short GetCurrentMust()

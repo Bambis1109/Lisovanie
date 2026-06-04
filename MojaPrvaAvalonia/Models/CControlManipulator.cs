@@ -93,13 +93,13 @@ public partial class CControlManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        MatrixOK = new Matrix(-260, -120, 21, 19, 6, 7);
+        MatrixOK = new Matrix(-306, -68, 21, 19, 6, 7);
         MatrixOK.RecalculDIA();
-        MatrixNOK = new Matrix(260 - (21 * 5), -120, 21, 19, 6, 7);
+        MatrixNOK = new Matrix(165, -68, 21, 19, 6, 7);
         MatrixNOK.RecalculDIA();
 
         return 10;
-    } // Init
+    } // Mastavenie vykladacich matric
 
     private int InitStep10(int step)
     {
@@ -328,7 +328,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep220(int step)
     {
         Message = "Vysunutie na vykladanie";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
+      
         if (ProduktLisActual.Status == EnProduktLis.Ok)
         {
             deltaRobot.MoveToXY(MatrixOK.Xactual, MatrixOK.Yactual);
@@ -339,7 +339,7 @@ public partial class CControlManipulator : CPlcEpos
         }
 
         deltaRobot.WaitForTargetReached(5000);
-        MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
+      
         return 230;
     } //Vysunutie na vykladanie -> 230
 
@@ -363,7 +363,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep250(int step)
     {
         Message = "Vyska nad box";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-22, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 260;
     } //Vyska nad box test  -> 260
