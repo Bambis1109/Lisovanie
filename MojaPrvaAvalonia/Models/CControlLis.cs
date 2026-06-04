@@ -308,13 +308,13 @@ public partial class CControlLis : CPlcEpos
         ProduktLisActual.Vyska = DistanceActual;
 
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
-        Thread.Sleep(1000);
+        Thread.Sleep(100);
         MotorStred.Operation.StateMachine.SetEnableState();
-        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(50, 1000, 1000);
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(80, 2000, 2000);
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
             true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
-        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+   //     MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
 
         return 190;
     } // Koniec lisovania uvolnenie

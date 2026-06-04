@@ -231,7 +231,8 @@ public partial class CControlManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-
+        deltaRobot.MoveToPolar(0, 210);
+        deltaRobot.WaitForTargetReached(5000);
         return 130;
     } // Vychodiskova poloha ->130
 
@@ -305,18 +306,19 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep190(int step)
     {
         Message = "Zasunutie";
-        deltaRobot.MoveToPolar(0, 140);
+        deltaRobot.MoveToPolar(0, 210);
         deltaRobot.WaitForTargetReached(5000);
         IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.OutputEmpty);
-        return 220;
-    } //Zasunutie a uvolnenie zony -> 220
+        return 200;
+    } //Odchod z lisu a uvolnenie zony -> 220
 
     private int MainStep200(int step)
     {
         Message = "";
-
-        return 210;
-    } //
+        deltaRobot.MoveToPolar(0, 140);
+        deltaRobot.WaitForTargetReached(5000);
+        return 220;
+    } //Zasunutie na vykladanie
 
     private int MainStep210(int step)
     {
@@ -346,7 +348,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep230(int step)
     {
         Message = "Vyska na vylozenie";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-37, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-35, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 240;
     } //Vyska na vylozenie ->240
