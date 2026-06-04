@@ -105,6 +105,7 @@ public partial class CControlLis : CPlcEpos
             case 180: return MainStep180(step);
             case 190: return MainStep190(step);
             case 200: return MainStep200(step);
+            case 210: return MainStep210(step);
             default: return base.RunStep(step);
         }
     }
@@ -338,6 +339,8 @@ public partial class CControlLis : CPlcEpos
 
         return 200;
     } // Uvolni zony a nastavi priznak
+    
+    
 
     private int MainStep200(int step)
     {
@@ -353,10 +356,27 @@ public partial class CControlLis : CPlcEpos
         {
             return 105;
         }
-
+        // caka pokial manipulator nastavi EnZoneStatus.StackFull plny zasobnik
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.StackFull))
+        {
+            
+            return 210;
+        }
+        
         return step;
-    } // Caka na odobratie vyrobku a navrat na zaciatok ->105
-
+    } // Caka na odobratie vyrobku a navrat na zaciatok ->105 alebo ak je zasobnik plny tak zaparkovat a koniec
+    private int MainStep210(int step)
+    {
+        Message = "Presun do cistiacej  polohy";
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaCistenia, true, true);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaCistenia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.Unknown);
+        return 0;
+    } // Presun do nasypacej polohy
     [RelayCommand]
     public void SaveParameters()
     {

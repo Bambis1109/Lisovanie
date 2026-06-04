@@ -23,7 +23,7 @@ public partial class CControlManipulator : CPlcEpos
     public CJaws jaws { get; set; } = new CJaws();
     [ObservableProperty] private Matrix _matrixOK;
     [ObservableProperty] private Matrix _matrixNOK;
-    public CProduktLis ProduktLisActual { get;  set; } = new();
+    public CProduktLis ProduktLisActual { get; set; } = new();
     public bool ResultUchopenie { get; private set; }
 
     public CControlManipulator(string name) : base(name)
@@ -69,8 +69,8 @@ public partial class CControlManipulator : CPlcEpos
             case 130: return MainStep130(step);
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
-            case 160: return MainStep160(step); 
-            case 170: return MainStep170(step); 
+            case 160: return MainStep160(step);
+            case 170: return MainStep170(step);
             case 180: return MainStep180(step);
             case 190: return MainStep190(step);
             case 200: return MainStep200(step);
@@ -95,7 +95,7 @@ public partial class CControlManipulator : CPlcEpos
         StatusCycle = EnStatusCycle.Moving;
         MatrixOK = new Matrix(-306, -68, 21, 19, 6, 7);
         MatrixOK.RecalculDIA();
-        MatrixNOK = new Matrix(165, -68, 21, 19, 6, 7);
+        MatrixNOK = new Matrix(165, -68, 21, 19, 2, 2);
         MatrixNOK.RecalculDIA();
 
         return 10;
@@ -218,6 +218,7 @@ public partial class CControlManipulator : CPlcEpos
         {
             return 0;
         }
+
         return 120;
     } // -> 120
 
@@ -244,8 +245,8 @@ public partial class CControlManipulator : CPlcEpos
             return 0;
         }
 
-       if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk))
-       {
+        if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.OutputFullOk))
+        {
             ProduktLisActual.Status = EnProduktLis.Ok;
             return 140;
         }
@@ -274,7 +275,7 @@ public partial class CControlManipulator : CPlcEpos
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 160;
     } // Dolu nad vyrobok -> 160
-    
+
     private int MainStep160(int step)
     {
         Message = "Uchopenie";
@@ -308,7 +309,15 @@ public partial class CControlManipulator : CPlcEpos
         Message = "Zasunutie";
         deltaRobot.MoveToPolar(0, 210);
         deltaRobot.WaitForTargetReached(5000);
-        IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.OutputEmpty);
+        if (MatrixNOK.LastItem || MatrixOK.LastItem)
+        {
+            IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.StackFull);
+        }
+        else
+        {
+            IL.ZonePress.Release(EnZoneOwner.Manipulator, EnZoneStatus.OutputEmpty);
+        }
+
         return 200;
     } //Odchod z lisu a uvolnenie zony -> 220
 
@@ -330,7 +339,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep220(int step)
     {
         Message = "Vysunutie na vykladanie";
-      
+
         if (ProduktLisActual.Status == EnProduktLis.Ok)
         {
             deltaRobot.MoveToXY(MatrixOK.Xactual, MatrixOK.Yactual);
@@ -341,7 +350,7 @@ public partial class CControlManipulator : CPlcEpos
         }
 
         deltaRobot.WaitForTargetReached(5000);
-      
+
         return 230;
     } //Vysunutie na vykladanie -> 230
 
@@ -373,24 +382,39 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep260(int step)
     {
         Message = "Test naplnenia zasobnikov";
+        if (MatrixNOK.LastItem || MatrixOK.LastItem) //test ze bol posledny OK alebo NOK
+        {
+            if (ProduktLisActual.Status == EnProduktLis.Ok)
+            {
+                if (MatrixOK.SetNextItem()) ; // Ak je  OK nastav dalsi polozku 
+            }
+            else
+            {
+                if (MatrixNOK.SetNextItem()) ; // Ak je NOK  nastav dalsi polozku
+            }
+            return 270;
+        }
+        
         if (ProduktLisActual.Status == EnProduktLis.Ok)
         {
-            if (MatrixOK.SetNextItemTestLast()) return 270; // Ak je pocet OK  posledny parkuj ->270
+            if (MatrixOK.SetNextItem()) ; // Ak je  OK nastav dalsi polozku 
         }
         else
         {
-            if (MatrixNOK.SetNextItemTestLast()) return 270; // Ak je pocet NOK posledny parkuj ->270
+            if (MatrixNOK.SetNextItem()) ; // Ak je NOK  nastav dalsi polozku
         }
+        
 
-     
         return 100;
     } // Test naplnenia OK/NOK parkuj a koniec->270 , ak nie ideme dalsi cyklus ->100
 
     private int MainStep270(int step)
     {
         Message = "Parkuj";
-        Log.Logger.ForContext("Name", Name).Information($"Manipulator: Ulozene OK: {MatrixOK.ActualItem}/{MatrixOK.CountItem}, NOK: {MatrixNOK.ActualItem}/{MatrixNOK.CountItem}");
-        deltaRobot.MoveToPolar(0, 160);
+        Log.Logger.ForContext("Name", Name)
+            .Information(
+                $"Manipulator: Ulozene OK: {MatrixOK.ActualItem}/{MatrixOK.CountItem}, NOK: {MatrixNOK.ActualItem}/{MatrixNOK.CountItem}");
+        deltaRobot.MoveToPolar(0, 140);
         MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);

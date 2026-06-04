@@ -15,6 +15,7 @@ public partial class Matrix : ObservableObject
     [ObservableProperty] private int _ynum;
     [ObservableProperty] private int _actualItem;
     [ObservableProperty] private int _countItem;
+    [ObservableProperty] private bool _lastItem;
 
     public int Xactual
     {
@@ -49,16 +50,19 @@ public partial class Matrix : ObservableObject
         Xnum = xnum;
         Ynum = ynum;
         ActualItem = 0;
+        _lastItem = false;
     }
 
-    public bool SetNextItemTestLast()
+    public bool SetNextItem()
     {
-        if (ActualItem >= Items.Count - 1)
+        if (ActualItem >= Items.Count - 2)
         {
             ActualItem += 1;
+           LastItem = true;
             return true;
         }
         ActualItem += 1;
+        LastItem = false;
         return false;
     }
 
