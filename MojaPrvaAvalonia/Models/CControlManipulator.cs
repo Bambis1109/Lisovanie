@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -81,7 +77,7 @@ public partial class CControlManipulator : CPlcEpos
             case 250: return MainStep250(step);
             case 260: return MainStep260(step);
             case 270: return MainStep270(step);
-
+            case 280: return MainStep280(step);
             default: return base.RunStep(step);
         }
     }
@@ -95,7 +91,7 @@ public partial class CControlManipulator : CPlcEpos
         StatusCycle = EnStatusCycle.Moving;
         MatrixOK = new Matrix(-306, -68, 21, 19, 6, 7);
         MatrixOK.RecalculDIA();
-        MatrixNOK = new Matrix(165, -68, 21, 19, 2, 2);
+        MatrixNOK = new Matrix(165, -68, 21, 19, 3, 2);
         MatrixNOK.RecalculDIA();
 
         return 10;
@@ -421,8 +417,21 @@ public partial class CControlManipulator : CPlcEpos
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-        return 0;
-    } // Parkuj Koniec-> 0 
+        
+        return 280;
+    } // Manipulator zaparkovany -> 280 
+    
+    private int MainStep280(int step)
+    {
+        Message = "Caka na zaparkovanie lisu";
+        if (IL.ZonePress.TryLock(EnZoneOwner.Manipulator, EnZoneStatus.Unknown))
+        {
+            ProduktLisActual.Status = EnProduktLis.Unknow;
+            return 0;
+        }
+        return Step;
+    } // cakaj na zaparkovanie lisu. Prebratie zony a Koniec-> 0 
+    
 
     // Dodatočné metódy z CDelta
     [RelayCommand]
