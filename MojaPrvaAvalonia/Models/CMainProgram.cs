@@ -90,8 +90,8 @@ public partial class CMainProgram : ObservableObject
 
             CControlScales? _scales = ZoznamPlc[2] as CControlScales;
 
-            _scales.Scale1 = CreateScale(DeviceManagerScale, 5, "Scale1");//6
-            _scales.Scale2 = CreateScale(DeviceManagerScale, 4, "Scale2");//3
+            _scales.Scale1 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha1, "Scale1");
+            _scales.Scale2 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha2, "Scale2");
 
 
             _scales.Scales.Clear();

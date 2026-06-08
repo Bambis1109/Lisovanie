@@ -13,6 +13,8 @@ public partial class CControlScales : CPlcScale
     public CDeviceScale Scale2 { get; set; }
     private int _lastUsedScale = 2;
 
+    public CParametersScale ParametersScale { get; set; } = new();
+
     public CControlScales(string name) : base(name)
     {
         LoadParameters();
@@ -310,14 +312,12 @@ public partial class CControlScales : CPlcScale
     [RelayCommand]
     public void SaveParameters()
     {
-        //ToDo  SaveParametersToFile("ParametersScale.json", ParametersScale);
+        SaveParametersToFile("ParametersScale.json", ParametersScale);
     }
 
     [RelayCommand]
     public void LoadParameters()
     {
-        //ToDo    LoadParametersFromFile("ParametersScale.json", ParametersScale);
-
-        // NABINDOVANIE NA AI (Aktualizácia kinematiky)
+        LoadParametersFromFile("ParametersScale.json", ParametersScale);
     }
 }

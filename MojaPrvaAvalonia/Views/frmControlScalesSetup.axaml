@@ -15,8 +15,17 @@
     <Grid RowDefinitions="*, Auto">
         <uc:UcScalesSetup Name="UcSetup" Grid.Row="0" />
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
-            <Button Content="Zavrieť" Click="BtnClose_OnClick" 
-                    Padding="20,10" Background="#B22222" Foreground="White" 
+            <Button Content="Load" Command="{Binding LoadParametersCommand}"
+                    Padding="20,10" Background="#2E7D32" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Save" Command="{Binding SaveParametersCommand}"
+                    Padding="20,10" Background="#1565C0" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Settings" Click="BtnSettings_OnClick"
+                    Padding="20,10" Background="#6A1B9A" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Zavrieť" Click="BtnClose_OnClick"
+                    Padding="20,10" Background="#B22222" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
         </StackPanel>
     </Grid>
