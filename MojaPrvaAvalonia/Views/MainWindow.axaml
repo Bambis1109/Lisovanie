@@ -10,69 +10,88 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Width="760" Height="900"
-        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
-    
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full"
+        Background="#1A1A1A">
+
     <Window.Resources>
         <conv:LogColorConverter x:Key="LogColorConv"/>
         <conv:ProduktStatusColorConverter x:Key="ProduktStatusColorConv"/>
     </Window.Resources>
-    
-    <Grid RowDefinitions="*, Auto, 200">
 
-        <!-- Horná časť: PLC panely -->
-        <ScrollViewer Grid.Row="0">
-            <StackPanel Margin="10">
-                <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto" Margin="0,0,0,10">
-                    <TextBlock Grid.Column="0"
-                               Text="LISOVANIE"
-                               FontSize="20"
-                               FontWeight="ExtraBold"
-                               VerticalAlignment="Center"/>
+    <Grid RowDefinitions="Auto, *, Auto, 200">
 
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding MainProgram.IxxatState}"
-                               VerticalAlignment="Center"
+        <!-- Hlavička (pevná, mimo scrollu) -->
+        <Border Grid.Row="0"
+                Background="#0D0D0D"
+                BorderBrush="#FFB300"
+                BorderThickness="0,0,0,2"
+                Padding="10,7">
+            <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
+
+                <TextBlock Grid.Column="0"
+                           Text="LISOVANIE"
+                           FontSize="22"
+                           FontWeight="ExtraBold"
+                           Foreground="#FFB300"
+                           VerticalAlignment="Center"/>
+
+                <Border Grid.Column="1"
+                        Background="#1A1A1A"
+                        BorderBrush="#444"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Padding="8,4"
+                        Margin="12,0,16,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding MainProgram.IxxatState}"
                                FontWeight="Bold"
-                               Margin="0,0,15,0"
-                               Foreground="Yellow"/>
+                               FontSize="12"
+                               Foreground="#FFD600"/>
+                </Border>
 
-                   
-                    <Button Grid.Column="2"
-                            Content="Connect"
-                            Command="{Binding ConnectCommand}"
-                            Background="ForestGreen"
-                            Foreground="White"
-                            Width="100"
-                            Padding="0,5"
-                            HorizontalContentAlignment="Center"
-                            FontWeight="Bold"
-                            CornerRadius="5"
-                            Margin="0,0,5,0"/>
-                    
-                    <Button Grid.Column="3"
-                            Content="Setup"
-                            Click="BtnZoneSetup_OnClick"
-                            Background="#6A1B9A"
-                            Foreground="White"
-                            Width="100"
-                            Padding="0,5"
-                            HorizontalContentAlignment="Center"
-                            FontWeight="Bold"
-                            CornerRadius="5"
-                            Margin="0,0,5,0"/>
+                <Button Grid.Column="2"
+                        Content="CONNECT"
+                        Command="{Binding ConnectCommand}"
+                        Background="#1B5E20"
+                        Foreground="White"
+                        Width="95"
+                        Padding="0,6"
+                        HorizontalContentAlignment="Center"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        CornerRadius="3"
+                        Margin="0,0,5,0"/>
 
-                    <Button Grid.Column="4"
-                            Content="Exit"
-                            Command="{Binding ExitApplicationCommand}"
-                            Background="#B22222"
-                            Foreground="White"
-                            Width="100"
-                            Padding="0,5"
-                            HorizontalContentAlignment="Center"
-                            FontWeight="Bold"
-                            CornerRadius="5"/>
-                </Grid>
+                <Button Grid.Column="3"
+                        Content="SETUP"
+                        Click="BtnZoneSetup_OnClick"
+                        Background="#4A148C"
+                        Foreground="White"
+                        Width="95"
+                        Padding="0,6"
+                        HorizontalContentAlignment="Center"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        CornerRadius="3"
+                        Margin="0,0,5,0"/>
 
+                <Button Grid.Column="4"
+                        Content="EXIT"
+                        Command="{Binding ExitApplicationCommand}"
+                        Background="#B71C1C"
+                        Foreground="White"
+                        Width="95"
+                        Padding="0,6"
+                        HorizontalContentAlignment="Center"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        CornerRadius="3"/>
+            </Grid>
+        </Border>
+
+        <!-- PLC panely (scrollovateľné) -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="8,6">
                 <ItemsControl ItemsSource="{Binding MainProgram.ZoznamPlc}">
                     <ItemsControl.DataTemplates>
                         <DataTemplate DataType="models:CControlManipulator">
@@ -90,21 +109,23 @@
         </ScrollViewer>
 
         <!-- Stredná časť: Výrobné dáta dávky -->
-        <Border Grid.Row="1"
-                Background="#252526" BorderBrush="#444" BorderThickness="0,1"
+        <Border Grid.Row="2"
+                Background="#1E1E1E"
+                BorderBrush="#FFB300"
+                BorderThickness="0,1,0,0"
                 Padding="8,6">
             <Grid ColumnDefinitions="Auto, 8, *" VerticalAlignment="Center">
 
                 <!-- OK / NOK bloky (Manipulátor) -->
-                <Grid Grid.Column="0" ColumnDefinitions="70, 55" RowDefinitions="Auto, 2, Auto">
+                <Grid Grid.Column="0" ColumnDefinitions="65, 55" RowDefinitions="Auto, 2, Auto">
 
                     <!-- OK riadok -->
-                    <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="10,6" CornerRadius="4,0,0,0">
-                        <TextBlock Text="OK" FontWeight="Bold" FontSize="18" Foreground="White"
+                    <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="8,6" CornerRadius="4,0,0,0">
+                        <TextBlock Text="OK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border Grid.Row="0" Grid.Column="1" Background="#1B5E20" Padding="6,6" CornerRadius="0,4,0,0">
-                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="18" Foreground="White"
+                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#A5D6A7"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
 
@@ -112,65 +133,71 @@
                     <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#111" Height="2"/>
 
                     <!-- NOK riadok -->
-                    <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="10,6" CornerRadius="0,0,0,4">
-                        <TextBlock Text="NOK" FontWeight="Bold" FontSize="18" Foreground="White"
+                    <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="8,6" CornerRadius="0,0,0,4">
+                        <TextBlock Text="NOK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border Grid.Row="2" Grid.Column="1" Background="#7F0000" Padding="6,6" CornerRadius="0,0,4,0">
-                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="18" Foreground="White"
+                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#EF9A9A"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
 
                 </Grid>
 
                 <!-- Zvislý oddeľovač -->
-                <Border Grid.Column="1" Background="#555" Width="1" Margin="0,2"/>
+                <Border Grid.Column="1" Background="#444" Width="1" Margin="0,2"/>
 
                 <!-- Tabuľka: Aktuálny + Posledný produkt -->
                 <Grid Grid.Column="2" Margin="8,0"
-                      ColumnDefinitions="Auto, 90, 90, 70"
+                      ColumnDefinitions="90, 90, 90, 70"
                       RowDefinitions="Auto, Auto, Auto"
                       VerticalAlignment="Center">
 
                     <!-- Hlavička -->
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Produkt"   Foreground="Gray" FontSize="11" FontWeight="Bold" Margin="0,0,12,4"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Sila (N)"  Foreground="Gray" FontSize="11" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,4"/>
-                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Výška mm"  Foreground="Gray" FontSize="11" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,4"/>
-                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Stav"      Foreground="Gray" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Produkt"  Foreground="#888" FontSize="10" FontWeight="Bold" Margin="0,0,0,3"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Sila (N)" Foreground="#888" FontSize="10" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,3"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Výška mm" Foreground="#888" FontSize="10" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,3"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Stav"     Foreground="#888" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
                     <!-- Aktuálny -->
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Aktualny:" Foreground="LightGray" FontSize="13" VerticalAlignment="Center" Margin="0,0,12,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Aktualny:"
+                               Foreground="#BDBDBD" FontSize="12" VerticalAlignment="Center" Margin="0,0,0,2"/>
                     <TextBlock Grid.Row="1" Grid.Column="1"
                                Text="{Binding Lis.ProduktLisActual.Sila, StringFormat={}{0:F0}}"
-                               Foreground="Yellow" FontWeight="Bold" FontSize="15"
-                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"/>
+                               Foreground="#FFD600" FontWeight="Bold" FontSize="14"
+                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"
+                               FontFamily="Consolas"/>
                     <TextBlock Grid.Row="1" Grid.Column="2"
                                Text="{Binding Lis.ProduktLisActual.Vyska, StringFormat={}{0:F2}}"
-                               Foreground="Cyan" FontWeight="Bold" FontSize="15"
-                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"/>
+                               Foreground="#4FC3F7" FontWeight="Bold" FontSize="14"
+                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"
+                               FontFamily="Consolas"/>
                     <Border Grid.Row="1" Grid.Column="3"
                             Background="{Binding Lis.ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConv}}"
-                            CornerRadius="3" Padding="8,2" HorizontalAlignment="Center" Margin="4,1">
+                            CornerRadius="3" Padding="6,2" HorizontalAlignment="Center" Margin="4,1">
                         <TextBlock Text="{Binding Lis.ProduktLisActual.Status}"
-                                   Foreground="White" FontWeight="Bold" FontSize="13"
+                                   Foreground="White" FontWeight="Bold" FontSize="12"
                                    HorizontalAlignment="Center"/>
                     </Border>
 
                     <!-- Posledný -->
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Posledny:" Foreground="LightGray" FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Posledny:"
+                               Foreground="#BDBDBD" FontSize="12" VerticalAlignment="Center"/>
                     <TextBlock Grid.Row="2" Grid.Column="1"
                                Text="{Binding Lis.ProduktLisLast.Sila, StringFormat={}{0:F0}}"
-                               Foreground="Yellow" FontWeight="Bold" FontSize="15"
-                               TextAlignment="Right" VerticalAlignment="Center"/>
+                               Foreground="#FFD600" FontWeight="Bold" FontSize="14"
+                               TextAlignment="Right" VerticalAlignment="Center"
+                               FontFamily="Consolas"/>
                     <TextBlock Grid.Row="2" Grid.Column="2"
                                Text="{Binding Lis.ProduktLisLast.Vyska, StringFormat={}{0:F2}}"
-                               Foreground="Cyan" FontWeight="Bold" FontSize="15"
-                               TextAlignment="Right" VerticalAlignment="Center"/>
+                               Foreground="#4FC3F7" FontWeight="Bold" FontSize="14"
+                               TextAlignment="Right" VerticalAlignment="Center"
+                               FontFamily="Consolas"/>
                     <Border Grid.Row="2" Grid.Column="3"
                             Background="{Binding Lis.ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConv}}"
-                            CornerRadius="3" Padding="8,2" HorizontalAlignment="Center" Margin="4,1">
+                            CornerRadius="3" Padding="6,2" HorizontalAlignment="Center" Margin="4,1">
                         <TextBlock Text="{Binding Lis.ProduktLisLast.Status}"
-                                   Foreground="White" FontWeight="Bold" FontSize="13"
+                                   Foreground="White" FontWeight="Bold" FontSize="12"
                                    HorizontalAlignment="Center"/>
                     </Border>
 
@@ -180,33 +207,33 @@
 
         <!-- Dolná časť: Logy -->
         <ListBox x:Name="LogListBox"
-                 Grid.Row="2"
-                 ItemsSource="{Binding VypisLogov}" 
-                 Background="#1E1E1E" 
+                 Grid.Row="3"
+                 ItemsSource="{Binding VypisLogov}"
+                 Background="#111111"
                  FontFamily="Consolas"
                  Margin="5"
-                 CornerRadius="5">
+                 CornerRadius="4">
 
             <ListBox.Styles>
                 <Style Selector="ListBox">
                     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
                     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
                 </Style>
-        
                 <Style Selector="ListBoxItem">
-                    <Setter Property="Padding" Value="5,0"/> 
-                    <Setter Property="MinHeight" Value="0"/> 
+                    <Setter Property="Padding" Value="5,0"/>
+                    <Setter Property="MinHeight" Value="0"/>
                 </Style>
             </ListBox.Styles>
 
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="sys:String">
-                    <TextBlock Text="{Binding}" 
-                               Foreground="{Binding Converter={StaticResource LogColorConv}}" 
+                    <TextBlock Text="{Binding}"
+                               Foreground="{Binding Converter={StaticResource LogColorConv}}"
                                FontSize="11"
                                TextWrapping="Wrap"/>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+
     </Grid>
 </Window>

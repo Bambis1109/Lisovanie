@@ -19,13 +19,13 @@
         </Style>
     </UserControl.Styles>
 
-    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8" Margin="5">
+    <Border BorderBrush="#444" BorderThickness="1" CornerRadius="6" Background="#151515" Padding="8" Margin="4,4,4,2">
         <StackPanel Spacing="5">
             
             <!-- Base PLC Ovládanie -->
             <uc:UcStatusPlc />
 
-            <Separator Height="1" Background="Gray" Margin="0,5"/>
+            <Separator Height="1" Background="#333" Margin="0,5"/>
 
             <!-- Reálne motory a Setup tlačidlo pre Lis -->
             <Grid ColumnDefinitions="*, Auto">
@@ -43,8 +43,8 @@
                 </ItemsControl>
 
                 <!-- Setup Tlačidlo tváriace sa ako motor block -->
-                <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick" 
-                        Background="DodgerBlue" Foreground="White" 
+                <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick"
+                        Background="#0D47A1" Foreground="White"
                         Width="80" Height="60" Margin="2"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>

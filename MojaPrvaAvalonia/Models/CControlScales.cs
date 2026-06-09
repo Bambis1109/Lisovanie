@@ -115,7 +115,7 @@ public partial class CControlScales : CPlcScale
         }
 
         Log.Logger.ForContext("Name", Name)
-            .Error($"Váha 1 je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+            .Information($"Váha 1 je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
         return 101;
     } //Start Vaha 1 ->101
 
@@ -139,7 +139,7 @@ public partial class CControlScales : CPlcScale
         }
 
         Log.Logger.ForContext("Name", Name)
-            .Error($"Váha 2 je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+            .Information($"Váha 2 je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
         return 110;
     } //Start Vaha 2 ->110
 
