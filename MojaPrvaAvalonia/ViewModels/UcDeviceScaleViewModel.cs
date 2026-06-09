@@ -44,14 +44,19 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _statusMainProc = "---";
     [ObservableProperty] private string _statusMainMat = "---";
     [ObservableProperty] private string _statusMainZone = "---";
-    
+
     [ObservableProperty] private string _statusVyloznikProc = "---";
     [ObservableProperty] private string _statusVyloznikMat = "---";
-    
+
     [ObservableProperty] private string _statusDoserProc = "---";
     [ObservableProperty] private string _statusDoserMat = "---";
 
     [ObservableProperty] private string _weightResult = "---";
+
+    // --- Farby pre kompaktný view ---
+    [ObservableProperty] private IBrush _mainProcColor = Brushes.DarkSlateGray;
+    [ObservableProperty] private IBrush _mainMatColor = Brushes.DarkSlateGray;
+    [ObservableProperty] private IBrush _weightResultColor = Brushes.DarkSlateGray;
 
     // Konštruktor pre XAML Designer
     public UcDeviceScaleViewModel() {}
@@ -119,6 +124,30 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
             StatusDoserMat = data.StatusDoserMat.ToString();
             
             WeightResult = data.WeightResult.ToString();
+
+            MainProcColor = data.StatusMainProc switch
+            {
+                EProcStatus.NoInit     => new SolidColorBrush(Color.FromRgb(0, 150, 180)),
+                EProcStatus.Ready      => Brushes.Green,
+                EProcStatus.Busy       => Brushes.DarkOrange,
+                EProcStatus.Error      => Brushes.Crimson,
+                EProcStatus.NoMaterial => Brushes.DimGray,
+                _                      => Brushes.DarkSlateGray
+            };
+
+            MainMatColor = data.StatusMainMat switch
+            {
+                EMatStatus.Full  => Brushes.Green,
+                EMatStatus.Empty => Brushes.Crimson,
+                _                => Brushes.DimGray
+            };
+
+            WeightResultColor = data.WeightResult switch
+            {
+                EVaResult.OK  => Brushes.Green,
+                EVaResult.NOK => Brushes.Crimson,
+                _             => Brushes.DimGray
+            };
 
             UpdateStatusAndColors(nmtState);
         }
