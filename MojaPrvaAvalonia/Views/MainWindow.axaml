@@ -14,9 +14,10 @@
     
     <Window.Resources>
         <conv:LogColorConverter x:Key="LogColorConv"/>
+        <conv:ProduktStatusColorConverter x:Key="ProduktStatusColorConv"/>
     </Window.Resources>
     
-    <Grid RowDefinitions="*, 250">
+    <Grid RowDefinitions="*, Auto, 200">
 
         <!-- Horná časť: PLC panely -->
         <ScrollViewer Grid.Row="0">
@@ -87,9 +88,84 @@
             </StackPanel>
         </ScrollViewer>
 
+        <!-- Stredná časť: Výrobné dáta dávky -->
+        <Border Grid.Row="1"
+                Background="#252526" BorderBrush="#444" BorderThickness="0,1"
+                Padding="10,6">
+            <Grid ColumnDefinitions="Auto, 1, *">
+
+                <!-- OK / NOK počítadlá (Manipulátor) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="OK" FontWeight="Bold" FontSize="22" Foreground="LimeGreen" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="22" Foreground="LimeGreen" VerticalAlignment="Center"/>
+                        <TextBlock Text="zo" FontSize="14" Foreground="LimeGreen" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Manipulator.MatrixOK.CountItem}" FontSize="14" Foreground="LimeGreen" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="NOK" FontWeight="Bold" FontSize="22" Foreground="Red" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="22" Foreground="Red" VerticalAlignment="Center"/>
+                        <TextBlock Text="zo" FontSize="14" Foreground="Red" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Manipulator.MatrixNOK.CountItem}" FontSize="14" Foreground="Red" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Zvislý oddeľovač -->
+                <Border Grid.Column="1" Background="#555" Margin="12,2"/>
+
+                <!-- Aktuálny + Posledný produkt (Lis) -->
+                <Grid Grid.Column="2" ColumnDefinitions="*, 1, *">
+
+                    <!-- Aktuálny produkt -->
+                    <StackPanel Grid.Column="0" Spacing="2" Margin="8,0">
+                        <TextBlock Text="Aktuálny produkt" FontSize="11" Foreground="Gray" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Sila:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock Text="{Binding Lis.ProduktLisActual.Sila, StringFormat={}{0:F0} N}"
+                                           Foreground="Yellow" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Výška:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock Text="{Binding Lis.ProduktLisActual.Vyska, StringFormat={}{0:F2} mm}"
+                                           Foreground="Cyan" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Lis.ProduktLisActual.Status}"
+                                       Foreground="{Binding Lis.ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConv}}"
+                                       FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Zvislý oddeľovač -->
+                    <Border Grid.Column="1" Background="#555" Margin="0,2"/>
+
+                    <!-- Posledný produkt -->
+                    <StackPanel Grid.Column="2" Spacing="2" Margin="8,0">
+                        <TextBlock Text="Posledný produkt" FontSize="11" Foreground="Gray" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Sila:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock Text="{Binding Lis.ProduktLisLast.Sila, StringFormat={}{0:F0} N}"
+                                           Foreground="Yellow" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Výška:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock Text="{Binding Lis.ProduktLisLast.Vyska, StringFormat={}{0:F2} mm}"
+                                           Foreground="Cyan" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Lis.ProduktLisLast.Status}"
+                                       Foreground="{Binding Lis.ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConv}}"
+                                       FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                </Grid>
+            </Grid>
+        </Border>
+
         <!-- Dolná časť: Logy -->
         <ListBox x:Name="LogListBox"
-                 Grid.Row="1"
+                 Grid.Row="2"
                  ItemsSource="{Binding VypisLogov}" 
                  Background="#1E1E1E" 
                  FontFamily="Consolas"

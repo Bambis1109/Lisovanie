@@ -18,6 +18,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public CMainProgram MainProgram { get; }
 
+    public CControlManipulator? Manipulator => MainProgram.ZoznamPlc.Count > 0 ? MainProgram.ZoznamPlc[0] as CControlManipulator : null;
+    public CControlLis? Lis => MainProgram.ZoznamPlc.Count > 1 ? MainProgram.ZoznamPlc[1] as CControlLis : null;
+
     public CMutexZone ZonePress => IL.ZonePress;
 
     public IEnumerable<EnZoneOwner> ZoneOwners => Enum.GetValues<EnZoneOwner>();
