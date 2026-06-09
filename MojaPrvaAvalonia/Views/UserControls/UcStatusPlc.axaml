@@ -70,7 +70,6 @@
                     Background="#E0E0E0" />
             
             <Button Content="Krok" Command="{Binding NextStepProgramCommand}" Background="LightSkyBlue" />
-            <Button Content="POKRAČOVAŤ" Command="{Binding ContinueProgramCommand}" />
 
         </StackPanel>
         
