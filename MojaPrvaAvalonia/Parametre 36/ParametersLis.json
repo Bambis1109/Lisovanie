@@ -1,0 +1,42 @@
+{
+  "ParLis": {
+    "VyskaNasypacia": -50,
+    "VyskaPriblizenie": -140,
+    "VyskaKalibra": 12.08,
+    "VyskaSenAbsolut1": 20.326,
+    "VyskaSenAbsolut2": 20.028,
+    "SilaKalib1": 1000,
+    "SilaKalib2": 5000,
+    "VyskaSenPulz": 200,
+    "VyskaCistenia": 0,
+    "SmernicaK": 7.45E-05,
+    "KonstantaB": -8.3205
+  },
+  "ParKonzola": {
+    "VyskaOdoberacia": -21,
+    "VyskaNasypacia": -48,
+    "VyskaLisovacia": -30,
+    "VyskaCistenia": -70,
+    "CyklovCistenia": 9
+  },
+  "ParVyrobok": {
+    "Name": "KV4",
+    "VyskaMax": 13.5,
+    "VyskaMin": 11,
+    "VyskaPozadovana": 13,
+    "SilaMax": 4400,
+    "SilaMin": 3400,
+    "SilaPozadovana": 4000
+  },
+  "ParVaha": {
+    "VahaPozadovana": 5.5,
+    "VahaMax": 5.55,
+    "VahaMin": 5.45
+  },
+  "CanLine": 0,
+  "BoardLine": 0,
+  "IDVaha1": 4,
+  "IDVaha2": 7,
+  "IDVaha3": 8,
+  "IDBox": 10
+}
