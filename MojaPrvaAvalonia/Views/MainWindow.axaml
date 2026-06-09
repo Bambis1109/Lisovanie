@@ -36,10 +36,11 @@
                                Margin="0,0,15,0"
                                Foreground="Yellow"/>
 
+                   
                     <Button Grid.Column="2"
-                            Content="Setup"
-                            Click="BtnZoneSetup_OnClick"
-                            Background="#6A1B9A"
+                            Content="Connect"
+                            Command="{Binding ConnectCommand}"
+                            Background="ForestGreen"
                             Foreground="White"
                             Width="100"
                             Padding="0,5"
@@ -47,11 +48,11 @@
                             FontWeight="Bold"
                             CornerRadius="5"
                             Margin="0,0,5,0"/>
-
+                    
                     <Button Grid.Column="3"
-                            Content="Connect"
-                            Command="{Binding ConnectCommand}"
-                            Background="ForestGreen"
+                            Content="Setup"
+                            Click="BtnZoneSetup_OnClick"
+                            Background="#6A1B9A"
                             Foreground="White"
                             Width="100"
                             Padding="0,5"
@@ -91,73 +92,87 @@
         <!-- Stredná časť: Výrobné dáta dávky -->
         <Border Grid.Row="1"
                 Background="#252526" BorderBrush="#444" BorderThickness="0,1"
-                Padding="10,6">
-            <Grid ColumnDefinitions="Auto, 1, *">
+                Padding="8,6">
+            <Grid ColumnDefinitions="Auto, 8, *" VerticalAlignment="Center">
 
-                <!-- OK / NOK počítadlá (Manipulátor) -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                        <TextBlock Text="OK" FontWeight="Bold" FontSize="22" Foreground="LimeGreen" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="22" Foreground="LimeGreen" VerticalAlignment="Center"/>
-                        <TextBlock Text="zo" FontSize="14" Foreground="LimeGreen" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Manipulator.MatrixOK.CountItem}" FontSize="14" Foreground="LimeGreen" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                        <TextBlock Text="NOK" FontWeight="Bold" FontSize="22" Foreground="Red" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="22" Foreground="Red" VerticalAlignment="Center"/>
-                        <TextBlock Text="zo" FontSize="14" Foreground="Red" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Manipulator.MatrixNOK.CountItem}" FontSize="14" Foreground="Red" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </StackPanel>
+                <!-- OK / NOK bloky (Manipulátor) -->
+                <Grid Grid.Column="0" ColumnDefinitions="70, 55" RowDefinitions="Auto, 2, Auto">
+
+                    <!-- OK riadok -->
+                    <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="10,6" CornerRadius="4,0,0,0">
+                        <TextBlock Text="OK" FontWeight="Bold" FontSize="18" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Background="#1B5E20" Padding="6,6" CornerRadius="0,4,0,0">
+                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="18" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Oddeľovač -->
+                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#111" Height="2"/>
+
+                    <!-- NOK riadok -->
+                    <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="10,6" CornerRadius="0,0,0,4">
+                        <TextBlock Text="NOK" FontWeight="Bold" FontSize="18" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="1" Background="#7F0000" Padding="6,6" CornerRadius="0,0,4,0">
+                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="18" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                </Grid>
 
                 <!-- Zvislý oddeľovač -->
-                <Border Grid.Column="1" Background="#555" Margin="12,2"/>
+                <Border Grid.Column="1" Background="#555" Width="1" Margin="0,2"/>
 
-                <!-- Aktuálny + Posledný produkt (Lis) -->
-                <Grid Grid.Column="2" ColumnDefinitions="*, 1, *">
+                <!-- Tabuľka: Aktuálny + Posledný produkt -->
+                <Grid Grid.Column="2" Margin="8,0"
+                      ColumnDefinitions="Auto, 90, 90, 70"
+                      RowDefinitions="Auto, Auto, Auto"
+                      VerticalAlignment="Center">
 
-                    <!-- Aktuálny produkt -->
-                    <StackPanel Grid.Column="0" Spacing="2" Margin="8,0">
-                        <TextBlock Text="Aktuálny produkt" FontSize="11" Foreground="Gray" FontWeight="Bold"/>
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Sila:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
-                                <TextBlock Text="{Binding Lis.ProduktLisActual.Sila, StringFormat={}{0:F0} N}"
-                                           Foreground="Yellow" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Výška:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
-                                <TextBlock Text="{Binding Lis.ProduktLisActual.Vyska, StringFormat={}{0:F2} mm}"
-                                           Foreground="Cyan" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <TextBlock Text="{Binding Lis.ProduktLisActual.Status}"
-                                       Foreground="{Binding Lis.ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConv}}"
-                                       FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <!-- Hlavička -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Produkt"   Foreground="Gray" FontSize="11" FontWeight="Bold" Margin="0,0,12,4"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Sila (N)"  Foreground="Gray" FontSize="11" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Výška mm"  Foreground="Gray" FontSize="11" FontWeight="Bold" TextAlignment="Right" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Stav"      Foreground="Gray" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
 
-                    <!-- Zvislý oddeľovač -->
-                    <Border Grid.Column="1" Background="#555" Margin="0,2"/>
+                    <!-- Aktuálny -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Aktualny:" Foreground="LightGray" FontSize="13" VerticalAlignment="Center" Margin="0,0,12,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1"
+                               Text="{Binding Lis.ProduktLisActual.Sila, StringFormat={}{0:F0}}"
+                               Foreground="Yellow" FontWeight="Bold" FontSize="15"
+                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2"
+                               Text="{Binding Lis.ProduktLisActual.Vyska, StringFormat={}{0:F2}}"
+                               Foreground="Cyan" FontWeight="Bold" FontSize="15"
+                               TextAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,2"/>
+                    <Border Grid.Row="1" Grid.Column="3"
+                            Background="{Binding Lis.ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConv}}"
+                            CornerRadius="3" Padding="8,2" HorizontalAlignment="Center" Margin="4,1">
+                        <TextBlock Text="{Binding Lis.ProduktLisActual.Status}"
+                                   Foreground="White" FontWeight="Bold" FontSize="13"
+                                   HorizontalAlignment="Center"/>
+                    </Border>
 
-                    <!-- Posledný produkt -->
-                    <StackPanel Grid.Column="2" Spacing="2" Margin="8,0">
-                        <TextBlock Text="Posledný produkt" FontSize="11" Foreground="Gray" FontWeight="Bold"/>
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Sila:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
-                                <TextBlock Text="{Binding Lis.ProduktLisLast.Sila, StringFormat={}{0:F0} N}"
-                                           Foreground="Yellow" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="Výška:" Foreground="Gray" VerticalAlignment="Center" FontSize="12"/>
-                                <TextBlock Text="{Binding Lis.ProduktLisLast.Vyska, StringFormat={}{0:F2} mm}"
-                                           Foreground="Cyan" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <TextBlock Text="{Binding Lis.ProduktLisLast.Status}"
-                                       Foreground="{Binding Lis.ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConv}}"
-                                       FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <!-- Posledný -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Posledny:" Foreground="LightGray" FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1"
+                               Text="{Binding Lis.ProduktLisLast.Sila, StringFormat={}{0:F0}}"
+                               Foreground="Yellow" FontWeight="Bold" FontSize="15"
+                               TextAlignment="Right" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2"
+                               Text="{Binding Lis.ProduktLisLast.Vyska, StringFormat={}{0:F2}}"
+                               Foreground="Cyan" FontWeight="Bold" FontSize="15"
+                               TextAlignment="Right" VerticalAlignment="Center"/>
+                    <Border Grid.Row="2" Grid.Column="3"
+                            Background="{Binding Lis.ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConv}}"
+                            CornerRadius="3" Padding="8,2" HorizontalAlignment="Center" Margin="4,1">
+                        <TextBlock Text="{Binding Lis.ProduktLisLast.Status}"
+                                   Foreground="White" FontWeight="Bold" FontSize="13"
+                                   HorizontalAlignment="Center"/>
+                    </Border>
 
                 </Grid>
             </Grid>
