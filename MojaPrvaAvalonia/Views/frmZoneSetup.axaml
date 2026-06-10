@@ -3,11 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:MojaPrvaAvalonia.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="120"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
         x:Class="MojaPrvaAvalonia.Views.frmZoneSetup"
         x:DataType="vm:MainWindowViewModel"
         Title="Zóna Lisu – Nastavenie"
-        Width="680" SizeToContent="Height"
+        Width="700" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         Topmost="True"
         CanResize="False"
@@ -15,6 +15,7 @@
 
     <StackPanel Margin="10" Spacing="8">
 
+        <!-- Zone row -->
         <Border Background="#2D2D30"
                 BorderBrush="#555"
                 BorderThickness="1"
@@ -25,7 +26,6 @@
                            Foreground="White"
                            FontWeight="Bold"
                            VerticalAlignment="Center"/>
-             
 
                 <TextBlock Text="Owner:"
                            Foreground="White"
@@ -42,6 +42,79 @@
                 <ComboBox ItemsSource="{Binding ZoneStatuses}"
                           SelectedItem="{Binding ZonePress.Status, Mode=TwoWay}"
                           Width="150"/>
+            </StackPanel>
+        </Border>
+
+        <!-- COM Port Sniffer -->
+        <Border Background="#2D2D30"
+                BorderBrush="#555"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="10">
+            <StackPanel Spacing="8">
+
+                <TextBlock Text="COM Port Sniffer"
+                           Foreground="#AAD4F5"
+                           FontWeight="Bold"
+                           FontSize="13"/>
+
+                <!-- Connection row -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Port:" Foreground="White" VerticalAlignment="Center" Width="35"/>
+                    <ComboBox Name="CbxPort" Width="100" />
+                    <TextBlock Text="Baud:" Foreground="White" VerticalAlignment="Center" Width="35"/>
+                    <AutoCompleteBox Name="CbxBaud" Width="110"
+                                     MinimumPrefixLength="0"
+                                     FilterMode="None"
+                                     FontFamily="Consolas"
+                                     FontSize="12"/>
+                    <Button Name="BtnRefreshPorts" Content="↻"
+                            Click="BtnRefreshPorts_OnClick"
+                            Padding="8,4" ToolTip.Tip="Obnoviť porty"/>
+                    <Button Name="BtnConnect" Content="Pripojiť"
+                            Click="BtnConnect_OnClick"
+                            Padding="12,4" Background="SteelBlue" Foreground="White"/>
+                </StackPanel>
+
+                <!-- Options row -->
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <CheckBox Name="ChkHex" Content="HEX" Foreground="White"/>
+                    <CheckBox Name="ChkTimestamp" Content="Čas" Foreground="White" IsChecked="True"/>
+                    <CheckBox Name="ChkAutoScroll" Content="Auto-scroll" Foreground="White" IsChecked="True"/>
+                    <Button Content="Vymazať" Click="BtnClear_OnClick"
+                            Padding="10,3" Background="#555" Foreground="White"/>
+                    <Button Content="Uložiť log" Click="BtnSaveLog_OnClick"
+                            Padding="10,3" Background="#4A4A00" Foreground="White"/>
+                </StackPanel>
+
+                <!-- Received data -->
+                <TextBox Name="TxtReceived"
+                         Height="220"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="NoWrap"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas"
+                         FontSize="11"
+                         Background="#111111"
+                         Foreground="#D4D4D4"
+                         BorderBrush="#444"
+                         Padding="4"/>
+
+                <!-- Send row -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="TX:" Foreground="White" VerticalAlignment="Center" Width="25"/>
+                    <TextBox Name="TxtSend"
+                             Width="470"
+                             PlaceholderText="Text alebo HEX (napr. 01 03 00 00)"
+                             FontFamily="Consolas"
+                             FontSize="11"/>
+                    <CheckBox Name="ChkSendHex" Content="HEX" Foreground="White" VerticalAlignment="Center"/>
+                    <Button Content="Odoslať" Click="BtnSend_OnClick"
+                            Padding="12,4" Background="#2E7D32" Foreground="White"/>
+                </StackPanel>
+
             </StackPanel>
         </Border>
 
