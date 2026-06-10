@@ -18,6 +18,7 @@
             Lock = new ScaleLock(keyHandle, nodeId, data);
             Weigher = new ScaleWeigher(keyHandle, nodeId, data);
             System = new ScaleSystem(keyHandle, nodeId, data);
+            Vibro = new ScaleVibro(keyHandle, nodeId, data);
         }
     }
 

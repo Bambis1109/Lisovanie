@@ -92,6 +92,15 @@
                         </StackPanel>
                     </TabItem>
 
+                    <!-- ZÁLOŽKA: Vibro -->
+                    <TabItem Header="Vibro">
+                        <WrapPanel Orientation="Horizontal" Margin="10">
+                            <Button Classes="cmd" Content="Init" Command="{Binding VibroInitCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Velocity" Command="{Binding VibroVelocityCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Stop" Command="{Binding VibroStopCommand}" Width="110" Background="DarkRed"/>
+                        </WrapPanel>
+                    </TabItem>
+
                     <!-- ZÁLOŽKA: Systém -->
                     <TabItem Header="Systém">
                         <StackPanel Spacing="5" Margin="10">
