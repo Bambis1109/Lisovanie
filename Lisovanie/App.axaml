@@ -1,0 +1,49 @@
+﻿<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lisovanie.App"
+             xmlns:local="using:Lisovanie"
+             xmlns:converters="using:Lisovanie.Converters"
+             xmlns:models="using:Lisovanie.Models"
+             RequestedThemeVariant="Dark">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Resources>
+        <converters:EqualityConverter x:Key="EqualityConverter"/>
+        
+        <converters:EnumToStringConverter x:Key="UpButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="R+" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="Y+" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="DownButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="R-" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="Y-" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="LeftButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="Phi-" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="X-" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+
+        <converters:EnumToStringConverter x:Key="RightButtonLabelConverter">
+            <converters:EnumToStringConverter.Mapping>
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.Polar}" Value="Phi+" />
+                <converters:EnumStringMap Key="{x:Static models:EnMovementMode.XY}" Value="X+" />
+            </converters:EnumToStringConverter.Mapping>
+        </converters:EnumToStringConverter>
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

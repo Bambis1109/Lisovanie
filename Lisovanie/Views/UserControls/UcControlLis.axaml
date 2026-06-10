@@ -1,0 +1,55 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:Lisovanie.Models"
+             xmlns:uc="using:Lisovanie.Views.UserControls"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
+             x:Class="Lisovanie.Views.UserControls.UcControlLis"
+             x:DataType="models:CControlLis">
+
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="82"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border BorderBrush="#444" BorderThickness="1" CornerRadius="6" Background="#151515" Padding="8" Margin="4,4,4,2">
+        <StackPanel Spacing="5">
+            
+            <!-- Base PLC Ovládanie -->
+            <uc:UcStatusPlc />
+
+            <Separator Height="1" Background="#333" Margin="0,5"/>
+
+            <!-- Reálne motory a Setup tlačidlo pre Lis -->
+            <Grid ColumnDefinitions="*, Auto">
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding MotorViewModels}" HorizontalAlignment="Left">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="5"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <uc:UcDeviceEpos4Reduced />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Setup Tlačidlo tváriace sa ako motor block -->
+                <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick"
+                        Background="#0D47A1" Foreground="White"
+                        Width="80" Height="60" Margin="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+            </Grid>
+            
+        </StackPanel>
+    </Border>
+</UserControl>

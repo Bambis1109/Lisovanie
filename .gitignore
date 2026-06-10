@@ -482,3 +482,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# AI / merge helper files
+mergeForAi.txt
+.gemini/temp/
+
+# One-time scripts
+rename-to-lisovanie.ps1

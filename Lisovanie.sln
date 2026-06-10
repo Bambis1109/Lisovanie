@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lisovanie", "Lisovanie\Lisovanie.csproj", "{BB558D0D-FA65-47A0-A012-39A0E15959F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanOpenMaster", "CanOpenMaster\CanOpenMaster.csproj", "{B53F0699-BEE1-44E4-A662-6051DF70F0DB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BB558D0D-FA65-47A0-A012-39A0E15959F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB558D0D-FA65-47A0-A012-39A0E15959F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB558D0D-FA65-47A0-A012-39A0E15959F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB558D0D-FA65-47A0-A012-39A0E15959F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B53F0699-BEE1-44E4-A662-6051DF70F0DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B53F0699-BEE1-44E4-A662-6051DF70F0DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B53F0699-BEE1-44E4-A662-6051DF70F0DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B53F0699-BEE1-44E4-A662-6051DF70F0DB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,88 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:Lisovanie.Models"
+             xmlns:uc="using:Lisovanie.Views.UserControls"
+             mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="70"
+             x:Class="Lisovanie.Views.UserControls.UcStatusPlc"
+             x:DataType="models:CPlc">
+
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="BorderBrush" Value="#333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Width" Value="82"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="5">
+
+        <!-- Horný riadok: Farebné bloky stavu -->
+        <Grid ColumnSpacing="5" ColumnDefinitions="Auto, Auto, Auto, Auto, *">
+
+            <Border Grid.Column="0" Background="#212121" BorderBrush="#555" BorderThickness="1"
+                    Width="100" CornerRadius="4" Padding="5">
+                <TextBlock Text="{Binding Name}" Foreground="#FFB300" FontWeight="Bold" FontSize="13"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+
+            <Border Grid.Column="1" Background="#1A0033" BorderBrush="#7B1FA2" BorderThickness="1"
+                    Width="120" CornerRadius="4" Padding="5">
+                <TextBlock Text="{Binding Connection}" Foreground="#CE93D8" FontWeight="Bold" FontSize="12"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+
+            <Border Grid.Column="2" Background="#002244" BorderBrush="#1565C0" BorderThickness="1"
+                    Width="140" CornerRadius="4" Padding="5">
+                <TextBlock Text="{Binding StatusPlc}" Foreground="#90CAF9" FontWeight="Bold" FontSize="12"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+
+            <Border Grid.Column="3" Background="#3E1000" BorderBrush="#BF360C" BorderThickness="1"
+                    Width="50" CornerRadius="4" Padding="5">
+                <TextBlock Text="{Binding Step}" Foreground="#FF8A65" FontWeight="Bold" FontSize="14"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+
+            <Border Grid.Column="4" Background="#003300" BorderBrush="#2E7D32" BorderThickness="1"
+                    CornerRadius="4" Padding="10,5">
+                <TextBlock Text="{Binding Message}" Foreground="#A5D6A7" FontWeight="SemiBold" FontSize="12"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </Border>
+
+        </Grid>
+
+        <!-- Tlačidlá -->
+        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left">
+
+            <!-- 1. Skupina: Pripojenie a Inicializácia -->
+            <Button Content="Pripojiť" Command="{Binding ConnectCommand}"    Background="#1565C0"/>
+            <Button Content="Init"     Command="{Binding InitCommand}"       Background="#4527A0"/>
+
+            <Border Width="1" Background="#444" Margin="2,0"/>
+
+            <!-- 2. Skupina: Hlavné ovládanie behu -->
+            <Button Content="Štart"    Command="{Binding StartProgramCommand}"           Background="#2E7D32"/>
+            <Button Content="Parkovať" Command="{Binding StopProgramOnEndCommand}"       Background="#BF360C"/>
+            <Button Content="Stop"     Command="{Binding StopProgramImmediatelyCommand}" Background="#B71C1C"/>
+
+            <Border Width="1" Background="#444" Margin="2,0"/>
+
+            <!-- 3. Skupina: Krokovanie -->
+            <Button Content="{Binding ModeText}"
+                    Command="{Binding ToggleModeCommand}"
+                    Background="#37474F"/>
+
+            <Button Content="Krok" Command="{Binding NextStepProgramCommand}" Background="#006064"/>
+
+        </StackPanel>
+
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,180 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:Lisovanie.Models"
+             xmlns:uc="using:Lisovanie.Views.UserControls"
+             xmlns:converters="using:Lisovanie.Converters"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="800"
+             x:Class="Lisovanie.Views.UserControls.UcControlLisSetup"
+             x:DataType="models:CControlLis">
+
+    <UserControl.Resources>
+        <converters:BargraphColorConverter x:Key="BargraphColorConverter" />
+        <converters:NegateConverter x:Key="NegateConverter" />
+        <converters:ProduktStatusColorConverter x:Key="ProduktStatusColorConverter" />
+    </UserControl.Resources>
+
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="15" Margin="10">
+        <StackPanel Spacing="15">
+            <TextBlock Text="Lis Setup" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+            
+            <!-- Base PLC Ovládanie -->
+            <uc:UcStatusPlc />
+
+            <Separator Height="1" Background="Gray" Margin="0,5"/>
+
+            <!-- Motory špecifické pre Lis -->
+            <ItemsControl ItemsSource="{Binding MotorViewModels}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <uc:UcDeviceEpos4 />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Spacing="30" HorizontalAlignment="Center" Margin="0,10,0,0">
+                <!-- Step Size Selection -->
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="Step size:" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <RadioButton Content="0.1" GroupName="StepSize" FontSize="16" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=0.1}"/>
+                    <RadioButton Content="1" GroupName="StepSize" FontSize="16" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=1.0}"/>
+                    <RadioButton Content="10" GroupName="StepSize" FontSize="16" IsChecked="{Binding StepSize, Converter={StaticResource EqualityConverter}, ConverterParameter=10.0}"/>
+                </StackPanel>
+
+                <!-- Actual Values -->
+                <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="Sila:" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding SilaActual, StringFormat={}{0:F0}}" Width="80" TextAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="Yellow" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="N" VerticalAlignment="Center" Margin="2,0,0,0" FontWeight="Bold"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="Distance:" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding DistanceActual, StringFormat={}{0:F2}}" Width="100" TextAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="Cyan" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="mm" VerticalAlignment="Center" Margin="2,0,0,0" FontWeight="Bold"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,*" Margin="0,10,0,0">
+                <!-- Stred Controls -->
+                <StackPanel Grid.Column="0" Spacing="10" Margin="0,0,10,0">
+                    <TextBlock Text="Stred" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
+                    <StackPanel>
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="40,40,40">
+                            <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableStredCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableStredCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="0" Content="Move Up" Command="{Binding MoveStredUpCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="1" Content="Move Down" Command="{Binding MoveStredDownCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="SteelBlue" Foreground="White" Margin="2"/>
+                            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,*">
+                                <Button Grid.Column="0" Content="-84" Command="{Binding MoveStredPos84Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="1" Content="-60" Command="{Binding MoveStredPos60Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="2" Content="-37" Command="{Binding MoveStredPos37Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="3" Content="-14" Command="{Binding MoveStredPos14Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="2,5,2,0" Height="30">
+                            <ProgressBar Orientation="Horizontal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                         Minimum="{Binding LimitStredDown, Converter={StaticResource NegateConverter}}" 
+                                         Maximum="{Binding LimitStredUp, Converter={StaticResource NegateConverter}}"
+                                         Value="{Binding MotorViewModels[0].DeviceEpos4Data.ActualGearPosition, Converter={StaticResource NegateConverter}}">
+                                <ProgressBar.Foreground>
+                                    <MultiBinding Converter="{StaticResource BargraphColorConverter}">
+                                        <Binding Path="MotorViewModels[0].DeviceEpos4Data.ActualGearPosition" />
+                                        <Binding Path="LimitStredUp" />
+                                        <Binding Path="LimitStredDown" />
+                                    </MultiBinding>
+                                </ProgressBar.Foreground>
+                            </ProgressBar>
+                            <TextBlock Text="{Binding MotorViewModels[0].DeviceEpos4Data.ActualGearPosition, StringFormat={}{0:F2}}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       FontWeight="Bold" Foreground="White" FontSize="14"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Lis Controls -->
+                <StackPanel Grid.Column="1" Spacing="10" Margin="10,0,0,0">
+                    <TextBlock Text="Lis" HorizontalAlignment="Center" FontWeight="Bold" FontSize="16"/>
+                    <StackPanel>
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="40,40,40">
+                            <Button Grid.Row="0" Grid.Column="0" Content="Enable" Command="{Binding EnableLisCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="ForestGreen" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="0" Grid.Column="1" Content="Disable" Command="{Binding DisableLisCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="DarkRed" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="0" Content="Move Up" Command="{Binding MoveLisUpCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                            <Button Grid.Row="1" Grid.Column="1" Content="Move Down" Command="{Binding MoveLisDownCommand}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Chocolate" Foreground="White" Margin="2"/>
+                            <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,*">
+                                <Button Grid.Column="0" Content="0" Command="{Binding MoveMasterPos0Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="1" Content="-100" Command="{Binding MoveMasterPosMinus100Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="2" Content="-160" Command="{Binding MoveMasterPosMinus160Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                                <Button Grid.Column="3" Content="-220" Command="{Binding MoveMasterPosMinus220Command}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="16" Padding="0" Margin="2"/>
+                            </Grid>
+                        </Grid>
+                        <Grid Margin="2,5,2,0" Height="30">
+                            <ProgressBar Orientation="Horizontal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                         Minimum="{Binding LimitLisDown}" Maximum="{Binding LimitLisUp}"
+                                         Value="{Binding MotorViewModels[2].DeviceEpos4Data.ActualGearPosition}">
+                                <ProgressBar.Foreground>
+                                    <MultiBinding Converter="{StaticResource BargraphColorConverter}">
+                                        <Binding Path="MotorViewModels[2].DeviceEpos4Data.ActualGearPosition" />
+                                        <Binding Path="LimitLisDown" />
+                                        <Binding Path="LimitLisUp" />
+                                    </MultiBinding>
+                                </ProgressBar.Foreground>
+                            </ProgressBar>
+                            <TextBlock Text="{Binding MotorViewModels[2].DeviceEpos4Data.ActualGearPosition, StringFormat={}{0:F2}}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       FontWeight="Bold" Foreground="White" FontSize="14"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <Separator Height="1" Background="Gray" Margin="0,10"/>
+
+            <!-- Produkt Info Section -->
+            <Grid ColumnDefinitions="*,*" Margin="10,0">
+                <!-- Actual Product -->
+                <StackPanel Grid.Column="0" Spacing="5">
+                    <TextBlock Text="Aktuálny Produkt" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="20,0">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sila:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ProduktLisActual.Sila, StringFormat={}{0:F0} N}" FontWeight="Bold" Foreground="Yellow"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Výška:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProduktLisActual.Vyska, StringFormat={}{0:F2} mm}" FontWeight="Bold" Foreground="Cyan"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProduktLisActual.Status}" FontWeight="Bold"
+                                   Foreground="{Binding ProduktLisActual.Status, Converter={StaticResource ProduktStatusColorConverter}}"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Last Product -->
+                <StackPanel Grid.Column="1" Spacing="5">
+                    <TextBlock Text="Posledný Produkt" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="20,0">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Sila:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ProduktLisLast.Sila, StringFormat={}{0:F0} N}" FontWeight="Bold" Foreground="Yellow"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Výška:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProduktLisLast.Vyska, StringFormat={}{0:F2} mm}" FontWeight="Bold" Foreground="Cyan"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Status:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProduktLisLast.Status}" FontWeight="Bold"
+                                   Foreground="{Binding ProduktLisLast.Status, Converter={StaticResource ProduktStatusColorConverter}}"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+            
+        </StackPanel>
+    </Border>
+</UserControl>

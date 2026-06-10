@@ -8,16 +8,16 @@ The system dotnet SDK is .NET 9 — use the Rider-bundled .NET 10 SDK for all bu
 
 ```powershell
 $dotnet = "C:\Program Files\JetBrains\JetBrains Rider 2026.1.0.1\lib\ReSharperHost\windows-x64\dotnet\dotnet.exe"
-& $dotnet build MojaPrvaAvalonia\MojaPrvaAvalonia.csproj
+& $dotnet build Lisovanie\Lisovanie.csproj
 ```
 
 The app must be stopped in Rider before building from CLI — `CanOpenMaster.dll` stays locked while the app is running.
 
 ## Project Structure
 
-Two projects in `MojaPrvaAvalonia.sln`:
-- **`MojaPrvaAvalonia/`** — WinExe Avalonia UI application (.NET 10)
-- **`CanOpenMaster/`** — CANopen communication class library (.NET 10), depends on native Ixxat DLLs (`XatCOP_VCI3-64.dll`)
+Two projects in `Lisovanie.sln`:
+- **`Lisovanie/`** — WinExe Avalonia UI application (.NET 10)
+- **`CanOpenMaster/`** — CANopen communication class library (.NET 10), depends on native Ixxat DLLs (`XatCOP_VCI3-64.dll`, `XatCOP60-64.dll`)
 
 ## Architecture
 
@@ -27,7 +27,7 @@ Three-layer motion control system:
 UI (Avalonia MVVM)  →  PLC Logic (State Machines)  →  Hardware (CANopen / Ixxat)
 ```
 
-### PLC Layer (`Models/`)
+### PLC Layer (`Lisovanie/Models/`)
 
 `CPlc` is the abstract base for all controllers. It runs a dedicated OS thread (`ThreadPriority.AboveNormal`) executing a step-based state machine via `RunStep(int step)`. Steps return the next step number; returning `0` parks the program.
 
@@ -38,14 +38,14 @@ Main sequence:  step 100 → 110 → ... → 0      (parks)
 
 Three concrete controllers:
 - **`CControlManipulator`** (`CPlc → CPlcEpos`) — 4 EPOS4 motors, coaxial delta robot, jaw gripper, matrix-based stacking
-- **`CControlLis`** (`CPlc → CPlcEpos`) — 3 EPOS4 motors, hydraulic press with force control
+- **`CControlLis`** (`CPlc → CPlcEpos`) — 3 EPOS4 motors, hydraulic press with force control; result stored in `CProduktLis` (Sila, Vyska, EnProduktLis status)
 - **`CControlScales`** (`CPlc → CPlcScale`) — 2 CANopen scales, dual-scale material dispensing
 
 **`CMainProgram`** creates and coordinates all three controllers. It owns two CAN buses: `DeviceManagerCO` (motors) and `DeviceManagerScale` (scales). The `Connect()` method wires up devices and assigns NodeIDs from loaded parameters before `ConnectAsync()` is called on each PLC.
 
 ### Interlocking Layer (`IL` / `CMutexZone`)
 
-Prevents race conditions between the three independent PLC threads. Zone ownership passes:  
+`IL` is a static class in the `Lisovanie.Net` namespace (`Models/IL.cs`). It prevents race conditions between the three independent PLC threads. Zone ownership passes:  
 `Scale → ZonePress → Press → ZonePress → Manipulator`
 
 `TryLock(owner, status)` acquires zone ownership atomically; `Release(owner, newStatus)` hands it off.
@@ -68,9 +68,11 @@ Prevents race conditions between the three independent PLC threads. Zone ownersh
 
 ### UI
 
-Avalonia 12 with Fluent Dark theme. MVVM via `CommunityToolkit.Mvvm` (`[ObservableProperty]`, `[RelayCommand]`). ViewModels poll hardware data via `Task.Run` refresh loops; all UI updates go through `Dispatcher.UIThread`.
+Avalonia 12.0.1 with Fluent Dark theme. MVVM via `CommunityToolkit.Mvvm` (`[ObservableProperty]`, `[RelayCommand]`). ViewModels poll hardware data via `Task.Run` refresh loops; all UI updates go through `Dispatcher.UIThread`.
 
 Setup/parameter windows follow the pattern: `frm*.axaml` opens as a non-modal child window, guarded by a `private frm*? _window` null-check to prevent duplicates.
+
+The UI log panel is backed by `ObservableCollectionSink` (Serilog sink) — capped at 1000 entries, marshalled to the UI thread via `Dispatcher.UIThread.Post`. The sink instance is accessible via `Program.UiSink`.
 
 ## Coding Rules (from GEMINI.md)
 

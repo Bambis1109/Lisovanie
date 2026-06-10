@@ -1,0 +1,29 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Lisovanie.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="150" d:DesignHeight="120"
+             Width="150"
+             x:Class="Lisovanie.Views.UserControls.UcDeviceEpos4Reduced"
+             x:DataType="vm:UcDeviceEpos4ViewModel">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
+        <StackPanel Spacing="5">
+            <!-- 1. riadok: Name a Node bez popisu -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5">
+                <TextBlock Text="{Binding DeviceEpos4Data.MotorName}" FontWeight="Bold"/>
+                <TextBlock Text="{Binding DeviceEpos4Data.NodeId}"/>
+            </StackPanel>
+
+            <!-- 2. riadok: Status and NMT Indicators (Equal width) -->
+            <Grid ColumnDefinitions="*, *">
+                <Border Grid.Column="0" Background="{Binding NmtColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding NmtText}" Foreground="White" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold"/>
+                </Border>
+                <Border Grid.Column="1" Background="{Binding StatusColor}" CornerRadius="3" Margin="2" Padding="3">
+                    <TextBlock Text="{Binding StatusText}" Foreground="White" HorizontalAlignment="Center" FontSize="11"/>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

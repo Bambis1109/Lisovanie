@@ -1,0 +1,68 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Lisovanie.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="180" d:DesignHeight="280"
+             x:Class="Lisovanie.Views.UserControls.UcDeviceEpos4"
+             x:DataType="vm:UcDeviceEpos4ViewModel"
+             Width="180">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5" Margin="2">
+        <StackPanel Spacing="5">
+            <TextBlock Text="{Binding DeviceEpos4Data.MotorName}" FontWeight="Bold" HorizontalAlignment="Center"/>
+            
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Node: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DeviceEpos4Data.NodeId}" FontSize="11" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Pos Gear: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualGearPosition, StringFormat={}{0:F2}}" FontSize="11" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Pos SSI: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualPositionSensor2Float, StringFormat={}{0:F3}}" FontSize="11" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Velocity: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualVelocity}" FontSize="11" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Current: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualCurrent, StringFormat={}{0:F1}}" FontSize="11" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Analog 1: " FontWeight="Bold" FontSize="11"/>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding DeviceEpos4Data.ActualAnalog1}" FontSize="11" HorizontalAlignment="Right"/>
+            </Grid>
+
+            <!-- Status and Mode Indicators -->
+            <UniformGrid Columns="3" Margin="0,5">
+                
+                <!-- NMT Stav (Komunikácia) -->
+                <Border Background="{Binding NmtColor}" CornerRadius="3" Margin="1" Padding="2">
+                    <TextBlock Text="{Binding NmtText}" Foreground="White" HorizontalAlignment="Center" FontSize="10" FontWeight="Bold"/>
+                </Border>
+
+                <!-- Mód riadenia -->
+                <Border Background="{Binding ModeColor}" CornerRadius="3" Margin="1" Padding="2">
+                    <TextBlock Text="{Binding ModeShorthand}" Foreground="White" HorizontalAlignment="Center" FontSize="10"/>
+                </Border>
+                
+                <!-- CiA 402 Stav -->
+                <Border Background="{Binding StatusColor}" CornerRadius="3" Margin="1" Padding="2">
+                    <TextBlock Text="{Binding StatusText}" Foreground="White" HorizontalAlignment="Center" FontSize="10"/>
+                </Border>
+            </UniformGrid>
+
+            <Border BorderBrush="LightGray" BorderThickness="1" Background="#F9F9F9" Width="165" Height="50" HorizontalAlignment="Center" Margin="0,5,0,0" ClipToBounds="True">
+                <Grid>
+                    <!-- +100% line -->
+                    <Line StartPoint="0,10" EndPoint="165,10" Stroke="Silver" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    <!-- Zero axis line -->
+                    <Line StartPoint="0,25" EndPoint="165,25" Stroke="LightCoral" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    <!-- -100% line -->
+                    <Line StartPoint="0,40" EndPoint="165,40" Stroke="Silver" StrokeThickness="1" StrokeDashArray="2,2"/>
+                    
+                    <!-- Data line -->
+                    <Polyline Points="{Binding DeviceEpos4Data.CurrentGraphPoints}" Stroke="Blue" StrokeThickness="1.5" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

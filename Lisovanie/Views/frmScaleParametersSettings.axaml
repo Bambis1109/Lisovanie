@@ -1,0 +1,61 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:Lisovanie.Models"
+        mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="220"
+        x:Class="Lisovanie.Views.frmScaleParametersSettings"
+        x:DataType="models:CControlScales"
+        Title="Nastavenia váh"
+        Width="320" Height="220"
+        WindowStartupLocation="CenterOwner"
+        Topmost="True"
+        CanResize="False"
+        Background="#1E1E1E">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="120"/>
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="Width" Value="120"/>
+            <Setter Property="Minimum" Value="1"/>
+            <Setter Property="Maximum" Value="127"/>
+            <Setter Property="FormatString" Value="0"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </Window.Styles>
+
+    <Border Padding="20">
+        <StackPanel Spacing="15">
+            <TextBlock Text="Node ID váh (CAN)" FontSize="15" FontWeight="Bold"
+                       Foreground="White" HorizontalAlignment="Center"/>
+
+            <Separator Height="1" Background="#444"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Classes="label" Text="Node ID Váha 1:"/>
+                <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha1}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Classes="label" Text="Node ID Váha 2:"/>
+                <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha2}"/>
+            </StackPanel>
+
+            <Separator Height="1" Background="#444"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Uložiť" Click="BtnSave_OnClick"
+                        Padding="18,8" Background="#1E7E34" Foreground="White"
+                        FontWeight="Bold" CornerRadius="4"/>
+                <Button Content="Zavrieť" Click="BtnClose_OnClick"
+                        Padding="18,8" Background="#B22222" Foreground="White"
+                        FontWeight="Bold" CornerRadius="4"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
