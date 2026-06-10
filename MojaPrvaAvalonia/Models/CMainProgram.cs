@@ -42,6 +42,34 @@ public partial class CMainProgram : ObservableObject
         IxxatState = EnIxxatState.Connecting;
         try
         {
+            
+            //*************************Vahy*********************************
+            if (!CreateCanConector(0, 0, ref DeviceManagerScale))
+            {
+                IxxatState = EnIxxatState.Disconnected;
+                return false;
+            }
+
+            CControlScales? _scales = ZoznamPlc[2] as CControlScales;
+
+            _scales.Scale1 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha1, "Scale1");
+            _scales.Scale2 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha2, "Scale2");
+
+
+            _scales.Scales.Clear();
+            _scales.Scales.Add(_scales.Scale1);
+            _scales.Scales.Add(_scales.Scale2);
+
+
+            _scales.ScaleViewModels[0].AssignDevice(_scales.Scale1);
+            _scales.ScaleViewModels[1].AssignDevice(_scales.Scale2);
+            
+            
+            foreach (var vms in _scales.ScaleViewModels)
+            {
+                vms.StartRefresh();
+            }
+            
             if (!CreateCanConector(1, 0, ref DeviceManagerCO))
             {
                 IxxatState = EnIxxatState.Disconnected;
@@ -81,26 +109,7 @@ public partial class CMainProgram : ObservableObject
             lis.MotorViewModels[1].AssignDevice(lis.MotorSlave);
             lis.MotorViewModels[2].AssignDevice(lis.MotorMaster);
 
-//*************************Vahy*********************************
-            if (!CreateCanConector(0, 0, ref DeviceManagerScale))
-            {
-                IxxatState = EnIxxatState.Disconnected;
-                return false;
-            }
 
-            CControlScales? _scales = ZoznamPlc[2] as CControlScales;
-
-            _scales.Scale1 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha1, "Scale1");
-            _scales.Scale2 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha2, "Scale2");
-
-
-            _scales.Scales.Clear();
-            _scales.Scales.Add(_scales.Scale1);
-            _scales.Scales.Add(_scales.Scale2);
-
-
-            _scales.ScaleViewModels[0].AssignDevice(_scales.Scale1);
-            _scales.ScaleViewModels[1].AssignDevice(_scales.Scale2);
 
             foreach (var vm in manipulator.MotorViewModels)
             {
@@ -112,10 +121,7 @@ public partial class CMainProgram : ObservableObject
                 vm.StartRefresh();
             }
 
-            foreach (var vms in _scales.ScaleViewModels)
-            {
-                vms.StartRefresh();
-            }
+          
 
             IxxatState = EnIxxatState.Connected;
             return true;

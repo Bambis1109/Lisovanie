@@ -234,6 +234,10 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [RelayCommand] public void SystemLoad() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Load), nameof(SystemLoad));
     [RelayCommand] public void SystemRestart() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Restart), nameof(SystemRestart));
 
+    //--- Vibro ---
+    [RelayCommand] public void VibroInit() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Init), nameof(VibroInit));
+    [RelayCommand] public void VibroVelocity() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Velocity), nameof(VibroVelocity));
+    [RelayCommand] public void VibroStop() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Stop), nameof(VibroStop));
     public void Dispose()
     {
         StopRefresh();

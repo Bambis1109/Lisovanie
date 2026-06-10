@@ -8,6 +8,7 @@
         public ScaleLock Lock { get; }
         public ScaleWeigher Weigher { get; }
         public ScaleSystem System { get; }
+        public ScaleVibro Vibro { get; }
 
         public ScaleOperation(ushort keyHandle, byte nodeId, CDataScale data)
         {
@@ -67,5 +68,13 @@
         public ScaleSystem(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
         
         public void SendCommand(ESystemCommand cmd) => SendCommandFireAndForget(0x6100, (uint)cmd);
+    }
+    public class ScaleVibro : CScaleCommandGroupCO
+    {
+        public ScaleVibro(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
+        
+        public void SendCommand(EVibroCommand cmd) => SendCommandFireAndForget(0x6204, (uint)cmd);
+        
+        public uint GetStatus() => (uint)ReadSdo(0x6204, 0x02, 4);
     }
 }

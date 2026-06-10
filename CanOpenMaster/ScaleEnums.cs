@@ -86,4 +86,12 @@ namespace EposCmd.Net.DeviceScaleSet
         Load = 0x00000201,
         Restart = 0x00000301
     }
+
+    public enum EVibroCommand : uint
+    {
+        Clear = 0x00000000,
+        Init = 0x00000101,
+        Velocity = 0x00000401,
+        Stop = 0x00000002
+    }
 }
