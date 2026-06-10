@@ -17,7 +17,7 @@ public partial class CMainProgram : ObservableObject
 
     partial void OnIxxatStateChanged(EnIxxatState oldValue, EnIxxatState newValue)
     {
-        // Notifikujeme každé PLC, aby prehodnotilo CanExecute pre ConnectCommand
+        // Notifikujeme každé PLC, aby prehodnotilo CanExecute pre ConnectCommand a 
         foreach (var plc in ZoznamPlc)
         {
             plc.ConnectCommand.NotifyCanExecuteChanged();
