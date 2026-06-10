@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using MojaPrvaAvalonia.Logging;
 using MojaPrvaAvalonia.ViewModels;
 using Serilog;
 
@@ -15,6 +18,17 @@ public partial class frmZoneSetup : Window
 {
     private SerialPort? _port;
     private readonly StringBuilder _rxBuffer = new();
+
+    private static readonly Dictionary<string, string[]> ModuleCommands = new()
+    {
+        ["System"]   = ["save", "load", "restart", "help", "list", "slovnik"],
+        ["Master"]   = ["ma_init", "ma_prod", "ma_next", "ma_stop"],
+        ["Zamok"]    = ["za_init", "za_odomkni", "za_zamkni", "za_vysyp_vlavo", "za_vysyp_pravo", "za_kalibruj"],
+        ["Vaha"]     = ["va_init", "va_nula", "va_max", "va_tara"],
+        ["Vyloznik"] = ["vy_init", "vy_vysun1", "vy_vysun2", "vy_vyloz1", "vy_vyloz2", "vy_vysyp", "vy_zasun"],
+        ["Podavac"]  = ["po_init", "po_podaj", "po_podavaj", "po_velocity", "po_stop"],
+        ["Davkovac"] = ["da_init", "da_tune", "da_prod", "da_stop", "da_vyklop"],
+    };
     private readonly int[] _baudRates =[1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 2000000];
 
     public frmZoneSetup()
@@ -33,7 +47,9 @@ public partial class frmZoneSetup : Window
     private void InitSniffer()
     {
         CbxBaud.ItemsSource = _baudRates;
-        CbxBaud.Text = "9600";
+        CbxBaud.Text = "2000000";
+        CbxModule.ItemsSource = new List<string>(ModuleCommands.Keys);
+        CbxModule.SelectedIndex = 0;
         RefreshPorts();
     }
 
@@ -46,6 +62,21 @@ public partial class frmZoneSetup : Window
     }
 
     private void BtnRefreshPorts_OnClick(object? sender, RoutedEventArgs e) => RefreshPorts();
+
+    private void CbxModule_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (CbxModule.SelectedItem is string module && ModuleCommands.TryGetValue(module, out var cmds))
+        {
+            CbxCommand.ItemsSource = cmds;
+            CbxCommand.SelectedIndex = 0;
+        }
+    }
+
+    private void BtnSendCommand_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (CbxCommand.SelectedItem is not string cmd) return;
+        SendText(cmd);
+    }
 
     private void BtnConnect_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -188,36 +219,125 @@ public partial class frmZoneSetup : Window
 
     private void BtnSend_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_port is not { IsOpen: true })
-        {
-            AppendLine("[Nie je pripojené]");
-            return;
-        }
-
         var input = TxtSend.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(input)) return;
 
-        try
+        if (ChkSendHex.IsChecked == true)
         {
-            if (ChkSendHex.IsChecked == true)
+            try
             {
                 var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var bytes = new byte[parts.Length];
                 for (int i = 0; i < parts.Length; i++)
                     bytes[i] = Convert.ToByte(parts[i], 16);
-                _port.Write(bytes, 0, bytes.Length);
-                AppendLine($"[TX HEX] {BitConverter.ToString(bytes).Replace("-", " ")}");
+                SendBytes(bytes);
             }
-            else
+            catch (Exception ex)
             {
-                _port.Write(input);
-                AppendLine($"[TX] {input}");
+                AppendLine($"[TX CHYBA: {ex.Message}]");
             }
+        }
+        else
+        {
+            SendText(input);
+        }
+    }
+
+    private void SendText(string text)
+    {
+        if (_port is not { IsOpen: true }) { AppendLine("[Nie je pripojené]"); return; }
+        try
+        {
+            _port.Write(text);
+            AppendLine($"[TX] {text}");
+        }
+        catch (Exception ex) { AppendLine($"[TX CHYBA: {ex.Message}]"); }
+    }
+
+    private void SendBytes(byte[] bytes)
+    {
+        if (_port is not { IsOpen: true }) { AppendLine("[Nie je pripojené]"); return; }
+        try
+        {
+            _port.Write(bytes, 0, bytes.Length);
+            AppendLine($"[TX HEX] {BitConverter.ToString(bytes).Replace("-", " ")}");
+        }
+        catch (Exception ex) { AppendLine($"[TX CHYBA: {ex.Message}]"); }
+    }
+
+    private async void BtnProcessForAi_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var raw = TxtReceived.Text;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            AppendLine("[Terminál je prázdny]");
+            return;
+        }
+
+        var messages = raw.Split('\n')
+            .Select(l => StripTerminalPrefix(l.Trim()))
+            .Where(m => m != null)
+            .Select(m => m!);
+
+        var result = LogToCsvConverter.ProcessLines(messages);
+        if (result == null || result.Count == 0)
+        {
+            AppendLine("[Žiadne kompletné dávky na spracovanie]");
+            return;
+        }
+
+        var content = string.Join(Environment.NewLine, result);
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Uložiť log pre AI",
+            SuggestedFileName = $"ai_log_{DateTime.Now:yyyyMMdd_HHmmss}_AI_Optimized.txt",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Text") { Patterns = ["*.txt"] },
+                new FilePickerFileType("Všetky súbory") { Patterns = ["*"] }
+            ]
+        });
+
+        if (file is null) return;
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8);
+            await writer.WriteAsync(content);
+            AppendLine($"[AI log uložený: {file.Name}  ({result.Count} riadkov)]");
         }
         catch (Exception ex)
         {
-            AppendLine($"[TX CHYBA: {ex.Message}]");
+            Log.Error(ex, "AI log save failed");
+            AppendLine($"[CHYBA uloženia: {ex.Message}]");
         }
+    }
+
+    // Odstraňuje terminálový prefix [HH:MM:SS.mmm] [ Nms] [LEVEL]
+    // a vracia čistú správu zariadenia (rovnaký vstup ako ProcessLogFile).
+    private static string? StripTerminalPrefix(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line) || !line.StartsWith('[')) return null;
+
+        var i1 = line.IndexOf(']');
+        if (i1 < 0) return null;
+        var rest = line[(i1 + 1)..].TrimStart();
+
+        // [TX] príkazy a systémové správy bez device-time ignorujeme
+        if (!rest.StartsWith('[') || rest.StartsWith("[TX]")) return null;
+
+        var i2 = rest.IndexOf(']');
+        if (i2 < 0) return null;
+        var rest2 = rest[(i2 + 1)..].TrimStart();
+
+        if (!rest2.StartsWith('[')) return null;
+        var i3 = rest2.IndexOf(']');
+        if (i3 < 0) return null;
+
+        var msg = rest2[(i3 + 1)..].TrimStart();
+        return msg.Length > 0 ? msg : null;
     }
 
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e)

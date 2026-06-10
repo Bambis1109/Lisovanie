@@ -85,6 +85,19 @@
                             Padding="10,3" Background="#555" Foreground="White"/>
                     <Button Content="Uložiť log" Click="BtnSaveLog_OnClick"
                             Padding="10,3" Background="#4A4A00" Foreground="White"/>
+                    <Button Content="Spracuj pre AI" Click="BtnProcessForAi_OnClick"
+                            Padding="10,3" Background="DodgerBlue" Foreground="White"/>
+                </StackPanel>
+
+                <!-- Quick command row -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Modul:" Foreground="White" VerticalAlignment="Center" Width="42"/>
+                    <ComboBox Name="CbxModule" Width="120"
+                              SelectionChanged="CbxModule_OnSelectionChanged"/>
+                    <TextBlock Text="Povel:" Foreground="White" VerticalAlignment="Center" Width="38"/>
+                    <ComboBox Name="CbxCommand" Width="170"/>
+                    <Button Content="↵ Odoslať" Click="BtnSendCommand_OnClick"
+                            Padding="12,4" Background="#1A5276" Foreground="White"/>
                 </StackPanel>
 
                 <!-- Received data -->
