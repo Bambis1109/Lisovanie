@@ -3,6 +3,7 @@
 // ==========================================
 
 using System;
+using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -234,10 +235,110 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     [RelayCommand] public void SystemLoad() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Load), nameof(SystemLoad));
     [RelayCommand] public void SystemRestart() => ExecuteCommand(d => d.Operation.System.SendCommand(ESystemCommand.Restart), nameof(SystemRestart));
 
+    [RelayCommand]
+    public void SystemNmtStart()
+    {
+        if (_device == null) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                _device.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsStartRemoteNode);
+                Log.Information($"[{ScaleName}] NMT Start odoslaný na Node {_device.NodeId}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{ScaleName}] NMT Start chyba: {ex.Message}");
+            }
+        });
+    }
+
+    [RelayCommand]
+    public void SystemNmtStop()
+    {
+        if (_device == null) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                _device.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsStopRemoteNode);
+                Log.Information($"[{ScaleName}] NMT Stop odoslaný na Node {_device.NodeId}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{ScaleName}] NMT Stop chyba: {ex.Message}");
+            }
+        });
+    }
+
+    [RelayCommand]
+    public void SystemNmtReset()
+    {
+        if (_device == null) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                _device.LowLayer.Can.SendNmtService(ECommandSpecifier.NcsResetNode);
+                Log.Information($"[{ScaleName}] NMT Reset odoslaný na Node {_device.NodeId}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[{ScaleName}] NMT Reset chyba: {ex.Message}");
+            }
+        });
+    }
+
     //--- Vibro ---
     [RelayCommand] public void VibroInit() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Init), nameof(VibroInit));
     [RelayCommand] public void VibroVelocity() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Velocity), nameof(VibroVelocity));
     [RelayCommand] public void VibroStop() => ExecuteCommand(d => d.Operation.Vibro.SendCommand(EVibroCommand.Stop), nameof(VibroStop));
+
+    // --- Vibro parametre ---
+    private bool _suppressVibroWrite;
+
+    [ObservableProperty] private int _vibroTargetRpm = 1400;
+    [ObservableProperty] private int _vibroModDepth  = 500;
+    [ObservableProperty] private int _vibroModAccel  = 10000;
+
+    partial void OnVibroTargetRpmChanged(int value)
+    {
+        if (_suppressVibroWrite || _device == null) return;
+        Task.Run(() => ExecuteCommand(d => d.Operation.Vibro.WriteTargetRpm(value), nameof(VibroTargetRpm)));
+    }
+
+    partial void OnVibroModDepthChanged(int value)
+    {
+        if (_suppressVibroWrite || _device == null) return;
+        Task.Run(() => ExecuteCommand(d => d.Operation.Vibro.WriteModDepth(value), nameof(VibroModDepth)));
+    }
+
+    partial void OnVibroModAccelChanged(int value)
+    {
+        if (_suppressVibroWrite || _device == null) return;
+        Task.Run(() => ExecuteCommand(d => d.Operation.Vibro.WriteModAccel(value), nameof(VibroModAccel)));
+    }
+
+    public async Task VibroLoadFromCanAsync()
+    {
+        if (_device == null) return;
+        try
+        {
+            int targetRpm = await Task.Run(() => _device.Operation.Vibro.ReadTargetRpm());
+            int modDepth  = await Task.Run(() => _device.Operation.Vibro.ReadModDepth());
+            int modAccel  = await Task.Run(() => _device.Operation.Vibro.ReadModAccel());
+
+            _suppressVibroWrite = true;
+            VibroTargetRpm = targetRpm;
+            VibroModDepth  = modDepth;
+            VibroModAccel  = modAccel;
+            _suppressVibroWrite = false;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[{ScaleName}] VibroLoad Error: {ex.Message}");
+        }
+    }
     public void Dispose()
     {
         StopRefresh();

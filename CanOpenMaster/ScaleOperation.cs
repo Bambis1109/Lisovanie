@@ -73,9 +73,17 @@
     public class ScaleVibro : CScaleCommandGroupCO
     {
         public ScaleVibro(ushort keyHandle, byte nodeId, CDataScale data) { KeyHandle = keyHandle; NodeId = nodeId; BaseData = data; }
-        
+
         public void SendCommand(EVibroCommand cmd) => SendCommandFireAndForget(0x6204, (uint)cmd);
-        
+
         public uint GetStatus() => (uint)ReadSdo(0x6204, 0x02, 4);
+
+        public int ReadTargetRpm() => (int)(uint)ReadSdo(0x6004, 0x0B, 4);
+        public int ReadModDepth()  => (int)(uint)ReadSdo(0x6004, 0x0D, 4);
+        public int ReadModAccel()  => (int)(uint)ReadSdo(0x6004, 0x0E, 4);
+
+        public void WriteTargetRpm(int value) => WritedSDO(0x6004, 0x0B, (uint)value, 4);
+        public void WriteModDepth(int value)  => WritedSDO(0x6004, 0x0D, (uint)value, 4);
+        public void WriteModAccel(int value)  => WritedSDO(0x6004, 0x0E, (uint)value, 4);
     }
 }

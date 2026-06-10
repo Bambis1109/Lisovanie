@@ -33,7 +33,7 @@
             <uc:UcDeviceScale Name="MyUcScale" Grid.Column="0" Margin="0,0,10,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
             
             <Border Grid.Column="1" BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Background="#252526" IsEnabled="{Binding IsUiEnabled}">
-                <TabControl Margin="5">
+                <TabControl Margin="5" SelectionChanged="TabControl_OnSelectionChanged">
                     
                     <!-- ZÁLOŽKA: Main -->
                     <TabItem Header="Main">
@@ -94,18 +94,42 @@
 
                     <!-- ZÁLOŽKA: Vibro -->
                     <TabItem Header="Vibro">
-                        <WrapPanel Orientation="Horizontal" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding VibroInitCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Velocity" Command="{Binding VibroVelocityCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Stop" Command="{Binding VibroStopCommand}" Width="110" Background="DarkRed"/>
-                        </WrapPanel>
+                        <StackPanel Margin="10" Spacing="10">
+                            <WrapPanel Orientation="Horizontal">
+                                <Button Classes="cmd" Content="Init"     Command="{Binding VibroInitCommand}"     Width="110"/>
+                                <Button Classes="cmd" Content="Velocity" Command="{Binding VibroVelocityCommand}" Width="110"/>
+                                <Button Classes="cmd" Content="Stop"     Command="{Binding VibroStopCommand}"     Width="110" Background="DarkRed"/>
+                            </WrapPanel>
+                            <Separator Background="#444"/>
+                            <!-- Target RPM -->
+                            <Grid ColumnDefinitions="140, *, 55">
+                                <TextBlock Grid.Column="0" Text="Target RPM" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                                <Slider    Grid.Column="1" Minimum="200" Maximum="3000" Value="{Binding VibroTargetRpm}" Margin="5,0" TickFrequency="100" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Column="2" Text="{Binding VibroTargetRpm}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
+                            </Grid>
+                            <!-- Mod Depth -->
+                            <Grid ColumnDefinitions="140, *, 55">
+                                <TextBlock Grid.Column="0" Text="Mod Depth (±RPM)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                                <Slider    Grid.Column="1" Minimum="0" Maximum="1000" Value="{Binding VibroModDepth}" Margin="5,0" TickFrequency="50" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Column="2" Text="{Binding VibroModDepth}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
+                            </Grid>
+                            <!-- Mod Accel -->
+                            <Grid ColumnDefinitions="140, *, 55">
+                                <TextBlock Grid.Column="0" Text="Mod Accel (RPM/s)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                                <Slider    Grid.Column="1" Minimum="1000" Maximum="3000" Value="{Binding VibroModAccel}" Margin="5,0" TickFrequency="100" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Column="2" Text="{Binding VibroModAccel}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
+                            </Grid>
+                        </StackPanel>
                     </TabItem>
 
                     <!-- ZÁLOŽKA: Systém -->
                     <TabItem Header="Systém">
                         <StackPanel Spacing="5" Margin="10">
-                            <Button Classes="cmd" Content="Save" Command="{Binding SystemSaveCommand}"/>
-                            <Button Classes="cmd" Content="Load" Command="{Binding SystemLoadCommand}"/>
+                            <Button Classes="cmd" Content="Save to FRAM"   Command="{Binding SystemSaveCommand}"/>
+                            <Button Classes="cmd" Content="Load from FRAM" Command="{Binding SystemLoadCommand}"/>
+                            <Button Classes="cmd" Content="Start NMT" Command="{Binding SystemNmtStartCommand}" Background="DarkGreen"/>
+                            <Button Classes="cmd" Content="Stop NMT"  Command="{Binding SystemNmtStopCommand}"  Background="DarkSlateGray"/>
+                            <Button Classes="cmd" Content="Reset NMT" Command="{Binding SystemNmtResetCommand}" Background="DarkRed"/>
                             <Button Classes="cmd" Content="Všetky Parametre" Click="BtnAllParams_OnClick" Background="DarkOrange"/>
                             <Button Classes="cmd" Content="Spracuj log pre AI" Click="BtnProcessLog_OnClick" Background="DodgerBlue"/>
                             <Button Classes="cmd" Content="Restart" Command="{Binding SystemRestartCommand}" Background="DarkRed"/>

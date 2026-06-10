@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using EposCmd.Net;
@@ -42,6 +43,16 @@ public partial class frmDeviceScaleSettings : Window
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private async void TabControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is TabControl tc &&
+            tc.SelectedItem is TabItem { Header: "Vibro" } &&
+            DataContext is UcDeviceScaleViewModel vm)
+        {
+            await vm.VibroLoadFromCanAsync();
+        }
     }
 
     private void BtnAllParams_OnClick(object? sender, RoutedEventArgs e)
