@@ -35,60 +35,60 @@
             <Border Grid.Column="1" BorderBrush="DimGray" BorderThickness="1" CornerRadius="3" Background="#252526" IsEnabled="{Binding IsUiEnabled}">
                 <TabControl Margin="5" SelectionChanged="TabControl_OnSelectionChanged">
                     
-                    <!-- ZÁLOŽKA: Main -->
-                    <TabItem Header="Main">
+                    <!-- ZÁLOŽKA: Hlavný -->
+                    <TabItem Header="Hlavný">
                         <StackPanel Spacing="5" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding MasterInitCommand}"/>
-                            <Button Classes="cmd" Content="Produkcia" Command="{Binding MasterProdukciaCommand}"/>
-                            <Button Classes="cmd" Content="Next" Command="{Binding MasterNextCommand}"/>
-                            <Button Classes="cmd" Content="Continue" Command="{Binding MasterContinueCommand}"/>
-                            <Button Classes="cmd" Content="Stop" Command="{Binding MasterStopCommand}" Background="DarkRed"/>
+                            <Button Classes="cmd" Content="Inicializuj" Command="{Binding MasterInitCommand}"/>
+                            <Button Classes="cmd" Content="Produkcia"   Command="{Binding MasterProdukciaCommand}"/>
+                            <Button Classes="cmd" Content="Ďalší"       Command="{Binding MasterNextCommand}"/>
+                            <Button Classes="cmd" Content="Pokračuj"    Command="{Binding MasterContinueCommand}"/>
+                            <Button Classes="cmd" Content="Zastav"      Command="{Binding MasterStopCommand}" Background="DarkRed"/>
                         </StackPanel>
                     </TabItem>
-                    
+
                     <!-- ZÁLOŽKA: Dávkovač -->
                     <TabItem Header="Dávkovač">
                         <StackPanel Spacing="5" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding DoserInitCommand}"/>
-                            <Button Classes="cmd" Content="Tune" Command="{Binding DoserTuneCommand}"/>
-                            <Button Classes="cmd" Content="Prod" Command="{Binding DoserProdCommand}"/>
-                            <Button Classes="cmd" Content="Vyklop" Command="{Binding DoserVyklopCommand}"/>
-                            <Button Classes="cmd" Content="Stop" Command="{Binding DoserStopCommand}" Background="DarkRed"/>
+                            <Button Classes="cmd" Content="Inicializuj" Command="{Binding DoserInitCommand}"/>
+                            <Button Classes="cmd" Content="Naladenie"   Command="{Binding DoserTuneCommand}"/>
+                            <Button Classes="cmd" Content="Produkcia"   Command="{Binding DoserProdCommand}"/>
+                            <Button Classes="cmd" Content="Vyklop"      Command="{Binding DoserVyklopCommand}"/>
+                            <Button Classes="cmd" Content="Zastav"      Command="{Binding DoserStopCommand}" Background="DarkRed"/>
                         </StackPanel>
                     </TabItem>
 
                     <!-- ZÁLOŽKA: Vyložník -->
                     <TabItem Header="Vyložník">
                         <WrapPanel Orientation="Horizontal" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding BoomInitCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Vysun 1" Command="{Binding BoomVysun1Command}" Width="110"/>
-                            <Button Classes="cmd" Content="Vysun 2" Command="{Binding BoomVysun2Command}" Width="110"/>
-                            <Button Classes="cmd" Content="Vyloz 1" Command="{Binding BoomVyloz1Command}" Width="110"/>
-                            <Button Classes="cmd" Content="Vyloz 2" Command="{Binding BoomVyloz2Command}" Width="110"/>
-                            <Button Classes="cmd" Content="Vysyp" Command="{Binding BoomVysypCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Zasun" Command="{Binding BoomZasunCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Inicializuj" Command="{Binding BoomInitCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysun 1"     Command="{Binding BoomVysun1Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysun 2"     Command="{Binding BoomVysun2Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vyloži 1"    Command="{Binding BoomVyloz1Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vyloži 2"    Command="{Binding BoomVyloz2Command}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysyp"       Command="{Binding BoomVysypCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Zasun"       Command="{Binding BoomZasunCommand}" Width="110"/>
                         </WrapPanel>
                     </TabItem>
 
                     <!-- ZÁLOŽKA: Zámok -->
                     <TabItem Header="Zámok">
                         <WrapPanel Orientation="Horizontal" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding LockInitCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Odomkni" Command="{Binding LockOdomkniCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Zamkni" Command="{Binding LockZamkniCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Vysyp Vlavo" Command="{Binding LockVysypVlavoCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Inicializuj"  Command="{Binding LockInitCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Odomkni"      Command="{Binding LockOdomkniCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Zamkni"       Command="{Binding LockZamkniCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Vysyp Vlavo"  Command="{Binding LockVysypVlavoCommand}" Width="110"/>
                             <Button Classes="cmd" Content="Vysyp Vpravo" Command="{Binding LockVysypVpravoCommand}" Width="110"/>
-                            <Button Classes="cmd" Content="Kalibruj" Command="{Binding LockKalibrujCommand}" Width="110"/>
+                            <Button Classes="cmd" Content="Kalibruj"     Command="{Binding LockKalibrujCommand}" Width="110"/>
                         </WrapPanel>
                     </TabItem>
 
                     <!-- ZÁLOŽKA: Váha -->
                     <TabItem Header="Váha">
                         <StackPanel Spacing="5" Margin="10">
-                            <Button Classes="cmd" Content="Init" Command="{Binding ScaleInitCommand}"/>
+                            <Button Classes="cmd" Content="Inicializuj"  Command="{Binding ScaleInitCommand}"/>
                             <Button Classes="cmd" Content="Kalibruj Min" Command="{Binding ScaleKalibrujMinCommand}"/>
                             <Button Classes="cmd" Content="Kalibruj Max" Command="{Binding ScaleKalibrujMaxCommand}"/>
-                            <Button Classes="cmd" Content="Tara" Command="{Binding ScaleTaraCommand}"/>
+                            <Button Classes="cmd" Content="Tara"         Command="{Binding ScaleTaraCommand}"/>
                         </StackPanel>
                     </TabItem>
 
@@ -96,26 +96,26 @@
                     <TabItem Header="Vibro">
                         <StackPanel Margin="10" Spacing="10">
                             <WrapPanel Orientation="Horizontal">
-                                <Button Classes="cmd" Content="Init"     Command="{Binding VibroInitCommand}"     Width="110"/>
-                                <Button Classes="cmd" Content="Velocity" Command="{Binding VibroVelocityCommand}" Width="110"/>
-                                <Button Classes="cmd" Content="Stop"     Command="{Binding VibroStopCommand}"     Width="110" Background="DarkRed"/>
+                                <Button Classes="cmd" Content="Inicializuj" Command="{Binding VibroInitCommand}"     Width="110"/>
+                                <Button Classes="cmd" Content="Rýchlosť"    Command="{Binding VibroVelocityCommand}" Width="110"/>
+                                <Button Classes="cmd" Content="Zastav"      Command="{Binding VibroStopCommand}"     Width="110" Background="DarkRed"/>
                             </WrapPanel>
                             <Separator Background="#444"/>
                             <!-- Target RPM -->
-                            <Grid ColumnDefinitions="140, *, 55">
-                                <TextBlock Grid.Column="0" Text="Target RPM" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                            <Grid ColumnDefinitions="160, *, 55">
+                                <TextBlock Grid.Column="0" Text="Cieľové ot./min" VerticalAlignment="Center" Foreground="#AAAAAA"/>
                                 <Slider    Grid.Column="1" Minimum="200" Maximum="3000" Value="{Binding VibroTargetRpm}" Margin="5,0" TickFrequency="100" IsSnapToTickEnabled="True"/>
                                 <TextBlock Grid.Column="2" Text="{Binding VibroTargetRpm}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
                             </Grid>
                             <!-- Mod Depth -->
-                            <Grid ColumnDefinitions="140, *, 55">
-                                <TextBlock Grid.Column="0" Text="Mod Depth (±RPM)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                            <Grid ColumnDefinitions="160, *, 55">
+                                <TextBlock Grid.Column="0" Text="Hĺbka mod. (±ot./min)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
                                 <Slider    Grid.Column="1" Minimum="0" Maximum="1000" Value="{Binding VibroModDepth}" Margin="5,0" TickFrequency="50" IsSnapToTickEnabled="True"/>
                                 <TextBlock Grid.Column="2" Text="{Binding VibroModDepth}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
                             </Grid>
                             <!-- Mod Accel -->
-                            <Grid ColumnDefinitions="140, *, 55">
-                                <TextBlock Grid.Column="0" Text="Mod Accel (RPM/s)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
+                            <Grid ColumnDefinitions="160, *, 55">
+                                <TextBlock Grid.Column="0" Text="Zrýchlenie mod. (ot./s)" VerticalAlignment="Center" Foreground="#AAAAAA"/>
                                 <Slider    Grid.Column="1" Minimum="1000" Maximum="3000" Value="{Binding VibroModAccel}" Margin="5,0" TickFrequency="100" IsSnapToTickEnabled="True"/>
                                 <TextBlock Grid.Column="2" Text="{Binding VibroModAccel}" VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="White"/>
                             </Grid>
@@ -125,14 +125,14 @@
                     <!-- ZÁLOŽKA: Systém -->
                     <TabItem Header="Systém">
                         <StackPanel Spacing="5" Margin="10">
-                            <Button Classes="cmd" Content="Save to FRAM"   Command="{Binding SystemSaveCommand}"/>
-                            <Button Classes="cmd" Content="Load from FRAM" Command="{Binding SystemLoadCommand}"/>
-                            <Button Classes="cmd" Content="Start NMT" Command="{Binding SystemNmtStartCommand}" Background="DarkGreen"/>
-                            <Button Classes="cmd" Content="Stop NMT"  Command="{Binding SystemNmtStopCommand}"  Background="DarkSlateGray"/>
-                            <Button Classes="cmd" Content="Reset NMT" Command="{Binding SystemNmtResetCommand}" Background="DarkRed"/>
+                            <Button Classes="cmd" Content="Uložiť do FRAM"   Command="{Binding SystemSaveCommand}"/>
+                            <Button Classes="cmd" Content="Načítať z FRAM"  Command="{Binding SystemLoadCommand}"/>
+                            <Button Classes="cmd" Content="Spustiť NMT"     Command="{Binding SystemNmtStartCommand}" Background="DarkGreen"/>
+                            <Button Classes="cmd" Content="Zastaviť NMT"    Command="{Binding SystemNmtStopCommand}"  Background="DarkSlateGray"/>
+                            <Button Classes="cmd" Content="Resetovať NMT"   Command="{Binding SystemNmtResetCommand}" Background="DarkRed"/>
                             <Button Classes="cmd" Content="Všetky Parametre" Click="BtnAllParams_OnClick" Background="DarkOrange"/>
                             <Button Classes="cmd" Content="Spracuj log pre AI" Click="BtnProcessLog_OnClick" Background="DodgerBlue"/>
-                            <Button Classes="cmd" Content="Restart" Command="{Binding SystemRestartCommand}" Background="DarkRed"/>
+                            <Button Classes="cmd" Content="Reštart"         Command="{Binding SystemRestartCommand}" Background="DarkRed"/>
                         </StackPanel>
                     </TabItem>
 
