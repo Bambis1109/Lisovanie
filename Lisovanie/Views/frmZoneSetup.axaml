@@ -83,6 +83,9 @@
                     <CheckBox Name="ChkTimestamp" Content="Čas" Foreground="White" IsChecked="True"
                               IsCheckedChanged="ChkTimestamp_IsCheckedChanged"/>
                     <CheckBox Name="ChkAutoScroll" Content="Auto-scroll" Foreground="White" IsChecked="True"/>
+                    <Button Content="↓ Na koniec" Click="BtnScrollToEnd_OnClick"
+                            Padding="8,3" Background="#2E4A1E" Foreground="White"
+                            ToolTip.Tip="Zapnúť auto-scroll a skočiť na posledný riadok"/>
                     <Button Content="Vymazať" Click="BtnClear_OnClick"
                             Padding="10,3" Background="#555" Foreground="White"/>
                     <Button Content="Uložiť log" Click="BtnSaveLog_OnClick"

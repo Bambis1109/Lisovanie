@@ -274,6 +274,13 @@ public partial class frmZoneSetup : Window
 
     // ─── Checkboxy ────────────────────────────────────────────────────────────
 
+    private void BtnScrollToEnd_OnClick(object? sender, RoutedEventArgs e)
+    {
+        ChkAutoScroll.IsChecked = true;
+        if (_displayLines.Count > 0)
+            LstReceived.ScrollIntoView(_displayLines[^1]);
+    }
+
     private void ChkHex_IsCheckedChanged(object? sender, RoutedEventArgs e)
         => _hexMode = ChkHex.IsChecked == true;
 
