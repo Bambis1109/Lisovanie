@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
@@ -18,6 +19,9 @@ public partial class frmZoneSetup : Window
 {
     private SerialPort? _port;
     private readonly StringBuilder _rxBuffer = new();
+    private readonly ObservableCollection<string> _lines = new();
+    private readonly List<string> _pendingLines = new();
+    private DispatcherTimer? _flushTimer;
 
     private static readonly Dictionary<string, string[]> ModuleCommands = new()
     {
@@ -29,7 +33,7 @@ public partial class frmZoneSetup : Window
         ["Podavac"]  = ["po_init", "po_podaj", "po_podavaj", "po_velocity", "po_stop"],
         ["Davkovac"] = ["da_init", "da_tune", "da_prod", "da_stop", "da_vyklop"],
     };
-    private readonly int[] _baudRates =[1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 2000000];
+    private readonly int[] _baudRates = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 2000000];
 
     public frmZoneSetup()
     {
@@ -46,6 +50,12 @@ public partial class frmZoneSetup : Window
 
     private void InitSniffer()
     {
+        LstReceived.ItemsSource = _lines;
+
+        _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        _flushTimer.Tick += FlushPending;
+        _flushTimer.Start();
+
         CbxBaud.ItemsSource = _baudRates;
         CbxBaud.Text = "2000000";
         CbxModule.ItemsSource = new List<string>(ModuleCommands.Keys);
@@ -166,29 +176,38 @@ public partial class frmZoneSetup : Window
 
     private void AppendLine(string text)
     {
-        Dispatcher.UIThread.Post(() =>
+        if (!Dispatcher.UIThread.CheckAccess())
         {
-            var timestamp = ChkTimestamp.IsChecked == true
-                ? $"[{DateTime.Now:HH:mm:ss.fff}] "
-                : string.Empty;
+            Dispatcher.UIThread.Post(() => AppendLine(text));
+            return;
+        }
 
-            var current = TxtReceived.Text ?? string.Empty;
-            TxtReceived.Text = current + timestamp + text + "\n";
+        var timestamp = ChkTimestamp.IsChecked == true
+            ? $"[{DateTime.Now:HH:mm:ss.fff}] "
+            : string.Empty;
+        _pendingLines.Add(timestamp + text);
+    }
 
-            if (ChkAutoScroll.IsChecked == true)
-                TxtReceived.CaretIndex = TxtReceived.Text.Length;
-        });
+    private void FlushPending(object? sender, EventArgs e)
+    {
+        if (_pendingLines.Count == 0) return;
+        foreach (var line in _pendingLines)
+            _lines.Add(line);
+        _pendingLines.Clear();
+
+        if (ChkAutoScroll.IsChecked == true && _lines.Count > 0)
+            LstReceived.ScrollIntoView(_lines[^1]);
     }
 
     private void BtnClear_OnClick(object? sender, RoutedEventArgs e)
     {
-        TxtReceived.Text = string.Empty;
+        _pendingLines.Clear();
+        _lines.Clear();
     }
 
     private async void BtnSaveLog_OnClick(object? sender, RoutedEventArgs e)
     {
-        var content = TxtReceived.Text;
-        if (string.IsNullOrEmpty(content)) return;
+        if (_lines.Count == 0) return;
 
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -207,7 +226,8 @@ public partial class frmZoneSetup : Window
         {
             await using var stream = await file.OpenWriteAsync();
             await using var writer = new StreamWriter(stream, Encoding.UTF8);
-            await writer.WriteAsync(content);
+            foreach (var line in _lines)
+                await writer.WriteLineAsync(line);
             AppendLine($"[Log uložený: {file.Name}]");
         }
         catch (Exception ex)
@@ -267,14 +287,13 @@ public partial class frmZoneSetup : Window
 
     private async void BtnProcessForAi_OnClick(object? sender, RoutedEventArgs e)
     {
-        var raw = TxtReceived.Text;
-        if (string.IsNullOrWhiteSpace(raw))
+        if (_lines.Count == 0)
         {
             AppendLine("[Terminál je prázdny]");
             return;
         }
 
-        var messages = raw.Split('\n')
+        var messages = _lines
             .Select(l => StripTerminalPrefix(l.Trim()))
             .Where(m => m != null)
             .Select(m => m!);
@@ -325,7 +344,6 @@ public partial class frmZoneSetup : Window
         if (i1 < 0) return null;
         var rest = line[(i1 + 1)..].TrimStart();
 
-        // [TX] príkazy a systémové správy bez device-time ignorujeme
         if (!rest.StartsWith('[') || rest.StartsWith("[TX]")) return null;
 
         var i2 = rest.IndexOf(']');
@@ -348,6 +366,7 @@ public partial class frmZoneSetup : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _flushTimer?.Stop();
         Disconnect();
         base.OnClosed(e);
     }
