@@ -227,4 +227,7 @@ public class DeviceParameters
 
     [Category("6. RIADENIE DÁVKY (0x6006)"), DisplayName("0x31: rs_timeout_fine_ms"), Description("Timeout jemnej fázy (ms). (Predvolené: 20000)"), DefaultValue(0)]
     public int Rs_TimeoutFineMs { get; set; } = 0;
+
+    [Category("6. RIADENIE DÁVKY (0x6006)"), DisplayName("0x32: rs_mod_nominal"), Description("Nominálna hĺbka modulácie. (Predvolené: 0)"), DefaultValue(0)]
+    public int Rs_ModNominal { get; set; } = 0;
 }
