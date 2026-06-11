@@ -5,6 +5,9 @@ using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -17,10 +20,20 @@ namespace Lisovanie.Views;
 
 public partial class frmZoneSetup : Window
 {
+    private readonly record struct LogRecord(DateTime Timestamp, string Message, bool IsDevice);
+
     private SerialPort? _port;
-    private readonly StringBuilder _rxBuffer = new();
-    private readonly ObservableCollection<string> _lines = new();
-    private readonly List<string> _pendingLines = new();
+    private CancellationTokenSource? _cts;
+    private Task? _readTask;
+
+    private volatile bool _hexMode;
+    private volatile bool _showTimestamp = true;
+
+    private readonly Channel<LogRecord> _uiChannel = Channel.CreateUnbounded<LogRecord>(
+        new UnboundedChannelOptions { SingleWriter = false, SingleReader = true });
+    private readonly List<LogRecord> _allRecords = new();
+    private readonly object _recordsLock = new();
+    private readonly ObservableCollection<string> _displayLines = new();
     private DispatcherTimer? _flushTimer;
 
     private static readonly Dictionary<string, string[]> ModuleCommands = new()
@@ -50,10 +63,10 @@ public partial class frmZoneSetup : Window
 
     private void InitSniffer()
     {
-        LstReceived.ItemsSource = _lines;
+        LstReceived.ItemsSource = _displayLines;
 
-        _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-        _flushTimer.Tick += FlushPending;
+        _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _flushTimer.Tick += FlushUiChannel;
         _flushTimer.Start();
 
         CbxBaud.ItemsSource = _baudRates;
@@ -62,6 +75,117 @@ public partial class frmZoneSetup : Window
         CbxModule.SelectedIndex = 0;
         RefreshPorts();
     }
+
+    // ─── Pomocné metódy ───────────────────────────────────────────────────────
+
+    private void AddRecord(LogRecord r)
+    {
+        lock (_recordsLock)
+        {
+            _allRecords.Add(r);
+            _uiChannel.Writer.TryWrite(r);
+        }
+    }
+
+    private void AppendLine(string text, bool isDevice = false)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => AppendLine(text, isDevice));
+            return;
+        }
+        AddRecord(new LogRecord(DateTime.Now, text, isDevice));
+    }
+
+    // ─── Čítacia slučka (background task) ────────────────────────────────────
+
+    private async Task ReadLoopAsync(CancellationToken ct)
+    {
+        var port = _port!;
+        var buffer = new byte[65536];
+        var lineBuilder = new StringBuilder();
+        bool prevHex = _hexMode;
+
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                int n = await port.BaseStream.ReadAsync(buffer, 0, buffer.Length, ct);
+                if (n == 0) continue;
+
+                var now = DateTime.Now;
+                bool hex = _hexMode;
+
+                if (hex != prevHex)
+                {
+                    lineBuilder.Clear();
+                    prevHex = hex;
+                }
+
+                if (hex)
+                {
+                    AddRecord(new LogRecord(now,
+                        BitConverter.ToString(buffer, 0, n).Replace("-", " "), IsDevice: true));
+                    continue;
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    byte b = buffer[i];
+                    if (b == '\n')
+                    {
+                        var line = lineBuilder.ToString().TrimEnd('\r');
+                        lineBuilder.Clear();
+                        if (line.Length > 0)
+                            AddRecord(new LogRecord(now, line, IsDevice: true));
+                    }
+                    else
+                    {
+                        lineBuilder.Append((char)b);  // Latin1: každý bajt = príslušný znak
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (IOException) { }
+        catch (ObjectDisposedException) { }
+    }
+
+    // ─── UI flush (DispatcherTimer tick) ─────────────────────────────────────
+
+    private void FlushUiChannel(object? sender, EventArgs e)
+    {
+        var batch = new List<LogRecord>(256);
+        while (_uiChannel.Reader.TryRead(out var r)) batch.Add(r);
+        if (batch.Count == 0) return;
+
+        const int MaxPerTick = 200;
+        const int MaxUiLines = 2000;
+
+        int skipped = Math.Max(0, batch.Count - MaxPerTick);
+        int startIdx = skipped;
+        int newCount = (batch.Count - startIdx) + (skipped > 0 ? 1 : 0);
+
+        int toRemove = (_displayLines.Count + newCount) - MaxUiLines;
+        for (int i = 0; i < toRemove && _displayLines.Count > 0; i++)
+            _displayLines.RemoveAt(0);
+
+        if (skipped > 0)
+            _displayLines.Add($"[… preskočených {skipped} riadkov, všetky sú v pamäti]");
+
+        bool showTs = _showTimestamp;
+        for (int i = startIdx; i < batch.Count; i++)
+        {
+            var rec = batch[i];
+            var prefix = showTs ? $"[{rec.Timestamp:HH:mm:ss.fff}] " : string.Empty;
+            _displayLines.Add(prefix + rec.Message);
+        }
+
+        if (ChkAutoScroll.IsChecked == true && _displayLines.Count > 0)
+            LstReceived.ScrollIntoView(_displayLines[^1]);
+    }
+
+    // ─── Porty ────────────────────────────────────────────────────────────────
 
     private void RefreshPorts()
     {
@@ -73,20 +197,7 @@ public partial class frmZoneSetup : Window
 
     private void BtnRefreshPorts_OnClick(object? sender, RoutedEventArgs e) => RefreshPorts();
 
-    private void CbxModule_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (CbxModule.SelectedItem is string module && ModuleCommands.TryGetValue(module, out var cmds))
-        {
-            CbxCommand.ItemsSource = cmds;
-            CbxCommand.SelectedIndex = 0;
-        }
-    }
-
-    private void BtnSendCommand_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (CbxCommand.SelectedItem is not string cmd) return;
-        SendText(cmd);
-    }
+    // ─── Pripojenie / odpojenie ───────────────────────────────────────────────
 
     private void BtnConnect_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -108,11 +219,13 @@ public partial class frmZoneSetup : Window
         {
             _port = new SerialPort(portName, baud)
             {
-                ReadTimeout = 500,
-                WriteTimeout = 500
+                ReadBufferSize = 1_048_576,
+                ReadTimeout    = SerialPort.InfiniteTimeout,
+                WriteTimeout   = 500
             };
-            _port.DataReceived += OnDataReceived;
             _port.Open();
+            _cts = new CancellationTokenSource();
+            _readTask = Task.Run(() => ReadLoopAsync(_cts.Token));
             BtnConnect.Content = "Odpojiť";
             BtnConnect.Background = Avalonia.Media.Brushes.DarkRed;
             AppendLine($"[Pripojený {portName} @ {baud}]");
@@ -127,115 +240,44 @@ public partial class frmZoneSetup : Window
     private void Disconnect()
     {
         if (_port == null) return;
-        _port.DataReceived -= OnDataReceived;
-        try { _port.Close(); } catch { /* ignored */ }
+        _cts?.Cancel();
+        try { _port.Close(); } catch { /* ignorované */ }
         _port.Dispose();
         _port = null;
+        _cts?.Dispose();
+        _cts = null;
+        _readTask = null;
         BtnConnect.Content = "Pripojiť";
         BtnConnect.Background = Avalonia.Media.Brushes.SteelBlue;
         AppendLine("[Odpojený]");
     }
 
-    private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
+    // ─── Checkboxy ────────────────────────────────────────────────────────────
+
+    private void ChkHex_IsCheckedChanged(object? sender, RoutedEventArgs e)
+        => _hexMode = ChkHex.IsChecked == true;
+
+    private void ChkTimestamp_IsCheckedChanged(object? sender, RoutedEventArgs e)
+        => _showTimestamp = ChkTimestamp.IsChecked == true;
+
+    // ─── Moduly a príkazy ─────────────────────────────────────────────────────
+
+    private void CbxModule_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (_port is not { IsOpen: true }) return;
-        try
+        if (CbxModule.SelectedItem is string module && ModuleCommands.TryGetValue(module, out var cmds))
         {
-            var n = _port.BytesToRead;
-            var buf = new byte[n];
-            _port.Read(buf, 0, n);
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (ChkHex.IsChecked == true)
-                {
-                    AppendLine(BitConverter.ToString(buf).Replace("-", " "));
-                    return;
-                }
-
-                _rxBuffer.Append(Encoding.ASCII.GetString(buf));
-                var raw = _rxBuffer.ToString();
-                var lines = raw.Split('\n');
-
-                for (int i = 0; i < lines.Length - 1; i++)
-                {
-                    var line = lines[i].TrimEnd('\r');
-                    if (line.Length > 0)
-                        AppendLine(line);
-                }
-
-                _rxBuffer.Clear();
-                _rxBuffer.Append(lines[^1]);
-            });
-        }
-        catch (Exception ex)
-        {
-            AppendLine($"[RX CHYBA: {ex.Message}]");
+            CbxCommand.ItemsSource = cmds;
+            CbxCommand.SelectedIndex = 0;
         }
     }
 
-    private void AppendLine(string text)
+    private void BtnSendCommand_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (!Dispatcher.UIThread.CheckAccess())
-        {
-            Dispatcher.UIThread.Post(() => AppendLine(text));
-            return;
-        }
-
-        var timestamp = ChkTimestamp.IsChecked == true
-            ? $"[{DateTime.Now:HH:mm:ss.fff}] "
-            : string.Empty;
-        _pendingLines.Add(timestamp + text);
+        if (CbxCommand.SelectedItem is not string cmd) return;
+        SendText(cmd);
     }
 
-    private void FlushPending(object? sender, EventArgs e)
-    {
-        if (_pendingLines.Count == 0) return;
-        foreach (var line in _pendingLines)
-            _lines.Add(line);
-        _pendingLines.Clear();
-
-        if (ChkAutoScroll.IsChecked == true && _lines.Count > 0)
-            LstReceived.ScrollIntoView(_lines[^1]);
-    }
-
-    private void BtnClear_OnClick(object? sender, RoutedEventArgs e)
-    {
-        _pendingLines.Clear();
-        _lines.Clear();
-    }
-
-    private async void BtnSaveLog_OnClick(object? sender, RoutedEventArgs e)
-    {
-        if (_lines.Count == 0) return;
-
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Uložiť log",
-            SuggestedFileName = $"com_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
-            FileTypeChoices =
-            [
-                new FilePickerFileType("Text") { Patterns = ["*.txt"] },
-                new FilePickerFileType("Všetky súbory") { Patterns = ["*"] }
-            ]
-        });
-
-        if (file is null) return;
-
-        try
-        {
-            await using var stream = await file.OpenWriteAsync();
-            await using var writer = new StreamWriter(stream, Encoding.UTF8);
-            foreach (var line in _lines)
-                await writer.WriteLineAsync(line);
-            AppendLine($"[Log uložený: {file.Name}]");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Save log failed");
-            AppendLine($"[CHYBA uloženia: {ex.Message}]");
-        }
-    }
+    // ─── Odosielanie ─────────────────────────────────────────────────────────
 
     private void BtnSend_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -285,27 +327,78 @@ public partial class frmZoneSetup : Window
         catch (Exception ex) { AppendLine($"[TX CHYBA: {ex.Message}]"); }
     }
 
+    // ─── Tlačidlá pracujúce s dátami ─────────────────────────────────────────
+
+    private void BtnClear_OnClick(object? sender, RoutedEventArgs e)
+    {
+        lock (_recordsLock) _allRecords.Clear();
+        while (_uiChannel.Reader.TryRead(out _)) { }
+        _displayLines.Clear();
+    }
+
+    private async void BtnSaveLog_OnClick(object? sender, RoutedEventArgs e)
+    {
+        List<LogRecord> snapshot;
+        lock (_recordsLock) snapshot = new List<LogRecord>(_allRecords);
+        if (snapshot.Count == 0) return;
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Uložiť log",
+            SuggestedFileName = $"com_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Text") { Patterns = ["*.txt"] },
+                new FilePickerFileType("Všetky súbory") { Patterns = ["*"] }
+            ]
+        });
+
+        if (file is null) return;
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, Encoding.UTF8);
+            foreach (var rec in snapshot)
+                await writer.WriteLineAsync($"[{rec.Timestamp:HH:mm:ss.fff}] {rec.Message}");
+            AppendLine($"[Log uložený: {file.Name}]");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Save log failed");
+            AppendLine($"[CHYBA uloženia: {ex.Message}]");
+        }
+    }
+
     private async void BtnProcessForAi_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (_lines.Count == 0)
+        List<LogRecord> snapshot;
+        lock (_recordsLock) snapshot = _allRecords.Where(r => r.IsDevice).ToList();
+
+        if (snapshot.Count == 0)
         {
             AppendLine("[Terminál je prázdny]");
             return;
         }
 
-        var messages = _lines
-            .Select(l => StripTerminalPrefix(l.Trim()))
-            .Where(m => m != null)
-            .Select(m => m!);
+        var messages = snapshot.Select(r => r.Message);
+        List<string>? result;
+        try
+        {
+            result = await Task.Run(() => LogToCsvConverter.ProcessLines(messages));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ProcessForAi failed");
+            AppendLine($"[CHYBA spracovania: {ex.Message}]");
+            return;
+        }
 
-        var result = LogToCsvConverter.ProcessLines(messages);
         if (result == null || result.Count == 0)
         {
             AppendLine("[Žiadne kompletné dávky na spracovanie]");
             return;
         }
-
-        var content = string.Join(Environment.NewLine, result);
 
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -324,7 +417,7 @@ public partial class frmZoneSetup : Window
         {
             await using var stream = await file.OpenWriteAsync();
             await using var writer = new StreamWriter(stream, Encoding.UTF8);
-            await writer.WriteAsync(content);
+            await writer.WriteAsync(string.Join(Environment.NewLine, result));
             AppendLine($"[AI log uložený: {file.Name}  ({result.Count} riadkov)]");
         }
         catch (Exception ex)
@@ -334,29 +427,7 @@ public partial class frmZoneSetup : Window
         }
     }
 
-    // Odstraňuje terminálový prefix [HH:MM:SS.mmm] [ Nms] [LEVEL]
-    // a vracia čistú správu zariadenia (rovnaký vstup ako ProcessLogFile).
-    private static string? StripTerminalPrefix(string line)
-    {
-        if (string.IsNullOrWhiteSpace(line) || !line.StartsWith('[')) return null;
-
-        var i1 = line.IndexOf(']');
-        if (i1 < 0) return null;
-        var rest = line[(i1 + 1)..].TrimStart();
-
-        if (!rest.StartsWith('[') || rest.StartsWith("[TX]")) return null;
-
-        var i2 = rest.IndexOf(']');
-        if (i2 < 0) return null;
-        var rest2 = rest[(i2 + 1)..].TrimStart();
-
-        if (!rest2.StartsWith('[')) return null;
-        var i3 = rest2.IndexOf(']');
-        if (i3 < 0) return null;
-
-        var msg = rest2[(i3 + 1)..].TrimStart();
-        return msg.Length > 0 ? msg : null;
-    }
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e)
     {

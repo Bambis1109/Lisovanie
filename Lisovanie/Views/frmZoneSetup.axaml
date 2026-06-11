@@ -78,8 +78,10 @@
 
                 <!-- Options row -->
                 <StackPanel Orientation="Horizontal" Spacing="12">
-                    <CheckBox Name="ChkHex" Content="HEX" Foreground="White"/>
-                    <CheckBox Name="ChkTimestamp" Content="Čas" Foreground="White" IsChecked="True"/>
+                    <CheckBox Name="ChkHex" Content="HEX" Foreground="White"
+                              IsCheckedChanged="ChkHex_IsCheckedChanged"/>
+                    <CheckBox Name="ChkTimestamp" Content="Čas" Foreground="White" IsChecked="True"
+                              IsCheckedChanged="ChkTimestamp_IsCheckedChanged"/>
                     <CheckBox Name="ChkAutoScroll" Content="Auto-scroll" Foreground="White" IsChecked="True"/>
                     <Button Content="Vymazať" Click="BtnClear_OnClick"
                             Padding="10,3" Background="#555" Foreground="White"/>
