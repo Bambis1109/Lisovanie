@@ -28,6 +28,7 @@ public partial class frmZoneSetup : Window
 
     private volatile bool _hexMode;
     private volatile bool _showTimestamp = true;
+    private bool _programmingScroll;
 
     private readonly Channel<LogRecord> _uiChannel = Channel.CreateUnbounded<LogRecord>(
         new UnboundedChannelOptions { SingleWriter = false, SingleReader = true });
@@ -64,6 +65,7 @@ public partial class frmZoneSetup : Window
     private void InitSniffer()
     {
         LstReceived.ItemsSource = _displayLines;
+        LstReceived.AddHandler(ScrollViewer.ScrollChangedEvent, OnListScrolled, RoutingStrategies.Bubble);
 
         _flushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _flushTimer.Tick += FlushUiChannel;
@@ -134,14 +136,14 @@ public partial class frmZoneSetup : Window
                     byte b = buffer[i];
                     if (b == '\n')
                     {
-                        var line = lineBuilder.ToString().TrimEnd('\r');
+                        var line = lineBuilder.ToString();
                         lineBuilder.Clear();
                         if (line.Length > 0)
                             AddRecord(new LogRecord(now, line, IsDevice: true));
                     }
-                    else
+                    else if (b != '\r')  // CR ignorovať vždy
                     {
-                        lineBuilder.Append((char)b);  // Latin1: každý bajt = príslušný znak
+                        lineBuilder.Append((char)b);
                     }
                 }
             }
@@ -149,6 +151,16 @@ public partial class frmZoneSetup : Window
         catch (OperationCanceledException) { }
         catch (IOException) { }
         catch (ObjectDisposedException) { }
+    }
+
+    // ─── Scroll ───────────────────────────────────────────────────────────────
+
+    private void OnListScrolled(object? sender, ScrollChangedEventArgs e)
+    {
+        // Ignorovať scrolly spôsobené kódom (RemoveAt + Add + ScrollIntoView)
+        if (_programmingScroll) return;
+        if (e.ExtentDelta.Y == 0 && e.OffsetDelta.Y < 0)
+            ChkAutoScroll.IsChecked = false;
     }
 
     // ─── UI flush (DispatcherTimer tick) ─────────────────────────────────────
@@ -166,23 +178,31 @@ public partial class frmZoneSetup : Window
         int startIdx = skipped;
         int newCount = (batch.Count - startIdx) + (skipped > 0 ? 1 : 0);
 
-        int toRemove = (_displayLines.Count + newCount) - MaxUiLines;
-        for (int i = 0; i < toRemove && _displayLines.Count > 0; i++)
-            _displayLines.RemoveAt(0);
-
-        if (skipped > 0)
-            _displayLines.Add($"[… preskočených {skipped} riadkov, všetky sú v pamäti]");
-
-        bool showTs = _showTimestamp;
-        for (int i = startIdx; i < batch.Count; i++)
+        _programmingScroll = true;
+        try
         {
-            var rec = batch[i];
-            var prefix = showTs ? $"[{rec.Timestamp:HH:mm:ss.fff}] " : string.Empty;
-            _displayLines.Add(prefix + rec.Message);
-        }
+            int toRemove = (_displayLines.Count + newCount) - MaxUiLines;
+            for (int i = 0; i < toRemove && _displayLines.Count > 0; i++)
+                _displayLines.RemoveAt(0);
 
-        if (ChkAutoScroll.IsChecked == true && _displayLines.Count > 0)
-            LstReceived.ScrollIntoView(_displayLines[^1]);
+            if (skipped > 0)
+                _displayLines.Add($"[… preskočených {skipped} riadkov, všetky sú v pamäti]");
+
+            bool showTs = _showTimestamp;
+            for (int i = startIdx; i < batch.Count; i++)
+            {
+                var rec = batch[i];
+                var prefix = showTs ? $"[{rec.Timestamp:HH:mm:ss.fff}] " : string.Empty;
+                _displayLines.Add(prefix + rec.Message);
+            }
+
+            if (ChkAutoScroll.IsChecked == true && _displayLines.Count > 0)
+                LstReceived.ScrollIntoView(_displayLines[^1]);
+        }
+        finally
+        {
+            _programmingScroll = false;
+        }
     }
 
     // ─── Porty ────────────────────────────────────────────────────────────────

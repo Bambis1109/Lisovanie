@@ -119,6 +119,12 @@
                                        TextWrapping="NoWrap"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerTheme>
+                        <ControlTheme TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="2,0"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                        </ControlTheme>
+                    </ListBox.ItemContainerTheme>
                 </ListBox>
 
                 <!-- Send row -->
