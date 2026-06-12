@@ -195,13 +195,19 @@ public partial class frmZoneSetup : Window
                 var prefix = showTs ? $"[{rec.Timestamp:HH:mm:ss.fff}] " : string.Empty;
                 _displayLines.Add(prefix + rec.Message);
             }
-
-            if (ChkAutoScroll.IsChecked == true && _displayLines.Count > 0)
-                LstReceived.ScrollIntoView(_displayLines[^1]);
         }
         finally
         {
-            _programmingScroll = false;
+            // ScrollChanged z mutácií kolekcie prichádza až po layout passe, a ScrollIntoView
+            // volaný pred layoutom nad VirtualizingStackPanel so zastaranými indexmi padá.
+            // Preto skrol aj reset príznaku bežia odložene s prioritou Background (po layoute).
+            bool scroll = ChkAutoScroll.IsChecked == true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (scroll && _displayLines.Count > 0)
+                    LstReceived.ScrollIntoView(_displayLines.Count - 1);
+                _programmingScroll = false;
+            }, DispatcherPriority.Background);
         }
     }
 
@@ -278,7 +284,7 @@ public partial class frmZoneSetup : Window
     {
         ChkAutoScroll.IsChecked = true;
         if (_displayLines.Count > 0)
-            LstReceived.ScrollIntoView(_displayLines[^1]);
+            LstReceived.ScrollIntoView(_displayLines.Count - 1);
     }
 
     private void ChkHex_IsCheckedChanged(object? sender, RoutedEventArgs e)
