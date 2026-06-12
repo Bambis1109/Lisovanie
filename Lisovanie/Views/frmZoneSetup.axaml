@@ -7,16 +7,18 @@
         x:Class="Lisovanie.Views.frmZoneSetup"
         x:DataType="vm:MainWindowViewModel"
         Title="Zóna Lisu – Nastavenie"
-        Width="700" SizeToContent="Height"
+        Width="700" Height="700"
         WindowStartupLocation="CenterOwner"
         Topmost="True"
         CanResize="False"
         Background="#1E1E1E">
 
-    <StackPanel Margin="10" Spacing="8">
+    <Grid Margin="10" RowDefinitions="Auto, *, Auto">
 
         <!-- Zone row -->
-        <Border Background="#2D2D30"
+        <Border Grid.Row="0"
+                Margin="0,0,0,8"
+                Background="#2D2D30"
                 BorderBrush="#555"
                 BorderThickness="1"
                 CornerRadius="5"
@@ -46,20 +48,22 @@
         </Border>
 
         <!-- COM Port Sniffer -->
-        <Border Background="#2D2D30"
+        <Border Grid.Row="1"
+                Background="#2D2D30"
                 BorderBrush="#555"
                 BorderThickness="1"
                 CornerRadius="5"
                 Padding="10">
-            <StackPanel Spacing="8">
+            <DockPanel>
 
-                <TextBlock Text="COM Port Sniffer"
+                <TextBlock DockPanel.Dock="Top"
+                           Text="COM Port Sniffer"
                            Foreground="#AAD4F5"
                            FontWeight="Bold"
                            FontSize="13"/>
 
                 <!-- Connection row -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
                     <TextBlock Text="Port:" Foreground="White" VerticalAlignment="Center" Width="35"/>
                     <ComboBox Name="CbxPort" Width="100" />
                     <TextBlock Text="Baud:" Foreground="White" VerticalAlignment="Center" Width="35"/>
@@ -77,9 +81,7 @@
                 </StackPanel>
 
                 <!-- Options row -->
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <CheckBox Name="ChkHex" Content="HEX" Foreground="White"
-                              IsCheckedChanged="ChkHex_IsCheckedChanged"/>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
                     <CheckBox Name="ChkTimestamp" Content="Čas" Foreground="White" IsChecked="True"
                               IsCheckedChanged="ChkTimestamp_IsCheckedChanged"/>
                     <CheckBox Name="ChkAutoScroll" Content="Auto-scroll" Foreground="White" IsChecked="True"/>
@@ -94,20 +96,26 @@
                             Padding="10,3" Background="DodgerBlue" Foreground="White"/>
                 </StackPanel>
 
-                <!-- Quick command row -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Modul:" Foreground="White" VerticalAlignment="Center" Width="42"/>
-                    <ComboBox Name="CbxModule" Width="120"
+                <!-- TX row (jeden riadok pod RX: modulové povely + voľný text) -->
+                <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                      ColumnDefinitions="Auto, Auto, Auto, *, Auto">
+                    <ComboBox Grid.Column="0" Name="CbxModule" Width="110"
                               SelectionChanged="CbxModule_OnSelectionChanged"/>
-                    <TextBlock Text="Povel:" Foreground="White" VerticalAlignment="Center" Width="38"/>
-                    <ComboBox Name="CbxCommand" Width="170"/>
-                    <Button Content="↵ Odoslať" Click="BtnSendCommand_OnClick"
-                            Padding="12,4" Background="#1A5276" Foreground="White"/>
-                </StackPanel>
+                    <ComboBox Grid.Column="1" Name="CbxCommand" Width="150" Margin="8,0,0,0"/>
+                    <Button Grid.Column="2" Content="↵" Click="BtnSendCommand_OnClick"
+                            Margin="8,0,0,0" Padding="10,4" Background="#1A5276" Foreground="White"
+                            ToolTip.Tip="Odoslať vybraný povel"/>
+                    <TextBox Grid.Column="3" Name="TxtSend" Margin="8,0,0,0"
+                             PlaceholderText="Vlastný príkaz"
+                             FontFamily="Consolas"
+                             FontSize="11"/>
+                    <Button Grid.Column="4" Content="Odoslať" Click="BtnSend_OnClick"
+                            Margin="8,0,0,0" Padding="12,4" Background="#2E7D32" Foreground="White"/>
+                </Grid>
 
-                <!-- Received data -->
+                <!-- Received data (posledné dieťa DockPanelu — vyplní zvyšok) -->
                 <ListBox Name="LstReceived"
-                         Height="220"
+                         Margin="0,8,0,0"
                          Background="#111111"
                          BorderBrush="#444"
                          BorderThickness="1"
@@ -130,25 +138,13 @@
                     </ListBox.ItemContainerTheme>
                 </ListBox>
 
-                <!-- Send row -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="TX:" Foreground="White" VerticalAlignment="Center" Width="25"/>
-                    <TextBox Name="TxtSend"
-                             Width="470"
-                             PlaceholderText="Text alebo HEX (napr. 01 03 00 00)"
-                             FontFamily="Consolas"
-                             FontSize="11"/>
-                    <CheckBox Name="ChkSendHex" Content="HEX" Foreground="White" VerticalAlignment="Center"/>
-                    <Button Content="Odoslať" Click="BtnSend_OnClick"
-                            Padding="12,4" Background="#2E7D32" Foreground="White"/>
-                </StackPanel>
-
-            </StackPanel>
+            </DockPanel>
         </Border>
 
-        <Button Content="Zavrieť" Click="BtnClose_OnClick"
+        <Button Grid.Row="2" Content="Zavrieť" Click="BtnClose_OnClick"
+                Margin="0,8,0,0"
                 Padding="20,8" Background="#B22222" Foreground="White"
                 FontWeight="Bold" CornerRadius="4"
                 HorizontalAlignment="Right"/>
-    </StackPanel>
+    </Grid>
 </Window>

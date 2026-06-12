@@ -56,14 +56,21 @@ public partial class frmDeviceScaleSettings : Window
     }
 
     private void BtnAllParams_OnClick(object? sender, RoutedEventArgs e)
+        => OpenParametersWindow(davkaOnly: false);
+
+    private void BtnDavkaParams_OnClick(object? sender, RoutedEventArgs e)
+        => OpenParametersWindow(davkaOnly: true);
+
+    private void OpenParametersWindow(bool davkaOnly)
     {
         if (DataContext is UcDeviceScaleViewModel vm && vm.Device != null)
         {
             var parameters = new DeviceParameters();
-            var paramsVm = new ParametersViewModel(parameters, vm.Device);
+            var paramsVm = new ParametersViewModel(parameters, vm.Device, davkaOnly);
             var window = new ParametersWindow
             {
-                DataContext = paramsVm
+                DataContext = paramsVm,
+                Title = davkaOnly ? "Parametre dávky" : "Parametre zariadenia"
             };
             window.ShowDialog(this);
         }

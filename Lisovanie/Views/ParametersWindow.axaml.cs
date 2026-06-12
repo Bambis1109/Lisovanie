@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using System;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Lisovanie.ViewModels;
 
@@ -9,6 +10,13 @@ namespace Lisovanie.Views
         public ParametersWindow()
         {
             InitializeComponent();
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            if (DataContext is ParametersViewModel vm)
+                vm.LoadFromDeviceCommand.Execute(null);
         }
 
         private void BtnClose_OnClick(object? sender, RoutedEventArgs e)

@@ -26,7 +26,6 @@ public partial class frmZoneSetup : Window
     private CancellationTokenSource? _cts;
     private Task? _readTask;
 
-    private volatile bool _hexMode;
     private volatile bool _showTimestamp = true;
     private bool _programmingScroll;
 
@@ -106,7 +105,6 @@ public partial class frmZoneSetup : Window
         var port = _port!;
         var buffer = new byte[65536];
         var lineBuilder = new StringBuilder();
-        bool prevHex = _hexMode;
 
         try
         {
@@ -116,20 +114,6 @@ public partial class frmZoneSetup : Window
                 if (n == 0) continue;
 
                 var now = DateTime.Now;
-                bool hex = _hexMode;
-
-                if (hex != prevHex)
-                {
-                    lineBuilder.Clear();
-                    prevHex = hex;
-                }
-
-                if (hex)
-                {
-                    AddRecord(new LogRecord(now,
-                        BitConverter.ToString(buffer, 0, n).Replace("-", " "), IsDevice: true));
-                    continue;
-                }
 
                 for (int i = 0; i < n; i++)
                 {
@@ -287,9 +271,6 @@ public partial class frmZoneSetup : Window
             LstReceived.ScrollIntoView(_displayLines.Count - 1);
     }
 
-    private void ChkHex_IsCheckedChanged(object? sender, RoutedEventArgs e)
-        => _hexMode = ChkHex.IsChecked == true;
-
     private void ChkTimestamp_IsCheckedChanged(object? sender, RoutedEventArgs e)
         => _showTimestamp = ChkTimestamp.IsChecked == true;
 
@@ -316,26 +297,7 @@ public partial class frmZoneSetup : Window
     {
         var input = TxtSend.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(input)) return;
-
-        if (ChkSendHex.IsChecked == true)
-        {
-            try
-            {
-                var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var bytes = new byte[parts.Length];
-                for (int i = 0; i < parts.Length; i++)
-                    bytes[i] = Convert.ToByte(parts[i], 16);
-                SendBytes(bytes);
-            }
-            catch (Exception ex)
-            {
-                AppendLine($"[TX CHYBA: {ex.Message}]");
-            }
-        }
-        else
-        {
-            SendText(input);
-        }
+        SendText(input);
     }
 
     private void SendText(string text)
@@ -345,17 +307,6 @@ public partial class frmZoneSetup : Window
         {
             _port.Write(text);
             AppendLine($"[TX] {text}");
-        }
-        catch (Exception ex) { AppendLine($"[TX CHYBA: {ex.Message}]"); }
-    }
-
-    private void SendBytes(byte[] bytes)
-    {
-        if (_port is not { IsOpen: true }) { AppendLine("[Nie je pripojené]"); return; }
-        try
-        {
-            _port.Write(bytes, 0, bytes.Length);
-            AppendLine($"[TX HEX] {BitConverter.ToString(bytes).Replace("-", " ")}");
         }
         catch (Exception ex) { AppendLine($"[TX CHYBA: {ex.Message}]"); }
     }

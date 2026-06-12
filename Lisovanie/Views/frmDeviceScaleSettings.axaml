@@ -8,7 +8,7 @@
         x:Class="Lisovanie.Views.frmDeviceScaleSettings"
         x:DataType="vm:UcDeviceScaleViewModel"
         Title="Scale Setup"
-        Width="850" Height="500"
+        Width="700" Height="700"
         WindowStartupLocation="CenterOwner"
         Topmost="True" Background="#1E1E1E">
 
@@ -130,7 +130,8 @@
                             <Button Classes="cmd" Content="Spustiť NMT"     Command="{Binding SystemNmtStartCommand}" Background="DarkGreen"/>
                             <Button Classes="cmd" Content="Zastaviť NMT"    Command="{Binding SystemNmtStopCommand}"  Background="DarkSlateGray"/>
                             <Button Classes="cmd" Content="Resetovať NMT"   Command="{Binding SystemNmtResetCommand}" Background="DarkRed"/>
-                            <Button Classes="cmd" Content="Všetky Parametre" Click="BtnAllParams_OnClick" Background="DarkOrange"/>
+                            <Button Classes="cmd" Content="Parametre" Click="BtnAllParams_OnClick" Background="DarkOrange"/>
+                            <Button Classes="cmd" Content="Parametre Dávky" Click="BtnDavkaParams_OnClick" Background="DarkOrange"/>
                             <Button Classes="cmd" Content="Spracuj log pre AI" Click="BtnProcessLog_OnClick" Background="DodgerBlue"/>
                             <Button Classes="cmd" Content="Reštart"         Command="{Binding SystemRestartCommand}" Background="DarkRed"/>
                         </StackPanel>

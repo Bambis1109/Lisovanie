@@ -19,18 +19,28 @@ namespace Lisovanie.ViewModels;
 
 public partial class ParametersViewModel : ViewModelBase
 {
+    private const string DavkaCategory = "6. RIADENIE DÁVKY (0x6006)";
+
     private readonly DeviceParameters _parameters;
     private readonly CDeviceScale _device;
-    
+    private readonly bool _davkaOnly;
+
     [ObservableProperty] private ObservableCollection<CategoryViewModel> _categories = new();
     [ObservableProperty] private ParameterItemViewModel? _selectedParameter;
     [ObservableProperty] private bool _isBusy;
 
-    public ParametersViewModel(DeviceParameters parameters, CDeviceScale device)
+    public ParametersViewModel(DeviceParameters parameters, CDeviceScale device, bool davkaOnly = false)
     {
         _parameters = parameters;
         _device = device;
+        _davkaOnly = davkaOnly;
         BuildUI();
+    }
+
+    private bool IsInScope(PropertyInfo prop)
+    {
+        var catAttr = prop.GetCustomAttribute<CategoryAttribute>();
+        return catAttr != null && (catAttr.Category == DavkaCategory) == _davkaOnly;
     }
 
     private void BuildUI()
@@ -44,7 +54,7 @@ public partial class ParametersViewModel : ViewModelBase
             var dispAttr = prop.GetCustomAttribute<DisplayNameAttribute>();
             var descAttr = prop.GetCustomAttribute<DescriptionAttribute>();
 
-            if (catAttr == null) continue;
+            if (catAttr == null || !IsInScope(prop)) continue;
 
             var categoryName = catAttr.Category;
             if (!tempCategories.TryGetValue(categoryName, out var categoryVm))
@@ -182,6 +192,7 @@ public partial class ParametersViewModel : ViewModelBase
                 var props = typeof(DeviceParameters).GetProperties(BindingFlags.Public | BindingFlags.Instance);
                 foreach (var prop in props)
                 {
+                    if (!IsInScope(prop)) continue;
                     if (jsonDoc.RootElement.TryGetProperty(prop.Name, out var element))
                     {
                         if (element.TryGetInt32(out int val))
@@ -224,15 +235,20 @@ public partial class ParametersViewModel : ViewModelBase
             var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Uložiť parametre do súboru",
-                SuggestedFileName = $"ScaleNode{_device.NodeId}.json",
+                SuggestedFileName = $"ScaleNode{_device.NodeId}{(_davkaOnly ? "_Davka" : "")}.json",
                 DefaultExtension = "json",
                 FileTypeChoices = new[] { new FilePickerFileType("JSON File") { Patterns = new[] { "*.json" } } }
             });
 
             if (file != null)
             {
+                var data = typeof(DeviceParameters)
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(IsInScope)
+                    .ToDictionary(p => p.Name, p => p.GetValue(_parameters));
+
                 await using var stream = await file.OpenWriteAsync();
-                await JsonSerializer.SerializeAsync(stream, _parameters, new JsonSerializerOptions { WriteIndented = true });
+                await JsonSerializer.SerializeAsync(stream, data, new JsonSerializerOptions { WriteIndented = true });
                 Log.Information("Parametre úspešne uložené do súboru.");
             }
         }
