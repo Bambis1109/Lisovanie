@@ -36,10 +36,17 @@
                                 <DataTemplate x:DataType="vm:ParameterItemViewModel">
                                     <Grid ColumnDefinitions="*, 150" Margin="0,5">
                                         <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                        <NumericUpDown Grid.Column="1" 
-                                                       Value="{Binding Value}" 
-                                                       FormatString="0"
-                                                       GotFocus="Control_GotFocus"/>
+                                        <Button Grid.Column="1"
+                                                Content="{Binding Value}"
+                                                Click="BtnValue_OnClick"
+                                                GotFocus="Control_GotFocus"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Right"
+                                                Padding="8,4"
+                                                BorderBrush="LightGray"
+                                                BorderThickness="1"
+                                                Background="#2D2D2D"
+                                                Foreground="White"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
