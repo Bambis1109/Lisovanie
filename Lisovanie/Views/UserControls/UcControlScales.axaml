@@ -40,9 +40,9 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Button Grid.Column="1" Content="Setup" Click="BtnSetup_OnClick"
-                        Background="DodgerBlue" Foreground="White"
-                        Width="80" Height="60" Margin="2"
+                <Button Grid.Column="1" Content="Nastavenia" Click="BtnSetup_OnClick"
+                        Background="#0D47A1" Foreground="White"
+                        Width="100" Height="60" Margin="2"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
             </Grid>

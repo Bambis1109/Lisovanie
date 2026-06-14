@@ -50,7 +50,7 @@
                 </Border>
 
                 <Button Grid.Column="2"
-                        Content="CONNECT"
+                        Content="PRIPOJ"
                         Command="{Binding ConnectCommand}"
                         Background="#1B5E20"
                         Foreground="White"
@@ -63,7 +63,7 @@
                         Margin="0,0,5,0"/>
 
                 <Button Grid.Column="3"
-                        Content="SETUP"
+                        Content="TERMINAL"
                         Click="BtnZoneSetup_OnClick"
                         Background="#4A148C"
                         Foreground="White"
@@ -76,7 +76,7 @@
                         Margin="0,0,5,0"/>
 
                 <Button Grid.Column="4"
-                        Content="EXIT"
+                        Content="ZAVRIET"
                         Command="{Binding ExitApplicationCommand}"
                         Background="#B71C1C"
                         Foreground="White"
