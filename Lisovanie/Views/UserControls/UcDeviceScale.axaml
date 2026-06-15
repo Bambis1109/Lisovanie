@@ -104,12 +104,12 @@
                     <TextBlock Text="Prevádzkové Stavy" FontWeight="Bold" Foreground="LightGray" Margin="0,0,0,5"/>
                     
                     <Grid ColumnDefinitions="Auto, *, Auto, *" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,5">
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Main Proc:" Width="80"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Hlavný:" Width="80"/>
                         <TextBlock Grid.Row="0" Grid.Column="1" Classes="status" Text="{Binding StatusMainProc}"/>
                         <TextBlock Grid.Row="0" Grid.Column="2" Text="Mat:" Width="40" Margin="10,0,0,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="3" Classes="status" Text="{Binding StatusMainMat}"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Zone:"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Zóna lisu:"/>
                         <TextBlock Grid.Row="1" Grid.Column="1" Classes="status" Text="{Binding StatusMainZone}"/>
                         
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Vyložník:" Margin="0,5,0,0"/>

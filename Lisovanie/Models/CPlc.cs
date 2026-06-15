@@ -233,7 +233,7 @@ public partial class CPlc : ObservableObject
     {
         try
         {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var directory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters");
             var path = System.IO.Path.Combine(directory, fileName);
             if (System.IO.File.Exists(path))
             {
@@ -269,7 +269,8 @@ public partial class CPlc : ObservableObject
     {
         try
         {
-            var directory = AppDomain.CurrentDomain.BaseDirectory;
+            var directory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters");
+            System.IO.Directory.CreateDirectory(directory);
             var path = System.IO.Path.Combine(directory, fileName);
             var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
             var json = System.Text.Json.JsonSerializer.Serialize(source, options);

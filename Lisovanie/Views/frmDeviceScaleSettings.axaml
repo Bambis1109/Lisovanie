@@ -57,8 +57,8 @@
                         </StackPanel>
                     </TabItem>
 
-                    <!-- ZÁLOŽKA: Vyložník -->
-                    <TabItem Header="Vyložník">
+                    <!-- ZÁLOŽKA: Vykladač -->
+                    <TabItem Header="Vykladač">
                         <WrapPanel Orientation="Horizontal" Margin="10">
                             <Button Classes="cmd" Content="Inicializuj" Command="{Binding BoomInitCommand}" Width="110"/>
                             <Button Classes="cmd" Content="Vysun 1"     Command="{Binding BoomVysun1Command}" Width="110"/>
@@ -92,8 +92,8 @@
                         </StackPanel>
                     </TabItem>
 
-                    <!-- ZÁLOŽKA: Vibro -->
-                    <TabItem Header="Vibro">
+                    <!-- ZÁLOŽKA: Podávač -->
+                    <TabItem Header="Podávač">
                         <StackPanel Margin="10" Spacing="10">
                             <WrapPanel Orientation="Horizontal">
                                 <Button Classes="cmd" Content="Inicializuj" Command="{Binding VibroInitCommand}"     Width="110"/>
