@@ -8,14 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="XatCOP60-64.dll">
+      <None Include="XatCOP60-64.dll">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </Content>
-      <Content Include="XatCOP_VCI3-64.dll">
+      </None>
+      <None Include="XatCOP_VCI3-64.dll">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-      </Content>
+      </None>
     </ItemGroup>
 
 </Project>

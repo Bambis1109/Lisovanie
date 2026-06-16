@@ -28,7 +28,20 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CanOpenMaster\CanOpenMaster.csproj" />
+        <ProjectReference Include="..\CanOpenMaster\CanOpenMaster.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\CanOpenMaster\XatCOP60-64.dll">
+            <Link>XatCOP60-64.dll</Link>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
+        <None Include="..\CanOpenMaster\XatCOP_VCI3-64.dll">
+            <Link>XatCOP_VCI3-64.dll</Link>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
