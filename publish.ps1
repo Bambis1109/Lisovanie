@@ -1,10 +1,37 @@
 # Skript pre publikovanie aplikácie Lisovanie (win-x64, Self-Contained)
 
+# Projekt cieli na .NET 10 — systémový "dotnet" je .NET 9, preto hľadáme
+# .NET 10 SDK z Ridera. Fallback na systémový dotnet, ak sa Rider nenájde.
 $dotnet = "dotnet"
+$riderDotnet = Get-ChildItem `
+    "C:\Program Files\JetBrains\JetBrains Rider *\lib\ReSharperHost\windows-x64\dotnet\dotnet.exe" `
+    -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
+if ($riderDotnet) {
+    $dotnet = $riderDotnet.FullName
+    Write-Host "Používam .NET SDK z Ridera: $dotnet" -ForegroundColor Gray
+} else {
+    Write-Warning "Rider .NET SDK sa nenašiel, používam systémový 'dotnet' (môže byť .NET 9)."
+}
+
 $project = "$PSScriptRoot\Lisovanie\Lisovanie.csproj"
 $output  = "$PSScriptRoot\publish\Lisovanie"
 
-# 1. Vyčistenie starého buildu
+# 1. Ukončenie visiacich procesov, ktoré držia projektové DLL.
+#    Po zatvorení appky často zostáva visieť Avalonia XAML Previewer
+#    (Avalonia.Designer.HostApp.dll v Rideri), ktorý drží CanOpenMaster.dll
+#    a natívne Ixxat knižnice zamknuté -> publish/clean zlyhá.
+$lockedDll = "$PSScriptRoot\Lisovanie\bin\Debug\net10.0\CanOpenMaster.dll"
+$lockers = Get-Process | Where-Object {
+    ($_.ProcessName -eq "Lisovanie") -or
+    ($_.Modules.FileName -contains $lockedDll)
+} 2>$null
+if ($lockers) {
+    Write-Host "Ukončujem visiace procesy držiace projektové DLL (PID: $($lockers.Id -join ', '))..." -ForegroundColor Yellow
+    $lockers | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500
+}
+
+# 2. Vyčistenie starého buildu
 if (Test-Path $output) {
     Write-Host "Čistím starý publish adresár..." -ForegroundColor Gray
     Remove-Item -Recurse -Force $output
@@ -12,7 +39,7 @@ if (Test-Path $output) {
 
 Write-Host "Publishujem do: $output" -ForegroundColor Cyan
 
-# 2. Samotný publish
+# 3. Samotný publish
 # SingleFile vypnutý, pretože natívne DLL (Ixxat) sa pri ňom nesprávajú konzistentne
 & $dotnet publish $project `
     --configuration Release `
@@ -27,7 +54,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# 3. Overenie prítomnosti natívnych DLL (Ixxat CANopen Master)
+# 4. Overenie prítomnosti natívnych DLL (Ixxat CANopen Master)
 $required = @("XatCOP_VCI3-64.dll", "XatCOP60-64.dll")
 Write-Host "`nKontrola natívnych knižníc:" -ForegroundColor Yellow
 foreach ($dll in $required) {
