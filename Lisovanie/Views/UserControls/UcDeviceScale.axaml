@@ -31,11 +31,11 @@
             <!-- Kompaktný header podľa obrazka -->
             <Grid ColumnDefinitions="50, 95, 106, Auto" RowDefinitions="26, 26">
 
-                <!-- Scale name – spans 2 rows -->
+                <!-- Node ID – spans 2 rows -->
                 <Border Grid.Column="0" Grid.RowSpan="2"
                         Background="#555555" CornerRadius="3" Margin="0,0,4,0">
-                    <TextBlock Text="{Binding ScaleName}"
-                               FontWeight="Bold" FontSize="13" Foreground="White"
+                    <TextBlock Text="{Binding NodeId}"
+                               FontWeight="Bold" FontSize="22" Foreground="White"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
 

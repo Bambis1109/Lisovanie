@@ -53,7 +53,7 @@
                         <TextBlock Text="Sila:" FontWeight="Bold" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding SilaActual, StringFormat={}{0:F0}}" Width="80" TextAlignment="Center" HorizontalAlignment="Center"
                                    Foreground="Yellow" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <TextBlock Text="N" VerticalAlignment="Center" Margin="2,0,0,0" FontWeight="Bold"/>
+                        <TextBlock Text="kg" VerticalAlignment="Center" Margin="2,0,0,0" FontWeight="Bold"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" Spacing="5">

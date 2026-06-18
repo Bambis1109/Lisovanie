@@ -25,11 +25,13 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
     {
         _device = device;
         ScaleName = device.Name;
+        NodeId = device.NodeId;
     }
 
     public CDeviceScale? Device => _device;
 
     [ObservableProperty] private string _scaleName = string.Empty;
+    [ObservableProperty] private byte _nodeId;
     [ObservableProperty] private bool _isUiEnabled = true;
     [ObservableProperty] private bool _isSetupVisible = true;
     [ObservableProperty] private string _nmtText = "UNKNOWN";
@@ -68,6 +70,7 @@ public partial class UcDeviceScaleViewModel : ObservableObject, IDisposable
         ControlScales = controlScales;
         _device = device;
         ScaleName = scaleName;
+        if (device != null) NodeId = device.NodeId;
     }
 
     public void StartRefresh()

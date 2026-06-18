@@ -9,11 +9,11 @@
 
     <Grid ColumnDefinitions="40, 85, 95" RowDefinitions="24, 24">
 
-        <!-- Scale name – spans both rows -->
+        <!-- Node ID – spans both rows -->
         <Border Grid.Column="0" Grid.RowSpan="2"
                 Background="#555555" Margin="0,0,2,0">
-            <TextBlock Text="{Binding ScaleName}"
-                       FontWeight="Bold" FontSize="11" Foreground="White"
+            <TextBlock Text="{Binding NodeId}"
+                       FontWeight="Bold" FontSize="18" Foreground="White"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
 
