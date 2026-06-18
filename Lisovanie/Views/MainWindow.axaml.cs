@@ -29,6 +29,26 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void BtnMode_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+
+        // V režime Spravca prepneme späť na Operator bez dialógu.
+        if (vm.MainProgram.IsSpravca)
+        {
+            vm.MainProgram.IsSpravca = false;
+            return;
+        }
+
+        // V režime Operator vyžiadame heslo.
+        var dlg = new frmLogin(vm.MainProgram);
+        var ok = await dlg.ShowDialog<bool>(this);
+        if (ok)
+        {
+            vm.MainProgram.IsSpravca = true;
+        }
+    }
+
     private void BtnZoneSetup_OnClick(object? sender, RoutedEventArgs e)
     {
         if (_zoneSetupWindow != null)

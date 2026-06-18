@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="using:Lisovanie.Models"
+             xmlns:vm="using:Lisovanie.ViewModels"
              xmlns:uc="using:Lisovanie.Views.UserControls"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="400"
              x:Class="Lisovanie.Views.UserControls.UcControlLis"
@@ -44,6 +45,7 @@
 
                 <!-- Setup Tlačidlo tváriace sa ako motor block -->
                 <Button Grid.Column="1" Content="Nastavenia" Click="BtnSetup_OnClick"
+                        IsEnabled="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).MainProgram.IsSpravca}"
                         Background="#0D47A1" Foreground="White"
                         Width="100" Height="60" Margin="2"
                         HorizontalAlignment="Right"

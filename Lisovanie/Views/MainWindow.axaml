@@ -27,7 +27,7 @@
                 BorderBrush="#FFB300"
                 BorderThickness="0,0,0,2"
                 Padding="10,7">
-            <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
+            <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto">
 
                 <TextBlock Grid.Column="0"
                            Text="LISOVANIE"
@@ -51,6 +51,19 @@
                 </Border>
 
                 <Button Grid.Column="2"
+                        Content="{Binding MainProgram.ModeText}"
+                        Click="BtnMode_OnClick"
+                        Background="#37474F"
+                        Foreground="White"
+                        Width="95"
+                        Padding="0,6"
+                        HorizontalContentAlignment="Center"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        CornerRadius="3"
+                        Margin="0,0,5,0"/>
+
+                <Button Grid.Column="3"
                         Content="PRIPOJ"
                         Command="{Binding ConnectCommand}"
                         Background="#1B5E20"
@@ -63,9 +76,10 @@
                         CornerRadius="3"
                         Margin="0,0,5,0"/>
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="TERMINAL"
                         Click="BtnZoneSetup_OnClick"
+                        IsEnabled="{Binding MainProgram.IsSpravca}"
                         Background="#4A148C"
                         Foreground="White"
                         Width="95"
@@ -76,7 +90,7 @@
                         CornerRadius="3"
                         Margin="0,0,5,0"/>
 
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Content="ZAVRIET"
                         Command="{Binding ExitApplicationCommand}"
                         Background="#B71C1C"

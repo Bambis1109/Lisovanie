@@ -28,12 +28,67 @@ public partial class CMainProgram : ObservableObject
     public CDeviceManagerCO DeviceManagerCO;
     public CDeviceManagerCO DeviceManagerScale;
 
+    // ===== Režim prístupu (Operator / Spravca) =====
+    public CParametersMain ParametersMain { get; } = new();
+
+    [ObservableProperty] private bool _isSpravca;
+
+    public string ModeText => IsSpravca ? "Spravca" : "Operator";
+
+    partial void OnIsSpravcaChanged(bool value) => OnPropertyChanged(nameof(ModeText));
+
 
     public CMainProgram()
     {
+        LoadParametersMain();
         ZoznamPlc.Add(new CControlManipulator("Manipulator"));
         ZoznamPlc.Add(new CControlLis("Lis"));
         ZoznamPlc.Add(new CControlScales("Vahy"));
+    }
+
+    private static string ParametersMainPath =>
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters", "ParametersMain.json");
+
+    public void LoadParametersMain()
+    {
+        try
+        {
+            if (File.Exists(ParametersMainPath))
+            {
+                var json = File.ReadAllText(ParametersMainPath);
+                var loaded = JsonSerializer.Deserialize<CParametersMain>(json);
+                if (loaded != null)
+                {
+                    ParametersMain.Password = loaded.Password;
+                    Log.Information("ParametersMain.json načítaný.");
+                }
+            }
+            else
+            {
+                Log.Warning("ParametersMain.json neexistuje, použité východiskové heslo.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Chyba pri načítavaní ParametersMain.json: {ex.Message}");
+        }
+    }
+
+    public void SaveParametersMain()
+    {
+        try
+        {
+            var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters");
+            Directory.CreateDirectory(dir);
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(ParametersMain, options);
+            File.WriteAllText(ParametersMainPath, json);
+            Log.Information("ParametersMain.json uložený.");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Chyba pri ukladaní ParametersMain.json: {ex.Message}");
+        }
     }
 
     public async Task<bool> Connect()
