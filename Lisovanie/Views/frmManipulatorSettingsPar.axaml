@@ -1,0 +1,116 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:Lisovanie.Models"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
+        x:Class="Lisovanie.Views.FrmManipulatorSettingsPar"
+        x:DataType="models:CParameters"
+        Width="500" Height="600"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Width" Value="150"/>
+        </Style>
+        <Style Selector="Button.numpad">
+            <Setter Property="BorderBrush" Value="LightGray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,0"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </Window.Styles>
+
+    <DockPanel Margin="10">
+        <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="10">
+                <Button Content="Save Parameters" Click="BtnSave_OnClick" Width="150" HorizontalContentAlignment="Center"/>
+                <Button Content="Load Parameters" Click="BtnLoad_OnClick" Width="150" HorizontalContentAlignment="Center"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="Zavrieť" Click="BtnClose_OnClick" Width="100" HorizontalContentAlignment="Center" Background="#B22222" Foreground="White"/>
+            </StackPanel>
+        </Grid>
+
+        <TabControl>
+            <!-- Matica OK -->
+            <TabItem Header="Matica OK">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="X prvý:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkXfirst}" Click="BtnOkXfirst_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Y prvý:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkYfirst}" Click="BtnOkYfirst_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="X delta:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkXdelta}" Click="BtnOkXdelta_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Y delta:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkYdelta}" Click="BtnOkYdelta_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Počet X:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkXnum}" Click="BtnOkXnum_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Počet Y:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixOkYnum}" Click="BtnOkYnum_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Matica NOK -->
+            <TabItem Header="Matica NOK">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="X prvý:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokXfirst}" Click="BtnNokXfirst_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Y prvý:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokYfirst}" Click="BtnNokYfirst_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="X delta:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokXdelta}" Click="BtnNokXdelta_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Y delta:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokYdelta}" Click="BtnNokYdelta_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Počet X:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokXnum}" Click="BtnNokXnum_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="Počet Y:"/>
+                        <Button Classes="numpad" Content="{Binding MatrixNokYnum}" Click="BtnNokYnum_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Delta -->
+            <TabItem Header="Delta">
+                <StackPanel Spacing="5" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="OffsetArm:"/>
+                        <Button Classes="numpad" Content="{Binding OffsetArm}" Click="BtnOffsetArm_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Classes="label" Text="OffsetSystem:"/>
+                        <Button Classes="numpad" Content="{Binding OffsetSystem}" Click="BtnOffsetSystem_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
