@@ -7,7 +7,7 @@
         x:Class="Lisovanie.Views.ParametersWindow"
         x:DataType="vm:ParametersViewModel"
         Title="Parametre zariadenia" Width="600" Height="700"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
 
     <Grid RowDefinitions="Auto, *, Auto, 100">

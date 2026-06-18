@@ -36,10 +36,20 @@ class Program
             .WriteTo.Sink(UiSink) // Prepojenie na našu UI kolekciu
             .CreateLogger();
 
+        // Kontrola, či už nebeží iná inštancia (okamžitá – cez pomenovaný Mutex).
+        if (!SingleInstance.TryAcquire())
+        {
+            Log.Warning("Aplikácia už beží – spúšťa sa zobrazenie existujúcej inštancie.");
+            SingleInstance.ShowAlreadyRunningMessage(); // oznámi a počká na potvrdenie
+            SingleInstance.SignalExistingInstance();     // maximalizuje bežiacu inštanciu
+            Log.CloseAndFlush();
+            return;
+        }
+
         try
         {
             Log.Information("Systém logovania úspešne naštartovaný.");
-            
+
             // Toto je pôvodný kód Avalonie, ktorý spúšťa okno
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
@@ -49,6 +59,7 @@ class Program
         }
         finally
         {
+            SingleInstance.Release();
             // Dôležité: Zabezpečí, že pred vypnutím sa dopíšu všetky logy do súboru
             Log.CloseAndFlush();
         }

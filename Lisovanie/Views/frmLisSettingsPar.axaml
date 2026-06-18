@@ -7,7 +7,7 @@
         x:Class="Lisovanie.Views.FrmLisSettingsPar"
         x:DataType="models:CParametersLis"
         Width="500" Height="750"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Topmost="True"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
 

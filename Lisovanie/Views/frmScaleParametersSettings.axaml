@@ -8,7 +8,7 @@
         x:DataType="models:CControlScales"
         Title="Nastavenia váh"
         Width="320" Height="220"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Topmost="True"
         CanResize="False"
         Background="#1E1E1E">

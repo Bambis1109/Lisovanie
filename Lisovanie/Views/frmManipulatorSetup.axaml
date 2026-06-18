@@ -8,7 +8,7 @@
         x:Class="Lisovanie.Views.frmManipulatorSetup"
         x:DataType="models:CControlManipulator"
         Width="780" Height="900"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterScreen"
         Topmost="True"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
     

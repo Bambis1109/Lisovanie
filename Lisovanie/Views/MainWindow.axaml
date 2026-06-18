@@ -10,6 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Width="760" Height="900"
+        WindowState="Maximized"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full"
         Background="#1A1A1A">
 
