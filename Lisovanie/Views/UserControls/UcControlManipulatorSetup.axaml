@@ -143,10 +143,6 @@
                                 <Button Grid.Column="0" Content="Kalibruj" Command="{Binding KalibrujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
                                 <Button Grid.Column="1" Content="Orientuj" Command="{Binding OrientujCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
                             </Grid>
-                            <Grid ColumnDefinitions="*,*">
-                                <Button Grid.Column="0" Content="Save Params" Command="{Binding SaveParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,5,0"/>
-                                <Button Grid.Column="1" Content="Load Params" Command="{Binding LoadParametersCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
-                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

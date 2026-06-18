@@ -89,9 +89,13 @@ public partial class CControlManipulator : CPlcEpos
     {
         Message = "Init 1: Štart inicializácie";
         StatusCycle = EnStatusCycle.Moving;
-        MatrixOK = new Matrix(-306, -68, 21, 19, 6, 7);
+
+        var par = deltaRobot.ParametersDelta;
+        MatrixOK = new Matrix(par.MatrixOkXfirst, par.MatrixOkYfirst, par.MatrixOkXdelta, par.MatrixOkYdelta,
+            par.MatrixOkXnum, par.MatrixOkYnum);
         MatrixOK.RecalculDIA();
-        MatrixNOK = new Matrix(165, -68, 21, 19, 3, 2);
+        MatrixNOK = new Matrix(par.MatrixNokXfirst, par.MatrixNokYfirst, par.MatrixNokXdelta, par.MatrixNokYdelta,
+            par.MatrixNokXnum, par.MatrixNokYnum);
         MatrixNOK.RecalculDIA();
 
         return 10;

@@ -14,8 +14,13 @@
     
     <Grid RowDefinitions="*, Auto">
         <uc:UcControlManipulatorSetup Name="UcSetup" Grid.Row="0" />
-        <Button Grid.Row="1" Content="Zavrieť" Click="BtnClose_OnClick" 
-                HorizontalAlignment="Right" Margin="15" Padding="20,10" 
-                Background="#B22222" Foreground="White" FontWeight="Bold" CornerRadius="5"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
+            <Button Content="Nastavenia" Click="BtnSettings_OnClick"
+                    Padding="20,10" Background="SteelBlue" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Zavrieť" Click="BtnClose_OnClick"
+                    Padding="20,10" Background="#B22222" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+        </StackPanel>
     </Grid>
 </Window>
