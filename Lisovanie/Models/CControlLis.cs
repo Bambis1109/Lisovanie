@@ -33,7 +33,14 @@ public partial class CControlLis : CPlcEpos
     [ObservableProperty] private double _limitLisUp = 0.0;
     [ObservableProperty] private double _limitLisDown = -220.0;
     private Stopwatch SW;
+    private Stopwatch? _swZhutnovanie;
     private DispatcherTimer? _uiTimer;
+
+    /// <summary>Hmotnosť aktuálnej dávky [g] prevzatá zo zóny pri InputFull.</summary>
+    private double _aktualnaHmotnost;
+
+    /// <summary>Logger výrobných dát (priradí ho CMainProgram). Null = neukladá sa.</summary>
+    public CProductionLogger? ProductionLogger { get; set; }
 
     public CControlLis(string name) : base(name)
     {
@@ -218,6 +225,7 @@ public partial class CControlLis : CPlcEpos
         {
             // 1. Zóna je naša. Okamžite ju označíme ako "spracováva sa"
             IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            _aktualnaHmotnost = IL.ZonePress.PayloadHmotnost; // hmotnosť dávky z váhy
             ProduktLisLast.Copy(ProduktLisActual);
             ProduktLisActual.Clear();
             return 120;
@@ -240,6 +248,7 @@ public partial class CControlLis : CPlcEpos
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-40, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
         MotorStred.Operation.StateMachine.SetDisableState();
+        _swZhutnovanie = Stopwatch.StartNew(); // meranie času zhutňovania až po dosiahnutie sily
         return 140;
     } //Konzola na poziciu lisovania a uvolnenie-> 140
 
@@ -248,6 +257,7 @@ public partial class CControlLis : CPlcEpos
         Message = "Merania sily a hrubky";
         if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana)
         {
+            _swZhutnovanie?.Stop(); // dosiahnutá sila -> koniec merania času zhutňovania
             SW = new Stopwatch(); // ak je sila vatsia ako pozadovana spusti meranie casu a skoc na 160
             SW.Start();
             return 160; // testovanie uplynutia casu
@@ -323,6 +333,18 @@ public partial class CControlLis : CPlcEpos
     private int MainStep190(int step)
     {
         Message = "Uvolnenie zony a nastavenie priznaku";
+
+        // Trvalý záznam výrobných dát (neblokujúci zápis cez Channel).
+        ProductionLogger?.Enqueue(new CProductionRecord
+        {
+            TimestampUtc = DateTime.UtcNow,
+            Hmotnost = _aktualnaHmotnost,
+            Sila = ProduktLisActual.Sila,
+            Vzdialenost = ProduktLisActual.Vyska,
+            CasZhutnovaniaMs = _swZhutnovanie?.ElapsedMilliseconds ?? 0,
+            CasZotrvaniaMs = SW?.ElapsedMilliseconds ?? 0,
+            Status = ProduktLisActual.Status
+        });
 
         switch (ProduktLisActual.Status)
         {

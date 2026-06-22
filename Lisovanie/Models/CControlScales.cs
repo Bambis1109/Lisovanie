@@ -296,7 +296,12 @@ public partial class CControlScales : CPlcScale
     private int MainStep280(int step)
     {
         Message = "Uvoľnenie zóny pre Lis";
-        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull);
+
+        // Hmotnosť vysypanej dávky [g] z práve použitej váhy – putuje so zónou na Lis.
+        var scale = _lastUsedScale == 2 ? Scale2 : Scale1;
+        double hmotnost = ((CDataScale)scale.Data).WeightFinal / 10000000.0;
+
+        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull, hmotnost);
         return 110; // Návrat do idle slučky
     } //Uvoľnenie zóny pre Lis - >110
 

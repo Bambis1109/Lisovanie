@@ -9,6 +9,7 @@ namespace Lisovanie.Views;
 public partial class MainWindow : Window
 {
     private frmZoneSetup? _zoneSetupWindow;
+    private frmProduction? _productionWindow;
 
     public MainWindow()
     {
@@ -62,6 +63,22 @@ public partial class MainWindow : Window
             _zoneSetupWindow = new frmZoneSetup(vm);
             _zoneSetupWindow.Closed += (s, args) => _zoneSetupWindow = null;
             _zoneSetupWindow.Show(this);
+        }
+    }
+
+    private void BtnProduction_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_productionWindow != null)
+        {
+            _productionWindow.Activate();
+            return;
+        }
+
+        if (DataContext is MainWindowViewModel vm)
+        {
+            _productionWindow = new frmProduction(vm.MainProgram.ProductionLogger);
+            _productionWindow.Closed += (s, args) => _productionWindow = null;
+            _productionWindow.Show(this);
         }
     }
 }

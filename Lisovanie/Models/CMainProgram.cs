@@ -37,12 +37,22 @@ public partial class CMainProgram : ObservableObject
 
     partial void OnIsSpravcaChanged(bool value) => OnPropertyChanged(nameof(ModeText));
 
+    // ===== Ukladanie výrobných dát =====
+    public CProductionLogger ProductionLogger { get; } = new();
 
     public CMainProgram()
     {
         LoadParametersMain();
+        ProductionLogger.Init();
+
         ZoznamPlc.Add(new CControlManipulator("Manipulator"));
-        ZoznamPlc.Add(new CControlLis("Lis"));
+
+        var lis = new CControlLis("Lis")
+        {
+            ProductionLogger = ProductionLogger
+        };
+        ZoznamPlc.Add(lis);
+
         ZoznamPlc.Add(new CControlScales("Vahy"));
     }
 
@@ -374,6 +384,9 @@ public partial class CMainProgram : ObservableObject
                 }
             }
         }
+
+        // 3. Korektné dopísanie výrobných dát
+        ProductionLogger.Complete();
 
         Log.Information("Shutdown dokončený.");
     }

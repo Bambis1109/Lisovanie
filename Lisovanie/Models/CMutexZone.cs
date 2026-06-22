@@ -19,6 +19,12 @@ public partial class CMutexZone : ObservableObject
     [ObservableProperty]
     private EnZoneStatus _status = EnZoneStatus.Unknown;
 
+    /// <summary>
+    /// Hmotnosť dávky [g] putujúca spolu so zónou (Scale ju nastaví pri Release,
+    /// Press ju prečíta po prevzatí). Slúži na korektné spárovanie hmotnosti s výliskom.
+    /// </summary>
+    public double PayloadHmotnost { get; private set; }
+
     public CMutexZone(string name)
     {
         Name = name;
@@ -50,6 +56,18 @@ public partial class CMutexZone : ObservableObject
 
             return false;
         }
+    }
+
+    /// <summary>
+    /// Uvoľní zónu, zapíše jej nový fyzický stav a zároveň odovzdá hmotnosť dávky.
+    /// </summary>
+    public bool Release(EnZoneOwner requester, EnZoneStatus newStatus, double payloadHmotnost)
+    {
+        lock (_syncRoot)
+        {
+            PayloadHmotnost = payloadHmotnost;
+        }
+        return Release(requester, newStatus);
     }
 
     /// <summary>

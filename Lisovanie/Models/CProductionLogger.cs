@@ -1,0 +1,194 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
+using Dapper;
+using Microsoft.Data.Sqlite;
+using Serilog;
+
+namespace Lisovanie.Models;
+
+/// <summary>
+/// Filter pre dotaz/export výrobných záznamov.
+/// </summary>
+public class CProductionFilter
+{
+    public DateTime? OdLocal { get; set; }
+    public DateTime? DoLocal { get; set; }
+    /// <summary>null = všetky statusy.</summary>
+    public EnProduktLis? Status { get; set; }
+}
+
+/// <summary>
+/// Trvalé ukladanie výrobných dát do SQLite. Zápis je neblokujúci cez Channel,
+/// aby sa PLC vlákno (AboveNormal) nikdy nezdržalo na I/O.
+/// </summary>
+public class CProductionLogger : IDisposable
+{
+    private readonly string _connectionString;
+    private readonly Channel<CProductionRecord> _channel =
+        Channel.CreateUnbounded<CProductionRecord>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+
+    private Task? _writerTask;
+    private bool _initialized;
+
+    public string DbPath { get; }
+
+    public CProductionLogger()
+    {
+        var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+        Directory.CreateDirectory(dir);
+        DbPath = Path.Combine(dir, "Production.db");
+        _connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = DbPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Shared
+        }.ToString();
+    }
+
+    /// <summary>Vytvorí schému (ak treba) a spustí background zapisovač.</summary>
+    public void Init()
+    {
+        if (_initialized) return;
+
+        try
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            conn.Open();
+            conn.Execute("PRAGMA journal_mode=WAL;");
+            conn.Execute(@"
+                CREATE TABLE IF NOT EXISTS ProductionRecord (
+                    Id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                    TimestampUtc     TEXT    NOT NULL,
+                    Hmotnost         REAL    NOT NULL,
+                    Sila             REAL    NOT NULL,
+                    Vzdialenost      REAL    NOT NULL,
+                    CasZhutnovaniaMs INTEGER NOT NULL,
+                    CasZotrvaniaMs   INTEGER NOT NULL,
+                    Status           INTEGER NOT NULL
+                );");
+            conn.Execute("CREATE INDEX IF NOT EXISTS IX_ProductionRecord_Timestamp ON ProductionRecord(TimestampUtc);");
+            conn.Execute("CREATE INDEX IF NOT EXISTS IX_ProductionRecord_Status ON ProductionRecord(Status);");
+
+            _initialized = true;
+            _writerTask = Task.Run(ProcessQueueAsync);
+            Log.Information("CProductionLogger inicializovaný: {DbPath}", DbPath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Chyba pri inicializácii CProductionLogger: {Message}", ex.Message);
+        }
+    }
+
+    /// <summary>Neblokujúce zaradenie záznamu na zápis. Volá ho PLC vlákno.</summary>
+    public void Enqueue(CProductionRecord record)
+    {
+        if (!_channel.Writer.TryWrite(record))
+            Log.Warning("CProductionLogger: záznam sa nepodarilo zaradiť na zápis.");
+    }
+
+    private async Task ProcessQueueAsync()
+    {
+        try
+        {
+            await foreach (var record in _channel.Reader.ReadAllAsync())
+            {
+                try
+                {
+                    await using var conn = new SqliteConnection(_connectionString);
+                    await conn.OpenAsync();
+                    await conn.ExecuteAsync(@"
+                        INSERT INTO ProductionRecord
+                            (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status)
+                        VALUES
+                            (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status);",
+                        new
+                        {
+                            TimestampUtc = record.TimestampUtc.ToString("O"),
+                            record.Hmotnost,
+                            record.Sila,
+                            record.Vzdialenost,
+                            record.CasZhutnovaniaMs,
+                            record.CasZotrvaniaMs,
+                            Status = (int)record.Status
+                        });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("CProductionLogger: zlyhal zápis záznamu: {Message}", ex.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("CProductionLogger: zapisovacia slučka skončila chybou: {Message}", ex.Message);
+        }
+    }
+
+    /// <summary>Posledných <paramref name="limit"/> záznamov (najnovšie navrchu). Pre UI tabuľku.</summary>
+    public async Task<IReadOnlyList<CProductionRecord>> GetLatestAsync(int limit)
+    {
+        if (!_initialized) return Array.Empty<CProductionRecord>();
+        await using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        var rows = await conn.QueryAsync<CProductionRecord>(
+            "SELECT * FROM ProductionRecord ORDER BY Id DESC LIMIT @limit;", new { limit });
+        return rows.AsList();
+    }
+
+    /// <summary>Záznamy podľa filtra (rozsah lokálneho času + status). Pre export.</summary>
+    public async Task<IReadOnlyList<CProductionRecord>> QueryAsync(CProductionFilter filter)
+    {
+        if (!_initialized) return Array.Empty<CProductionRecord>();
+
+        var sql = new StringBuilder("SELECT * FROM ProductionRecord WHERE 1=1");
+        var p = new DynamicParameters();
+
+        if (filter.OdLocal.HasValue)
+        {
+            sql.Append(" AND TimestampUtc >= @od");
+            p.Add("od", filter.OdLocal.Value.ToUniversalTime().ToString("O"));
+        }
+        if (filter.DoLocal.HasValue)
+        {
+            sql.Append(" AND TimestampUtc <= @do");
+            p.Add("do", filter.DoLocal.Value.ToUniversalTime().ToString("O"));
+        }
+        if (filter.Status.HasValue)
+        {
+            sql.Append(" AND Status = @status");
+            p.Add("status", (int)filter.Status.Value);
+        }
+        sql.Append(" ORDER BY Id DESC;");
+
+        await using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        var rows = await conn.QueryAsync<CProductionRecord>(sql.ToString(), p);
+        return rows.AsList();
+    }
+
+    /// <summary>Ukončí príjem a počká na dopísanie frontu (volá sa pri shutdowne).</summary>
+    public void Complete()
+    {
+        try
+        {
+            _channel.Writer.TryComplete();
+            _writerTask?.Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("CProductionLogger: chyba pri ukončovaní: {Message}", ex.Message);
+        }
+    }
+
+    public void Dispose() => Complete();
+}
