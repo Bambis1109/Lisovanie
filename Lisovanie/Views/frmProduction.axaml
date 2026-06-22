@@ -37,8 +37,8 @@
         </Border>
 
         <!-- Tabuľka posledných výrobkov -->
-        <DataGrid Grid.Row="1" ItemsSource="{Binding LatestRecords}"
-                  IsReadOnly="True" GridLinesVisibility="All"
+        <DataGrid Grid.Row="1" x:Name="RecordsGrid" ItemsSource="{Binding LatestRecords}"
+                  IsReadOnly="True" GridLinesVisibility="All" SelectionMode="Extended"
                   CanUserResizeColumns="True" CanUserSortColumns="False"
                   Background="#1E1E1E" BorderBrush="#444" BorderThickness="1">
             <DataGrid.Columns>
@@ -62,6 +62,28 @@
         <!-- Tlačidlá -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
                     Margin="0,10,0,0" Spacing="10">
+            <Button Content="Zobraziť" Command="{Binding RefreshCommand}"
+                    Background="SteelBlue" Foreground="White" FontWeight="Bold"
+                    Padding="20,10" CornerRadius="5"/>
+            <Button Content="Generovať 10" Command="{Binding GenerateRandomCommand}"
+                    Background="#2E7D32" Foreground="White" FontWeight="Bold"
+                    Padding="20,10" CornerRadius="5"/>
+            <Button x:Name="BtnDeleteSelected" Content="Vymazať označené"
+                    Background="#C62828" Foreground="White" FontWeight="Bold"
+                    Padding="20,10" CornerRadius="5">
+                <Button.Flyout>
+                    <Flyout>
+                        <StackPanel Spacing="10" MinWidth="220">
+                            <TextBlock Text="Naozaj vymazať označené riadky?"
+                                       Foreground="#DDD" TextWrapping="Wrap"/>
+                            <Button Content="Áno, vymazať" Click="BtnDelete_OnClick"
+                                    HorizontalAlignment="Right"
+                                    Background="#C62828" Foreground="White" FontWeight="Bold"
+                                    Padding="16,8" CornerRadius="5"/>
+                        </StackPanel>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
             <Button Content="Obnoviť" Command="{Binding RefreshCommand}"
                     Background="#37474F" Foreground="White" FontWeight="Bold"
                     Padding="20,10" CornerRadius="5"/>

@@ -134,6 +134,42 @@ public class CProductionLogger : IDisposable
         }
     }
 
+    /// <summary>Synchrónny (awaitable) zápis jedného záznamu – obíde Channel, aby volajúci
+    /// hneď po dokončení videl záznam v DB (používa generátor testovacích dát).</summary>
+    public async Task InsertAsync(CProductionRecord record)
+    {
+        if (!_initialized) return;
+        await using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(@"
+            INSERT INTO ProductionRecord
+                (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status)
+            VALUES
+                (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status);",
+            new
+            {
+                TimestampUtc = record.TimestampUtc.ToString("O"),
+                record.Hmotnost,
+                record.Sila,
+                record.Vzdialenost,
+                record.CasZhutnovaniaMs,
+                record.CasZotrvaniaMs,
+                Status = (int)record.Status
+            });
+    }
+
+    /// <summary>Vymaže záznamy s danými Id. Vráti počet zmazaných riadkov.</summary>
+    public async Task<int> DeleteByIdsAsync(IReadOnlyCollection<long> ids)
+    {
+        if (!_initialized || ids.Count == 0) return 0;
+        await using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        var deleted = await conn.ExecuteAsync(
+            "DELETE FROM ProductionRecord WHERE Id IN @ids;", new { ids });
+        Log.Information("CProductionLogger: zmazaných {Count} záznamov.", deleted);
+        return deleted;
+    }
+
     /// <summary>Posledných <paramref name="limit"/> záznamov (najnovšie navrchu). Pre UI tabuľku.</summary>
     public async Task<IReadOnlyList<CProductionRecord>> GetLatestAsync(int limit)
     {
@@ -145,8 +181,9 @@ public class CProductionLogger : IDisposable
         return rows.AsList();
     }
 
-    /// <summary>Záznamy podľa filtra (rozsah lokálneho času + status). Pre export.</summary>
-    public async Task<IReadOnlyList<CProductionRecord>> QueryAsync(CProductionFilter filter)
+    /// <summary>Záznamy podľa filtra (rozsah lokálneho času + status). Pre export aj UI tabuľku.
+    /// <paramref name="limit"/> = 0 znamená bez limitu.</summary>
+    public async Task<IReadOnlyList<CProductionRecord>> QueryAsync(CProductionFilter filter, int limit = 0)
     {
         if (!_initialized) return Array.Empty<CProductionRecord>();
 
@@ -168,7 +205,13 @@ public class CProductionLogger : IDisposable
             sql.Append(" AND Status = @status");
             p.Add("status", (int)filter.Status.Value);
         }
-        sql.Append(" ORDER BY Id DESC;");
+        sql.Append(" ORDER BY Id DESC");
+        if (limit > 0)
+        {
+            sql.Append(" LIMIT @limit");
+            p.Add("limit", limit);
+        }
+        sql.Append(';');
 
         await using var conn = new SqliteConnection(_connectionString);
         await conn.OpenAsync();

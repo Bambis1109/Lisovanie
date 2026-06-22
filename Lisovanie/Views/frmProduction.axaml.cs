@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -32,16 +33,33 @@ public partial class frmProduction : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        ViewModel?.StartRefresh();
-    }
-
-    protected override void OnClosed(EventArgs e)
-    {
-        ViewModel?.StopRefresh();
-        base.OnClosed(e);
+        // Jednorazové načítanie podľa default filtra (dnešný deň).
+        if (ViewModel is not null)
+            _ = ViewModel.RefreshAsync();
     }
 
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e) => Close();
+
+    private async void BtnDelete_OnClick(object? sender, RoutedEventArgs e)
+    {
+        BtnDeleteSelected.Flyout?.Hide();
+
+        if (ViewModel is null) return;
+
+        var selected = RecordsGrid.SelectedItems
+            .OfType<CProductionRecord>()
+            .ToList();
+        if (selected.Count == 0) return;
+
+        try
+        {
+            await ViewModel.DeleteSelectedAsync(selected);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Vymazanie výrobných záznamov zlyhalo");
+        }
+    }
 
     private async void BtnExport_OnClick(object? sender, RoutedEventArgs e)
     {
