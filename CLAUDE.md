@@ -74,6 +74,12 @@ Setup/parameter windows follow the pattern: `frm*.axaml` opens as a non-modal ch
 
 The UI log panel is backed by `ObservableCollectionSink` (Serilog sink) — capped at 1000 entries, marshalled to the UI thread via `Dispatcher.UIThread.Post`. The sink instance is accessible via `Program.UiSink`.
 
+**Target device is a vertically mounted (portrait) touchscreen panel.** When creating or editing any window/view:
+- Design for a narrow, tall viewport — stack content vertically, avoid layouts that assume wide horizontal space.
+- Use `WrapPanel` instead of a horizontal `StackPanel` for item lists that can grow (e.g. `ScaleViewModels`) so extra items reflow instead of running off-screen.
+- Prefer `SizeToContent="Height"` (fixed `Width` matching the panel's portrait width, e.g. `780`) over a hardcoded `Height` for setup/parameter windows, so the window always fits its actual content.
+- Controls must be touch-friendly: large tap targets (buttons ≥ ~40px), no hover-only affordances, no fine-grained drag interactions.
+
 ## Coding Rules (from GEMINI.md)
 
 1. Use modern C# — pattern matching, `async/await`, nullable reference types.
