@@ -107,7 +107,6 @@ public partial class CMainProgram : ObservableObject
         IxxatState = EnIxxatState.Connecting;
         try
         {
-            
             //*************************Vahy*********************************
             if (!CreateCanConector(0, 0, ref DeviceManagerScale))
             {
@@ -134,7 +133,8 @@ public partial class CMainProgram : ObservableObject
             {
                 vms.StartRefresh();
             }
-            
+         
+            //*************************Manipulator a Vahy*********************************
             if (!CreateCanConector(1, 0, ref DeviceManagerCO))
             {
                 IxxatState = EnIxxatState.Disconnected;
@@ -186,7 +186,7 @@ public partial class CMainProgram : ObservableObject
                 vm.StartRefresh();
             }
 
-          
+       
 
             IxxatState = EnIxxatState.Connected;
             return true;

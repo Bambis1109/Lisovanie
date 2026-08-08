@@ -120,8 +120,8 @@ namespace EposCmd.Net
         public void Init()
         {
             short result = 0;
-            //    result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine | (int)COP_VCI3GENERIC);   //Povolenie Cam medzi aolikaciami
-            result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine);
+          //   result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine | (int)COP_VCI3GENERIC);   //Povolenie Cam medzi aolikaciami
+        result = COP_InitBoard(out _keyHandle, ref BoardType, ref BoardId, CanLine);
 
 
             if (COP_k_OK != result) throw new CDeviceException("Error init DLL", (uint)result);

@@ -26,9 +26,11 @@ public static class SingleInstance
     /// </summary>
     public static bool TryAcquire()
     {
+        // Pomenovaný Mutex funguje aj na Unixe; pomenovaný EventWaitHandle nie
+        // (na Linuxe hádže PlatformNotSupportedException), preto ho vytvárame len na Windows.
         _mutex = new Mutex(true, MutexName, out bool createdNew);
 
-        if (createdNew)
+        if (createdNew && OperatingSystem.IsWindows())
         {
             // Sme prvá inštancia – pripravíme signál pre prípadné ďalšie spustenia.
             _event = new EventWaitHandle(false, EventResetMode.AutoReset, EventName);
@@ -43,6 +45,9 @@ public static class SingleInstance
     /// </summary>
     public static void SignalExistingInstance()
     {
+        // Pomenovaný event existuje len na Windows.
+        if (!OperatingSystem.IsWindows()) return;
+
         try
         {
             if (EventWaitHandle.TryOpenExisting(EventName, out var handle))
@@ -90,6 +95,9 @@ public static class SingleInstance
     /// <summary>Zobrazí natívne hlásenie, že aplikácia už beží.</summary>
     public static void ShowAlreadyRunningMessage()
     {
+        // MessageBoxW je Windows-only (user32.dll); na iných platformách nič nerobíme.
+        if (!OperatingSystem.IsWindows()) return;
+
         const uint MB_OK = 0x0;
         const uint MB_ICONINFORMATION = 0x40;
         const uint MB_SETFOREGROUND = 0x10000;
@@ -109,6 +117,7 @@ public static class SingleInstance
         _event?.Dispose();
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 }
