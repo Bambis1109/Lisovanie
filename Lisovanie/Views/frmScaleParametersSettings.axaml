@@ -7,7 +7,7 @@
         x:Class="Lisovanie.Views.frmScaleParametersSettings"
         x:DataType="models:CControlScales"
         Title="Nastavenia váh"
-        Width="320" Height="220"
+        Width="420" Height="330"
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         CanResize="False"
@@ -39,12 +39,26 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <TextBlock Classes="label" Text="Node ID Váha 1:"/>
                 <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha1}"/>
+                <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsChecked="{Binding ParametersScale.EnabledVaha1}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <TextBlock Classes="label" Text="Node ID Váha 2:"/>
                 <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha2}"/>
+                <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsChecked="{Binding ParametersScale.EnabledVaha2}"/>
             </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Classes="label" Text="Node ID Váha 3:"/>
+                <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha3}"/>
+                <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsChecked="{Binding ParametersScale.EnabledVaha3}"/>
+            </StackPanel>
+
+            <TextBlock Text="Zmeny sa prejavia po opätovnom pripojení (Connect)."
+                       Foreground="#888888" FontSize="11" HorizontalAlignment="Center"/>
 
             <Separator Height="1" Background="#444"/>
 

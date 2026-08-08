@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="750"
         x:Class="Lisovanie.Views.frmControlScalesSetup"
         x:DataType="models:CControlScales"
-        Width="780" Height="900"
+        Width="1140" Height="900"
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">

@@ -116,22 +116,48 @@ public partial class CMainProgram : ObservableObject
 
             CControlScales? _scales = ZoznamPlc[2] as CControlScales;
 
-            _scales.Scale1 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha1, "Scale1");
-            _scales.Scale2 = CreateScale(DeviceManagerScale, (byte)_scales.ParametersScale.NodeIdVaha2, "Scale2");
-
-
             _scales.Scales.Clear();
-            _scales.Scales.Add(_scales.Scale1);
-            _scales.Scales.Add(_scales.Scale2);
 
-
-            _scales.ScaleViewModels[0].AssignDevice(_scales.Scale1);
-            _scales.ScaleViewModels[1].AssignDevice(_scales.Scale2);
-            
-            
-            foreach (var vms in _scales.ScaleViewModels)
+            // Vypnutá váha sa vôbec nevytvorí - je úplne mimo CAN busu.
+            var scaleConfigs = new (bool Enabled, int NodeId, string Name)[]
             {
-                vms.StartRefresh();
+                (_scales.ParametersScale.EnabledVaha1, _scales.ParametersScale.NodeIdVaha1, "Scale1"),
+                (_scales.ParametersScale.EnabledVaha2, _scales.ParametersScale.NodeIdVaha2, "Scale2"),
+                (_scales.ParametersScale.EnabledVaha3, _scales.ParametersScale.NodeIdVaha3, "Scale3"),
+            };
+
+            for (int i = 0; i < scaleConfigs.Length; i++)
+            {
+                var (enabled, nodeId, name) = scaleConfigs[i];
+                var vm = _scales.ScaleViewModels[i];
+
+                if (!enabled)
+                {
+                    vm.IsUiEnabled = false;
+                    vm.NmtText = "VYPNUTÁ";
+                    switch (i)
+                    {
+                        case 0: _scales.Scale1 = null; break;
+                        case 1: _scales.Scale2 = null; break;
+                        case 2: _scales.Scale3 = null; break;
+                    }
+
+                    Log.Information($"Váha {name} je vypnutá v parametroch - nepripája sa na CAN.");
+                    continue;
+                }
+
+                var scale = CreateScale(DeviceManagerScale, (byte)nodeId, name);
+                _scales.Scales.Add(scale);
+                vm.IsUiEnabled = true;
+                vm.AssignDevice(scale);
+                vm.StartRefresh();
+
+                switch (i)
+                {
+                    case 0: _scales.Scale1 = scale; break;
+                    case 1: _scales.Scale2 = scale; break;
+                    case 2: _scales.Scale3 = scale; break;
+                }
             }
          
             //*************************Manipulator a Vahy*********************************

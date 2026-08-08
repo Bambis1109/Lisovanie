@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
+using System.Linq;
+using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
 using EposCmd.Net.DeviceScaleSet;
 using Lisovanie.Net;
@@ -9,9 +11,10 @@ namespace Lisovanie.Models;
 
 public partial class CControlScales : CPlcScale
 {
-    public CDeviceScale Scale1 { get; set; }
-    public CDeviceScale Scale2 { get; set; }
-    private int _lastUsedScale = 2;
+    public CDeviceScale? Scale1 { get; set; }
+    public CDeviceScale? Scale2 { get; set; }
+    public CDeviceScale? Scale3 { get; set; }
+    private int _lastUsedScale = 3;
 
     public CParametersScale ParametersScale { get; set; } = new();
 
@@ -20,7 +23,41 @@ public partial class CControlScales : CPlcScale
         LoadParameters();
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC1"));
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC2"));
+        ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC3"));
     }
+
+    // ==========================================
+    // HELPERY PRE AKTÍVNE VÁHY (dátovo riadená logika)
+    // ==========================================
+
+    private CDeviceScale? GetScale(int index) => index switch
+    {
+        1 => Scale1,
+        2 => Scale2,
+        3 => Scale3,
+        _ => null
+    };
+
+    private bool IsScaleEnabled(int index) => index switch
+    {
+        1 => ParametersScale.EnabledVaha1,
+        2 => ParametersScale.EnabledVaha2,
+        3 => ParametersScale.EnabledVaha3,
+        _ => false
+    };
+
+    // Indexy váh (1..3), ktoré sú povolené v parametroch a majú priradené zariadenie
+    private IEnumerable<int> ActiveIndices =>
+        Enumerable.Range(1, 3).Where(i => IsScaleEnabled(i) && GetScale(i) != null);
+
+    // Krok vetvy vysypania pre danú váhu
+    private static int BranchStep(int index) => index switch
+    {
+        1 => 150,
+        2 => 250,
+        3 => 350,
+        _ => 0
+    };
 
     public override int RunStep(int step)
     {
@@ -39,6 +76,7 @@ public partial class CControlScales : CPlcScale
             // ==========================================
             case 100: return MainStep100(step);
             case 101: return MainStep101(step);
+            case 102: return MainStep102(step);
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
@@ -51,6 +89,9 @@ public partial class CControlScales : CPlcScale
             case 270: return MainStep270(step);
             case 280: return MainStep280(step);
             case 300: return MainStep300(step);
+            case 350: return MainStep350(step);
+            case 360: return MainStep360(step);
+            case 370: return MainStep370(step);
 
             default: return base.RunStep(step);
         }
@@ -69,79 +110,76 @@ public partial class CControlScales : CPlcScale
     private int InitStep10(int step)
     {
         Message = "Štart inicializácie váh...";
-        // 1. Odoslanie povelov (Fire-and-Forget)
-        Scale1.Operation.Master.SendCommand(EMasterCommand.Init);
-        Scale2.Operation.Master.SendCommand(EMasterCommand.Init);
+        // 1. Odoslanie povelov (Fire-and-Forget) - len aktívne váhy
+        foreach (var i in ActiveIndices)
+        {
+            GetScale(i)!.Operation.Master.SendCommand(EMasterCommand.Init);
+        }
+
         return 20;
     } //Štart inicializácie váh. -> 20
 
     private int InitStep20(int step)
     {
         Message = "Čakám na dokončenie inicializácie";
-      // Čakáme max 15 sekúnd na k
-        Scale1.WaitForInitAttained(15000);
-        Scale2.WaitForInitAttained(15000);
+        // Čakáme max 15 sekúnd na každú aktívnu váhu
+        foreach (var i in ActiveIndices)
+        {
+            GetScale(i)!.WaitForInitAttained(15000);
+        }
+
         return 30;
     } //Čakám na dokončenie inicializácie -> 30
 
     private int InitStep30(int step)
     {
         Message = "Inicializácia úspešná";
-        Log.Logger.ForContext("Name", Name).Information("Obe váhy boli úspešne inicializované.");
+        Log.Logger.ForContext("Name", Name)
+            .Information($"Váhy [{string.Join(",", ActiveIndices)}] boli úspešne inicializované.");
         return 99; // Skočí do finálneho kroku, kde CPlc nastaví stav EnStatusPlc.Ready
     } // Ukoncenie inicializacie -99 koniec INIT
 
-    // ========================================== 
+    // ==========================================
     // METÓDY PRE MAIN PROGRAM
     // ==========================================
 
-    private int MainStep100(int step)
+    // Spoločný štart produkcie pre jednu váhu; vypnutá váha sa preskočí
+    private int StartScaleStep(int index, int nextStep)
     {
-        Message = "Start Vaha 1";
-        if (!Scale1.IsReady()) //kontrola ci je ready
+        Message = $"Start Vaha {index}";
+        var scale = GetScale(index);
+        if (!IsScaleEnabled(index) || scale == null)
+        {
+            Log.Logger.ForContext("Name", Name).Information($"Váha {index} je vypnutá - preskakujem.");
+            return nextStep;
+        }
+
+        if (!scale.IsReady()) //kontrola ci je ready
         {
             Log.Logger.ForContext("Name", Name)
-                .Information($"Váha 1 nie je Ready  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+                .Error($"Váha {index} nie je Ready  status:[{((CDataScale)scale.Data).StatusMainProc}]");
             return 0;
         }
 
-        Scale1.Operation.Master.SendCommand(EMasterCommand.Produkcia); 
+        scale.Operation.Master.SendCommand(EMasterCommand.Produkcia);
 
-        if (!Scale1.WaitForProcStatus(EProcStatus.Busy, 2000))
+        if (!scale.WaitForProcStatus(EProcStatus.Busy, 2000))
         {
             Log.Logger.ForContext("Name", Name)
-                .Information($"Váha 1 nie je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
+                .Error($"Váha {index} nie je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
             return 0;
         }
 
         Log.Logger.ForContext("Name", Name)
-            .Information($"Váha 1 je Busy  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
-        return 101;
-    } //Start Vaha 1 ->101
+            .Information($"Váha {index} je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
+        return nextStep;
+    }
 
-    private int MainStep101(int step)
-    {
-        Message = "Start Vaha 2";
-        if (!Scale2.IsReady()) //kontrola ci je ready
-        {
-            Log.Logger.ForContext("Name", Name)
-                .Error($"Váha 2 nie je Ready  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
-            return 0;
-        }
+    private int MainStep100(int step) => StartScaleStep(1, 101); //Start Vaha 1 ->101
 
-        Scale2.Operation.Master.SendCommand(EMasterCommand.Produkcia); 
+    private int MainStep101(int step) => StartScaleStep(2, 102); //Start Vaha 2 ->102
 
-        if (!Scale2.WaitForProcStatus(EProcStatus.Busy, 2000))
-        {
-            Log.Logger.ForContext("Name", Name)
-                .Error($"Váha 2 nie je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
-            return 0;
-        }
-
-        Log.Logger.ForContext("Name", Name)
-            .Information($"Váha 2 je Busy  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
-        return 110;
-    } //Start Vaha 2 ->110
+    private int MainStep102(int step) => StartScaleStep(3, 110); //Start Vaha 3 ->110
 
     private int MainStep110(int step)
     {
@@ -157,7 +195,7 @@ public partial class CControlScales : CPlcScale
         }
 
         return step; // Zóna ešte nie je voľná, čakáme (10ms sleep)
-    } //Cakanie na uvolnenie zony ->120 
+    } //Cakanie na uvolnenie zony ->120
 
     private int MainStep120(int step)
     {
@@ -168,15 +206,23 @@ public partial class CControlScales : CPlcScale
             return 0;
         }
 
-        if (Scale1.IsNoMaterial() && Scale2.IsNoMaterial())//ak su obe vahy prazdne koniec
+        var active = ActiveIndices.ToList();
+
+        // Váha v stave NoMaterial je z rozdelovnika vyradena.
+        // Ak su vsetky aktivne vahy bez materialu - koniec.
+        if (active.All(i => GetScale(i)!.IsNoMaterial()))
         {
-            Log.Logger.ForContext("Name", Name).Error($"Obe Vahy nemaju material");
-            Log.Logger.ForContext("Name", Name).Error($"Váha 1  status:[{((CDataScale)Scale1.Data).StatusMainProc}]");
-            Log.Logger.ForContext("Name", Name).Error($"Váha 2  status:[{((CDataScale)Scale2.Data).StatusMainProc}]");
+            Log.Logger.ForContext("Name", Name).Error("Žiadna aktívna váha nemá materiál.");
+            foreach (var i in active)
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Error($"Váha {i}  status:[{((CDataScale)GetScale(i)!.Data).StatusMainProc}]");
+            }
+
             return 0;
         }
-      
-        if (Scale1.IsFull() || Scale2.IsFull())
+
+        if (active.Any(i => GetScale(i)!.IsFull()))
         {
             return 140;
         }
@@ -194,19 +240,28 @@ public partial class CControlScales : CPlcScale
     {
         Message = "Vyber vahy na vysypanie";
 
-        if (Scale1.IsFull() && Scale2.IsFull())
+        // Round-robin 1->2->3: kandidati v cyklickom poradi od naposledy pouzitej vahy.
+        // Vaha bez pripravenej davky (nie Full - napr. NoMaterial) sa preskoci.
+        var active = ActiveIndices.ToList();
+        var candidates = active
+            .OrderBy(i => (i - _lastUsedScale - 1 + 3) % 3); // najskôr váha nasledujúca po _lastUsedScale
+
+        foreach (var i in candidates)
         {
-            if (_lastUsedScale == 2) return 150;
-            if (_lastUsedScale == 1) return 250;
+            if (GetScale(i)!.IsFull())
+            {
+                return BranchStep(i);
+            }
         }
 
-        if (Scale1.IsFull()) return 150;
-        if (Scale2.IsFull()) return 250;
+        foreach (var i in active)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Nie je pripravena Váha {i}  status:[{GetScale(i)!.GetStatus()}]");
+        }
 
-        Log.Logger.ForContext("Name", Name)
-            .Error($"Nie je pripravena Váha1 :[{Scale1.GetStatus()}]  Váha 2  status:[{Scale2.GetStatus()}]");
         return 0;
-    } //Vyber vahy na vysypanie Vaha1->150 , Vaha2->250
+    } //Vyber vahy na vysypanie Vaha1->150 , Vaha2->250 , Vaha3->350
 
     // ---------------------------------------------------------
     // VETVA 1: VYSYPANIE VÁHA 1
@@ -215,7 +270,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep150(int step)
     {
         Message = "Váha 1: Povel na vysypanie (Next)";
-        Scale1.Operation.Master.SendCommand(EMasterCommand.Next);
+        Scale1!.Operation.Master.SendCommand(EMasterCommand.Next);
         _lastUsedScale = 1;
         return 160;
     } //Váha 1: Povel na vysypanie (Next) -> 160
@@ -223,7 +278,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep160(int step)
     {
         Message = "Váha 1: Čakanie na štart sypania (Occupied)";
-        if ( Scale1.IsOcupied())
+        if (Scale1!.IsOcupied())
             return 170;
 
         if (Scale1.IsError())
@@ -240,7 +295,7 @@ public partial class CControlScales : CPlcScale
         Message = "Váha 1: Čakanie na dokončenie sypania (Free)";
 
         // 2. ÚSPEŠNÉ DOKONČENIE
-        if (Scale1.IsFree())
+        if (Scale1!.IsFree())
             return 280;
         // 3. CHYBA HARDVÉRU
         if (Scale1.IsError())
@@ -258,7 +313,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep250(int step)
     {
         Message = "Váha 2: Povel na vysypanie (Next)";
-        Scale2.Operation.Master.SendCommand(EMasterCommand.Next);
+        Scale2!.Operation.Master.SendCommand(EMasterCommand.Next);
         _lastUsedScale = 2;
         return 260;
     } //Váha 2: Povel na vysypanie (Next) - >260
@@ -266,7 +321,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep260(int step)
     {
         Message = "Váha 2: Čakanie na štart sypania (Occupied)";
-        if (Scale2.IsOcupied())
+        if (Scale2!.IsOcupied())
             return 270;
 
         if (Scale2.IsError())
@@ -281,7 +336,7 @@ public partial class CControlScales : CPlcScale
     private int MainStep270(int step)
     {
         Message = "Váha 2: Čakanie na dokončenie sypania (Free)";
-        if (Scale2.IsFree())
+        if (Scale2!.IsFree())
             return 280;
 
         if (Scale2.IsError())
@@ -293,12 +348,53 @@ public partial class CControlScales : CPlcScale
         return step;
     } //Váha 2: Čakanie na dokončenie sypania (Busy + Free) ->280
 
+    // ---------------------------------------------------------
+    // VETVA 3: VYSYPANIE VÁHA 3
+    // ---------------------------------------------------------
+    private int MainStep350(int step)
+    {
+        Message = "Váha 3: Povel na vysypanie (Next)";
+        Scale3!.Operation.Master.SendCommand(EMasterCommand.Next);
+        _lastUsedScale = 3;
+        return 360;
+    } //Váha 3: Povel na vysypanie (Next) -> 360
+
+    private int MainStep360(int step)
+    {
+        Message = "Váha 3: Čakanie na štart sypania (Occupied)";
+        if (Scale3!.IsOcupied())
+            return 370;
+
+        if (Scale3.IsError())
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 3 hlási chybu (Error) pri štarte sypania.");
+            return 0;
+        }
+
+        return step;
+    } //Váha 3: Čakanie na štart sypania (Busy + Occupied) ->370
+
+    private int MainStep370(int step)
+    {
+        Message = "Váha 3: Čakanie na dokončenie sypania (Free)";
+        if (Scale3!.IsFree())
+            return 280;
+
+        if (Scale3.IsError())
+        {
+            Log.Logger.ForContext("Name", Name).Error("Váha 3 hlási chybu (Error) počas sypania.");
+            return 0;
+        }
+
+        return step;
+    } //Váha 3: Čakanie na dokončenie sypania (Busy + Free) ->280
+
     private int MainStep280(int step)
     {
         Message = "Uvoľnenie zóny pre Lis";
 
         // Hmotnosť vysypanej dávky [g] z práve použitej váhy – putuje so zónou na Lis.
-        var scale = _lastUsedScale == 2 ? Scale2 : Scale1;
+        var scale = GetScale(_lastUsedScale)!;
         double hmotnost = ((CDataScale)scale.Data).WeightFinal / 10000000.0;
 
         IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull, hmotnost);
@@ -308,8 +404,10 @@ public partial class CControlScales : CPlcScale
     private int MainStep300(int step)
     {
         Message = "Ukoncenie cinnosti";
-        Scale1.Operation.Master.SendCommand(EMasterCommand.Stop);
-        Scale2.Operation.Master.SendCommand(EMasterCommand.Stop);
+        foreach (var i in ActiveIndices)
+        {
+            GetScale(i)!.Operation.Master.SendCommand(EMasterCommand.Stop);
+        }
 
         return 0; // Návrat do idle slučky
     }

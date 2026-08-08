@@ -5,7 +5,8 @@
              xmlns:vm="using:Lisovanie.ViewModels"
              mc:Ignorable="d" d:DesignWidth="220" d:DesignHeight="48"
              x:Class="Lisovanie.Views.UserControls.UcDeviceScaleReduced"
-             x:DataType="vm:UcDeviceScaleViewModel">
+             x:DataType="vm:UcDeviceScaleViewModel"
+             IsEnabled="{Binding IsUiEnabled}">
 
     <Grid ColumnDefinitions="40, 85, 95" RowDefinitions="24, 24">
 
