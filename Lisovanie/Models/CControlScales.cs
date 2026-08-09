@@ -22,7 +22,7 @@ public partial class CControlScales : CPlcScale
 
     public CControlScales(string name) : base(name)
     {
-        LoadParameters();
+        // Parametre načíta CRecipeManager.Apply() po výbere receptu pri štarte.
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC1"));
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC2"));
         ScaleViewModels.Add(new UcDeviceScaleViewModel(this, null, "SC3"));
@@ -562,15 +562,17 @@ public partial class CControlScales : CPlcScale
         return 0; // Návrat do idle slučky
     }
 
+    // NodeID váh patria do vrstvy stroja, ich zapnutie do vrstvy výrobku - ukladá sa
+    // preto vždy celá sada cez CRecipeManager.
     [RelayCommand]
     public void SaveParameters()
     {
-        SaveParametersToFile("ParametersScale.json", ParametersScale);
+        Program.MainProgram?.RecipeManager.SaveAll();
     }
 
     [RelayCommand]
     public void LoadParameters()
     {
-        LoadParametersFromFile("ParametersScale.json", ParametersScale);
+        Program.MainProgram?.RecipeManager.Reload();
     }
 }

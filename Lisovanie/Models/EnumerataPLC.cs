@@ -47,6 +47,13 @@ public enum EnModePlc
     Manual
 }
 
+/// <summary>Režim výroby daný receptom. Single = jeden materiál, Multi = viacvrstvová tableta.</summary>
+public enum EnModeVyroby
+{
+    Single,
+    Multi
+}
+
 public enum EnThreeState
 {
     EnTrue,

@@ -24,7 +24,7 @@ public partial class CControlManipulator : CPlcEpos
 
     public CControlManipulator(string name) : base(name)
     {
-        LoadParameters();
+        // Parametre načíta CRecipeManager.Apply() po výbere receptu pri štarte.
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Up"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Down"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Jaws"));
@@ -523,19 +523,18 @@ public partial class CControlManipulator : CPlcEpos
         }
     }
 
+    // Kalibrácia ramena patrí do vrstvy stroja, matice do vrstvy výrobku - ukladá sa
+    // preto vždy celá sada cez CRecipeManager. Ten po načítaní zavolá aj LoadOffsets.
     [RelayCommand]
     public void SaveParameters()
     {
-        SaveParametersToFile("ParametersDelta.json", deltaRobot.ParametersDelta);
+        Program.MainProgram?.RecipeManager.SaveAll();
     }
 
     [RelayCommand]
     public void LoadParameters()
     {
-        LoadParametersFromFile("ParametersDelta.json", deltaRobot.ParametersDelta);
-
-        // NABINDOVANIE NA AI (Aktualizácia kinematiky)
-        deltaRobot.LoadOffsets(deltaRobot.ParametersDelta.OffsetSystem, deltaRobot.ParametersDelta.OffsetArm);
+        Program.MainProgram?.RecipeManager.Reload();
     }
 
     // Movement methods

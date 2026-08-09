@@ -40,6 +40,9 @@ public partial class CMainProgram : ObservableObject
     // ===== Ukladanie výrobných dát =====
     public CProductionLogger ProductionLogger { get; } = new();
 
+    // ===== Vrstvy parametrov (Stroj / Forma / Výrobok) =====
+    public CRecipeManager RecipeManager { get; }
+
     public CMainProgram()
     {
         LoadParametersMain();
@@ -54,6 +57,9 @@ public partial class CMainProgram : ObservableObject
         ZoznamPlc.Add(lis);
 
         ZoznamPlc.Add(new CControlScales("Vahy"));
+
+        // Parametre sa nenačítavajú v konštruktoroch PLC - urobí to Apply() po výbere receptu.
+        RecipeManager = new CRecipeManager(this);
     }
 
     private static string ParametersMainPath =>
@@ -70,6 +76,7 @@ public partial class CMainProgram : ObservableObject
                 if (loaded != null)
                 {
                     ParametersMain.Password = loaded.Password;
+                    ParametersMain.ActiveRecipe = loaded.ActiveRecipe;
                     Log.Information("ParametersMain.json načítaný.");
                 }
             }

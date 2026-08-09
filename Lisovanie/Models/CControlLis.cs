@@ -44,7 +44,7 @@ public partial class CControlLis : CPlcEpos
 
     public CControlLis(string name) : base(name)
     {
-        LoadParameters();
+        // Parametre načíta CRecipeManager.Apply() po výbere receptu pri štarte.
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Stred"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Slave"));
         MotorViewModels.Add(new UcDeviceEpos4ViewModel(null, "Master"));
@@ -399,16 +399,18 @@ public partial class CControlLis : CPlcEpos
         IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.Unknown);
         return 0;
     } // Presun do nasypacej polohy
+    // Parametre lisu sú rozdelené do vrstiev Stroj / Forma / Výrobok, preto sa ukladajú
+    // a načítavajú vždy všetky naraz cez CRecipeManager.
     [RelayCommand]
     public void SaveParameters()
     {
-        SaveParametersToFile("ParametersLis.json", ParametersLis);
+        Program.MainProgram?.RecipeManager.SaveAll();
     }
 
     [RelayCommand]
     public void LoadParameters()
     {
-        LoadParametersFromFile("ParametersLis.json", ParametersLis);
+        Program.MainProgram?.RecipeManager.Reload();
     }
 
     // --- Ovládanie Stred ---

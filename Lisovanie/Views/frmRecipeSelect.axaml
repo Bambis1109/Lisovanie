@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="using:Lisovanie.Views"
+        mc:Ignorable="d" d:DesignWidth="780" d:DesignHeight="600"
+        x:Class="Lisovanie.Views.frmRecipeSelect"
+        Title="Výber receptu"
+        Width="780" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        Background="#1E1E1E">
+
+    <StackPanel Margin="25" Spacing="18">
+
+        <TextBlock Text="VÝBER RECEPTU"
+                   FontSize="26" FontWeight="Bold"
+                   Foreground="#FFB300"
+                   HorizontalAlignment="Center"/>
+
+        <TextBlock Text="Recept sa dá zmeniť len reštartom aplikácie."
+                   FontSize="14"
+                   Foreground="#AAAAAA"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"/>
+
+        <TextBlock Name="TxtEmpty"
+                   Text="Nenašiel sa žiadny recept v priečinku Parameters\Recipes."
+                   FontSize="15"
+                   Foreground="#E24B4A"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   IsVisible="False"/>
+
+        <ItemsControl Name="LstRecipes">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="views:CRecipeItem">
+                    <Button Click="BtnRecipe_OnClick"
+                            Margin="0,0,0,10"
+                            MinHeight="64"
+                            Padding="18,10"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="{Binding Pozadie}"
+                            Foreground="White"
+                            CornerRadius="5">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding Nazov}" FontSize="19" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Popis}" FontSize="13" Foreground="#CCCCCC"/>
+                        </StackPanel>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Content="Ukončiť"
+                Click="BtnCancel_OnClick"
+                Padding="24,12"
+                MinHeight="52"
+                HorizontalAlignment="Right"
+                Background="#B22222" Foreground="White"
+                FontWeight="Bold" CornerRadius="5"/>
+    </StackPanel>
+</Window>
