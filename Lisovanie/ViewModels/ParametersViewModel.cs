@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
@@ -19,16 +19,18 @@ namespace Lisovanie.ViewModels;
 
 public partial class ParametersViewModel : ViewModelBase
 {
-    private const string DavkaCategory = "6. RIADENIE DÁVKY (0x6006)";
+    private const string DavkaCategory = CDavkaParametersIo.DavkaCategory;
 
     private readonly DeviceParameters _parameters;
-    private readonly CDeviceScale _device;
+    private readonly CDeviceScale? _device;
+    private readonly CControlScales? _scales;
     private readonly bool _davkaOnly;
 
     [ObservableProperty] private ObservableCollection<CategoryViewModel> _categories = new();
     [ObservableProperty] private ParameterItemViewModel? _selectedParameter;
     [ObservableProperty] private bool _isBusy;
 
+    /// <summary>Režim jednej váhy - parametre sa čítajú aj zapisujú do konkrétneho zariadenia.</summary>
     public ParametersViewModel(DeviceParameters parameters, CDeviceScale device, bool davkaOnly = false)
     {
         _parameters = parameters;
@@ -37,11 +39,49 @@ public partial class ParametersViewModel : ViewModelBase
         BuildUI();
     }
 
+    /// <summary>
+    /// Režim všetkých váh - jedna spoločná sada parametrov dávky sa odosiela do všetkých aktívnych váh.
+    /// </summary>
+    public ParametersViewModel(DeviceParameters parameters, CControlScales scales)
+    {
+        _parameters = parameters;
+        _scales = scales;
+        _davkaOnly = true;
+        BuildUI();
+    }
+
+    /// <summary>V režime všetkých váh niet jedného zdroja, z ktorého by sa dalo pri otvorení čítať.</summary>
+    public bool IsScalesMode => _scales != null;
+
+    public bool AutoLoadOnOpen => !IsScalesMode;
+
+    public bool ShowLoadFromDevice => !IsScalesMode;
+
+    public string SendButtonText => IsScalesMode ? "Odošli do váh" : "Save to Device";
+
+    public string LoadFromDeviceButtonText => "Load from Device";
+
+    public string LoadFileButtonText => IsScalesMode ? "Nahraj zo súboru" : "Load from File";
+
+    public string SaveFileButtonText => IsScalesMode ? "Ulož do súboru" : "Save to File";
+
     private bool IsInScope(PropertyInfo prop)
     {
         var catAttr = prop.GetCustomAttribute<CategoryAttribute>();
         return catAttr != null && (catAttr.Category == DavkaCategory) == _davkaOnly;
     }
+
+    /// <summary>Property, ktoré toto okno spravuje - určuje aj obsah súboru.</summary>
+    private IEnumerable<PropertyInfo> InScopeProperties =>
+        typeof(DeviceParameters)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(IsInScope);
+
+    /// <summary>Zariadenia, do ktorých sa zapisuje. V režime všetkých váh sú to aktívne váhy.</summary>
+    private List<CDeviceScale> TargetDevices =>
+        _device != null
+            ? new List<CDeviceScale> { _device }
+            : _scales?.ActiveScales.ToList() ?? new List<CDeviceScale>();
 
     private void BuildUI()
     {
@@ -87,11 +127,20 @@ public partial class ParametersViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task LoadFromDevice() 
-    { 
+    private async Task LoadFromDevice()
+    {
         if (IsBusy) return;
+
+        // V režime všetkých váh je zdrojom prvá aktívna váha.
+        var source = _device ?? _scales?.ActiveScales.FirstOrDefault();
+        if (source == null)
+        {
+            Log.Error("Nie je dostupná žiadna aktívna váha, z ktorej by sa dali načítať parametre.");
+            return;
+        }
+
         IsBusy = true;
-        
+
         try
         {
             await Task.Run(() =>
@@ -105,7 +154,7 @@ public partial class ParametersViewModel : ViewModelBase
 
                         try
                         {
-                            uint val = _device.LowLayer.Can.GetRegister(index, subindex);
+                            uint val = source.LowLayer.Can.GetRegister(index, subindex);
                             param.Value = (int)val;
                         }
                         catch (Exception ex)
@@ -115,7 +164,7 @@ public partial class ParametersViewModel : ViewModelBase
                     }
                 }
             });
-            Log.Information("Parametre úspešne načítané.");
+            Log.Information($"Parametre úspešne načítané z váhy {source.Name}.");
         }
         catch (Exception ex)
         {
@@ -128,34 +177,52 @@ public partial class ParametersViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task SaveToDevice() 
-    { 
+    private async Task SaveToDevice()
+    {
         if (IsBusy) return;
+
+        var targets = TargetDevices;
+        if (targets.Count == 0)
+        {
+            Log.Error("Parametre sa nemajú kam odoslať - žiadna aktívna váha.");
+            return;
+        }
+
         IsBusy = true;
 
         try
         {
+            int errors = 0;
+
             await Task.Run(() =>
             {
-                foreach (var cat in Categories)
+                foreach (var device in targets)
                 {
-                    foreach (var param in cat.Parameters)
+                    foreach (var cat in Categories)
                     {
-                        var (index, subindex) = GetIndices(param);
-                        if (index == 0) continue;
+                        foreach (var param in cat.Parameters)
+                        {
+                            var (index, subindex) = GetIndices(param);
+                            if (index == 0) continue;
 
-                        try
-                        {
-                            _device.LowLayer.Can.SetRegister(index, subindex, (uint)param.Value);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"Error saving parameter {param.DisplayName}: {ex.Message}");
+                            try
+                            {
+                                device.LowLayer.Can.SetRegister(index, subindex, (uint)param.Value);
+                            }
+                            catch (Exception ex)
+                            {
+                                errors++;
+                                Log.Error($"Error saving parameter {param.DisplayName} -> {device.Name}: {ex.Message}");
+                            }
                         }
                     }
                 }
             });
-            Log.Information("Parametre úspešne uložené.");
+
+            if (errors > 0)
+                Log.Error($"Odoslanie parametrov skončilo s chybami ({errors} hodnôt).");
+            else
+                Log.Information($"Parametre úspešne odoslané do váh [{string.Join(",", targets.Select(d => d.NodeId))}].");
         }
         catch (Exception ex)
         {
@@ -181,27 +248,14 @@ public partial class ParametersViewModel : ViewModelBase
             {
                 Title = "Načítať parametre zo súboru",
                 AllowMultiple = false,
+                SuggestedStartLocation = await GetDefaultFolderAsync(topLevel),
                 FileTypeFilter = new[] { new FilePickerFileType("JSON File") { Patterns = new[] { "*.json" } } }
             });
 
             if (files.Count > 0)
             {
-                await using var stream = await files[0].OpenReadAsync();
-                using var jsonDoc = await JsonDocument.ParseAsync(stream);
-                
-                var props = typeof(DeviceParameters).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                foreach (var prop in props)
-                {
-                    if (!IsInScope(prop)) continue;
-                    if (jsonDoc.RootElement.TryGetProperty(prop.Name, out var element))
-                    {
-                        if (element.TryGetInt32(out int val))
-                        {
-                            prop.SetValue(_parameters, val);
-                        }
-                    }
-                }
-                
+                CDavkaParametersIo.Load(files[0].Path.LocalPath, _parameters, InScopeProperties);
+
                 foreach (var cat in Categories)
                 {
                     foreach (var param in cat.Parameters)
@@ -209,7 +263,6 @@ public partial class ParametersViewModel : ViewModelBase
                         param.Refresh();
                     }
                 }
-                Log.Information("Parametre úspešne načítané zo súboru.");
             }
         }
         catch (Exception ex)
@@ -235,21 +288,17 @@ public partial class ParametersViewModel : ViewModelBase
             var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Uložiť parametre do súboru",
-                SuggestedFileName = $"ScaleNode{_device.NodeId}{(_davkaOnly ? "_Davka" : "")}.json",
+                SuggestedFileName = IsScalesMode
+                    ? Path.GetFileName(CControlScales.DavkaParametersPath)
+                    : $"ScaleNode{_device!.NodeId}{(_davkaOnly ? "_Davka" : "")}.json",
+                SuggestedStartLocation = await GetDefaultFolderAsync(topLevel),
                 DefaultExtension = "json",
                 FileTypeChoices = new[] { new FilePickerFileType("JSON File") { Patterns = new[] { "*.json" } } }
             });
 
             if (file != null)
             {
-                var data = typeof(DeviceParameters)
-                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(IsInScope)
-                    .ToDictionary(p => p.Name, p => p.GetValue(_parameters));
-
-                await using var stream = await file.OpenWriteAsync();
-                await JsonSerializer.SerializeAsync(stream, data, new JsonSerializerOptions { WriteIndented = true });
-                Log.Information("Parametre úspešne uložené do súboru.");
+                CDavkaParametersIo.Save(file.Path.LocalPath, _parameters, InScopeProperties);
             }
         }
         catch (Exception ex)
@@ -259,6 +308,29 @@ public partial class ParametersViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// V režime všetkých váh otvára dialóg rovno v priečinku Parameters, kde leží ParametersScales.json.
+    /// V režime jednej váhy ponechá výber na operačnom systéme (pôvodné správanie).
+    /// </summary>
+    private async Task<IStorageFolder?> GetDefaultFolderAsync(TopLevel topLevel)
+    {
+        if (!IsScalesMode) return null;
+
+        try
+        {
+            var directory = Path.GetDirectoryName(CControlScales.DavkaParametersPath);
+            if (string.IsNullOrEmpty(directory)) return null;
+
+            Directory.CreateDirectory(directory);
+            return await topLevel.StorageProvider.TryGetFolderFromPathAsync(directory);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"Predvolený priečinok pre dialóg sa nepodarilo určiť: {ex.Message}");
+            return null;
         }
     }
 }

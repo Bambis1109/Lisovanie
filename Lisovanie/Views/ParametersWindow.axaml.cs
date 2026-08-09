@@ -15,7 +15,9 @@ namespace Lisovanie.Views
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
-            if (DataContext is ParametersViewModel vm)
+
+            // V režime všetkých váh sú hodnoty načítané zo súboru - čítanie z váhy by ich prepísalo.
+            if (DataContext is ParametersViewModel { AutoLoadOnOpen: true } vm)
                 vm.LoadFromDeviceCommand.Execute(null);
         }
 

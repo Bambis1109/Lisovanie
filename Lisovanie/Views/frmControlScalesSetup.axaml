@@ -21,6 +21,9 @@
             <Button Content="Save" Command="{Binding SaveParametersCommand}"
                     Padding="20,10" Background="#1565C0" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Parameters" Click="BtnParameters_OnClick"
+                    Padding="20,10" Background="#00695C" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
             <Button Content="Settings" Click="BtnSettings_OnClick"
                     Padding="20,10" Background="#6A1B9A" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>

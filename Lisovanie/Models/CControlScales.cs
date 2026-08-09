@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
@@ -50,6 +52,9 @@ public partial class CControlScales : CPlcScale
     private IEnumerable<int> ActiveIndices =>
         Enumerable.Range(1, 3).Where(i => IsScaleEnabled(i) && GetScale(i) != null);
 
+    /// <summary>Aktívne váhy - povolené v parametroch a s vytvoreným zariadením na zbernici.</summary>
+    public IEnumerable<CDeviceScale> ActiveScales => ActiveIndices.Select(i => GetScale(i)!);
+
     // Krok vetvy vysypania pre danú váhu
     private static int BranchStep(int index) => index switch
     {
@@ -58,6 +63,132 @@ public partial class CControlScales : CPlcScale
         3 => 350,
         _ => 0
     };
+
+    // ==========================================
+    // PARAMETRE DÁVKY (SDO 0x6006) SPOLOČNÉ PRE VŠETKY VÁHY
+    // ==========================================
+
+    /// <summary>
+    /// Spoločná sada parametrov riadenia dávky. V Single móde majú všetky váhy ten istý
+    /// materiál, takže dostávajú identické nastavenie.
+    /// </summary>
+    public DeviceParameters DavkaParameters { get; } = new();
+
+    private bool _davkaLoaded;
+
+    /// <summary>Cesta k súboru so spoločnými parametrami dávky.</summary>
+    public static string DavkaParametersPath =>
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters", "ParametersScales.json");
+
+    /// <summary>
+    /// Zabezpečí, že spoločné parametre dávky sú načítané. Ak súbor ešte neexistuje,
+    /// vyčíta hodnoty z prvej aktívnej váhy a súbor založí.
+    /// Volá sa lenivo (nie v konštruktore) - zariadenia vznikajú až v CMainProgram.Connect().
+    /// </summary>
+    public bool EnsureDavkaParameters()
+    {
+        if (_davkaLoaded) return true;
+
+        if (File.Exists(DavkaParametersPath))
+        {
+            if (!CDavkaParametersIo.Load(DavkaParametersPath, DavkaParameters))
+            {
+                Log.Logger.ForContext("Name", Name)
+                    .Error($"Súbor s parametrami dávky sa nepodarilo načítať: {DavkaParametersPath}");
+                return false;
+            }
+
+            _davkaLoaded = true;
+            return true;
+        }
+
+        var source = ActiveScales.FirstOrDefault();
+        if (source == null)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Súbor {DavkaParametersPath} neexistuje a nie je dostupná žiadna aktívna váha, z ktorej by sa dal založiť.");
+            return false;
+        }
+
+        if (!ReadDavkaParametersFromScale(source)) return false;
+
+        CDavkaParametersIo.Save(DavkaParametersPath, DavkaParameters);
+        _davkaLoaded = true;
+
+        Log.Logger.ForContext("Name", Name)
+            .Information($"Parametre dávky založené z váhy {source.Name} (ID: {source.NodeId}).");
+        return true;
+    }
+
+    /// <summary>Vyčíta parametre riadenia dávky z danej váhy do spoločnej sady.</summary>
+    private bool ReadDavkaParametersFromScale(CDeviceScale scale)
+    {
+        int errors = 0;
+
+        foreach (var property in CDavkaParametersIo.DavkaProperties)
+        {
+            if (!CDavkaParametersIo.TryGetSdoAddress(property, out ushort index, out byte subIndex)) continue;
+
+            try
+            {
+                uint value = scale.LowLayer.Can.GetRegister(index, subIndex);
+                property.SetValue(DavkaParameters, (int)value);
+            }
+            catch (Exception ex)
+            {
+                errors++;
+                Log.Logger.ForContext("Name", Name)
+                    .Error($"Chyba pri čítaní {property.Name} z váhy {scale.Name}: {ex.Message}");
+            }
+        }
+
+        return errors == 0;
+    }
+
+    /// <summary>
+    /// Odošle spoločné parametre dávky do všetkých aktívnych váh.
+    /// Vracia počet neúspešných zápisov (0 = všetko v poriadku).
+    /// </summary>
+    public int SendDavkaParametersToScales()
+    {
+        var scales = ActiveScales.ToList();
+        if (scales.Count == 0)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Warning("Žiadna aktívna váha - parametre dávky sa neodosielajú.");
+            return 0;
+        }
+
+        int errors = 0;
+
+        foreach (var scale in scales)
+        {
+            foreach (var property in CDavkaParametersIo.DavkaProperties)
+            {
+                if (!CDavkaParametersIo.TryGetSdoAddress(property, out ushort index, out byte subIndex)) continue;
+
+                try
+                {
+                    uint value = (uint)(int)(property.GetValue(DavkaParameters) ?? 0);
+                    scale.LowLayer.Can.SetRegister(index, subIndex, value);
+                }
+                catch (Exception ex)
+                {
+                    errors++;
+                    Log.Logger.ForContext("Name", Name)
+                        .Error($"Chyba pri zápise {property.Name} do váhy {scale.Name}: {ex.Message}");
+                }
+            }
+        }
+
+        if (errors == 0)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Information($"Parametre dávky odoslané do váh [{string.Join(",", scales.Select(s => s.NodeId))}].");
+        }
+
+        return errors;
+    }
 
     public override int RunStep(int step)
     {
@@ -69,6 +200,7 @@ public partial class CControlScales : CPlcScale
             case 1: return InitStep1(step);
             case 10: return InitStep10(step);
             case 20: return InitStep20(step);
+            case 25: return InitStep25(step);
             case 30: return InitStep30(step);
 
             // ==========================================
@@ -128,8 +260,26 @@ public partial class CControlScales : CPlcScale
             GetScale(i)!.WaitForInitAttained(15000);
         }
 
+        return 25;
+    } //Čakám na dokončenie inicializácie -> 25
+
+    private int InitStep25(int step)
+    {
+        Message = "Odosielam parametre dávky do váh";
+
+        if (!EnsureDavkaParameters())
+        {
+            throw new Exception("Parametre dávky nie sú dostupné - inicializácia zastavená.");
+        }
+
+        int errors = SendDavkaParametersToScales();
+        if (errors > 0)
+        {
+            throw new Exception($"Zápis parametrov dávky zlyhal ({errors} hodnôt) - inicializácia zastavená.");
+        }
+
         return 30;
-    } //Čakám na dokončenie inicializácie -> 30
+    } //Odoslanie spoločných parametrov dávky do váh -> 30
 
     private int InitStep30(int step)
     {
