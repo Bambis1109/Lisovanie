@@ -70,12 +70,47 @@ public partial class CParVaha : ObservableObject
     [ObservableProperty] private double _vahaMin = 5.45;
 }
 
+/// <summary>
+/// Priebeh lisovania a pohyby konzoly. Východiskové hodnoty sú presne tie,
+/// ktoré boli do etapy 2 zadané natvrdo v krokoch CControlLis.
+/// </summary>
+public partial class CParLisovanie : ObservableObject
+{
+    // --- Konzola (motor Stred) ---
+    [ObservableProperty] private double _stredVychodzia = -21;
+
+    [ObservableProperty] private uint _profilRychlyVelocity = 300;
+    [ObservableProperty] private uint _profilRychlyAcc = 5000;
+    [ObservableProperty] private uint _profilRychlyDcc = 5000;
+
+    [ObservableProperty] private uint _profilPomalyVelocity = 80;
+    [ObservableProperty] private uint _profilPomalyAcc = 2000;
+    [ObservableProperty] private uint _profilPomalyDcc = 2000;
+
+    // --- Silová regulácia ---
+    /// <summary>Ako dlho sa musí udržať požadovaná sila, aby bol výlisok OK [ms].</summary>
+    [ObservableProperty] private long _dobaDrzaniaMs = 2000;
+
+    [ObservableProperty] private double _krokPritlakuHruby = -0.5;
+    [ObservableProperty] private double _krokPritlakuStredny = -0.2;
+    [ObservableProperty] private double _krokPritlakuJemny = -0.02;
+
+    /// <summary>Odstup od požadovanej sily, pri ktorom sa prejde na stredný krok prítlaku.</summary>
+    [ObservableProperty] private double _prahStredny = 300;
+
+    /// <summary>Odstup od požadovanej sily, pri ktorom sa prejde na jemný krok prítlaku.</summary>
+    [ObservableProperty] private double _prahJemny = 100;
+
+    [ObservableProperty] private double _krokUdrziavania = -0.01;
+}
+
 public partial class CParametersLis : ObservableObject
 {
     [ObservableProperty] private CParLis _parLis = new();
     [ObservableProperty] private CParKonzola _parKonzola = new();
     [ObservableProperty] private CParVyrobok _parVyrobok = new();
     [ObservableProperty] private CParVaha _parVaha = new();
+    [ObservableProperty] private CParLisovanie _parLisovanie = new();
 
     [ObservableProperty] private int _canLine = 0;
     [ObservableProperty] private int _boardLine = 0;

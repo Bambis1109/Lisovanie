@@ -164,11 +164,13 @@ public partial class CControlLis : CPlcEpos
         Message = "Lis: Pripravený";
      
     
-        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        var par = ParametersLis.ParLisovanie;
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            par.ProfilRychlyVelocity, par.ProfilRychlyAcc, par.ProfilRychlyDcc);
         MotorStred.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorStred.Operation.StateMachine.SetEnableState();
-        
-        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-21, true, true);
+
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(par.StredVychodzia, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(3000);
         //  MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
         ProduktLisActual.Clear();
@@ -200,7 +202,10 @@ public partial class CControlLis : CPlcEpos
     private int MainStep105(int step)
     {
         Message = "Presun do nasypacej polohy";
-        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilRychlyVelocity,
+            ParametersLis.ParLisovanie.ProfilRychlyAcc,
+            ParametersLis.ParLisovanie.ProfilRychlyDcc);
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaNasypacia, true,
             true);
@@ -245,7 +250,8 @@ public partial class CControlLis : CPlcEpos
     private int MainStep130(int step)
     {
         Message = "Konzola na poziciu lisovania a uvolnenie";
-        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-40, true, true);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(
+            ParametersLis.ParKonzola.VyskaLisovacia, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
         MotorStred.Operation.StateMachine.SetDisableState();
         _swZhutnovanie = Stopwatch.StartNew(); // meranie času zhutňovania až po dosiahnutie sily
@@ -280,9 +286,13 @@ public partial class CControlLis : CPlcEpos
         Message = "Zatlac dolu podla sily";
         if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
             return 140;
-        double pos = -0.5;
-        if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana - 300) pos = -0.2;
-        if (SilaActual > ParametersLis.ParVyrobok.SilaPozadovana - 100) pos = -0.02;
+
+        var par = ParametersLis.ParLisovanie;
+        double silaPozadovana = ParametersLis.ParVyrobok.SilaPozadovana;
+
+        double pos = par.KrokPritlakuHruby;
+        if (SilaActual > silaPozadovana - par.PrahStredny) pos = par.KrokPritlakuStredny;
+        if (SilaActual > silaPozadovana - par.PrahJemny) pos = par.KrokPritlakuJemny;
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(pos, false, true);
         Thread.Sleep(10);
         return 140;
@@ -291,7 +301,7 @@ public partial class CControlLis : CPlcEpos
     private int MainStep160(int step)
     {
         Message = "Meranie doby OK tlaku";
-        if (SW.ElapsedMilliseconds > 2000)
+        if (SW.ElapsedMilliseconds > ParametersLis.ParLisovanie.DobaDrzaniaMs)
         {
             ProduktLisActual.Status = EnProduktLis.Ok;
             return 180; //ak je cas vatsi tak koniec  
@@ -305,7 +315,8 @@ public partial class CControlLis : CPlcEpos
         Message = "Skontroluje a doplni silu";
         if (SilaActual < ParametersLis.ParVyrobok.SilaPozadovana)
         {
-            MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(-0.01, false, true);
+            MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(
+                ParametersLis.ParLisovanie.KrokUdrziavania, false, true);
         }
 
         Thread.Sleep(50);
@@ -321,7 +332,10 @@ public partial class CControlLis : CPlcEpos
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
         Thread.Sleep(100);
         MotorStred.Operation.StateMachine.SetEnableState();
-        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(80, 2000, 2000);
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilPomalyVelocity,
+            ParametersLis.ParLisovanie.ProfilPomalyAcc,
+            ParametersLis.ParLisovanie.ProfilPomalyDcc);
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
             true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
@@ -390,7 +404,10 @@ public partial class CControlLis : CPlcEpos
     private int MainStep210(int step)
     {
         Message = "Presun do cistiacej  polohy";
-        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(300, 5000, 5000);
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilRychlyVelocity,
+            ParametersLis.ParLisovanie.ProfilRychlyAcc,
+            ParametersLis.ParLisovanie.ProfilRychlyDcc);
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaCistenia, true, true);
         MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaCistenia, true,
             true);

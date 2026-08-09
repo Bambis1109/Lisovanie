@@ -17,6 +17,10 @@ public partial class CControlManipulator : CPlcEpos
     public CDeviceEpos4 MotorZ { get; set; }
     public CoaxialDelta2D deltaRobot { get; set; } = new(115.0, 165.0, 262144.0, 56.0, 270.0, 82.0);
     public CJaws jaws { get; set; } = new CJaws();
+
+    /// <summary>Dráhy závislé od výrobku. Napĺňa ich CRecipeManager z receptu.</summary>
+    public CParManipulator ParManipulator { get; set; } = new();
+
     [ObservableProperty] private Matrix _matrixOK;
     [ObservableProperty] private Matrix _matrixNOK;
     public CProduktLis ProduktLisActual { get; set; } = new();
@@ -185,7 +189,7 @@ public partial class CControlManipulator : CPlcEpos
         MotorUp.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         MotorUp.Operation.ProfilePositionMode.SetPositionProfile(velocity, acceleration, deceleration);
 
-        deltaRobot.MoveToPolar(0, 140);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarParkovacia);
         deltaRobot.WaitForTargetReached(3000);
 
         Log.Logger.ForContext("Name", Name).Debug($"Manipulator inizializovany.");
@@ -225,14 +229,14 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep120(int step)
     {
         Message = "Vychodiskova poloha";
-        deltaRobot.MoveToPolar(0, 160);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarVychodiskova);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZHorna, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.CelusteOtvorene, true, true);
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
-        deltaRobot.MoveToPolar(0, 210);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarZasunuta);
         deltaRobot.WaitForTargetReached(5000);
         return 130;
     } // Vychodiskova poloha ->130
@@ -263,7 +267,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep140(int step)
     {
         Message = "Vysunutie k lisu";
-        deltaRobot.MoveToPolar(0, 255);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarULisu);
         deltaRobot.WaitForTargetReached(5000);
         return 150;
     } // Vysunutie k lisu ->150
@@ -271,7 +275,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep150(int step)
     {
         Message = "Dolu nad vyrobok";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-13, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZNadVyrobkom, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 160;
     } // Dolu nad vyrobok -> 160
@@ -279,7 +283,9 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep160(int step)
     {
         Message = "Uchopenie";
-        if (!jaws.SetPosCurrent("kv4", -6.7, -30, 1, 2000))
+        if (!jaws.SetPosCurrent(ParManipulator.VyrobokName, ParManipulator.CelusteUchopStred,
+                ParManipulator.CelusteUchopSila, ParManipulator.CelusteUchopTolerancia,
+                ParManipulator.CelusteUchopTimeout))
         {
             ResultUchopenie = false;
             return 170;
@@ -299,7 +305,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep180(int step)
     {
         Message = "Zdvih";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZHorna, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 190;
     } //Zdvih ->190
@@ -307,7 +313,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep190(int step)
     {
         Message = "Zasunutie";
-        deltaRobot.MoveToPolar(0, 210);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarZasunuta);
         deltaRobot.WaitForTargetReached(5000);
         if (MatrixNOK.LastItem || MatrixOK.LastItem)
         {
@@ -324,7 +330,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep200(int step)
     {
         Message = "";
-        deltaRobot.MoveToPolar(0, 140);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarParkovacia);
         deltaRobot.WaitForTargetReached(5000);
         return 220;
     } //Zasunutie na vykladanie
@@ -357,7 +363,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep230(int step)
     {
         Message = "Vyska na vylozenie";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-35, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZVylozenie, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 240;
     } //Vyska na vylozenie ->240
@@ -366,7 +372,7 @@ public partial class CControlManipulator : CPlcEpos
     {
         Message = "Celuste vyloz";
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(-2, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.CelusteVysyp, true, true);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);
         return 250;
     } //Celuste vyloz - > 250
@@ -374,7 +380,7 @@ public partial class CControlManipulator : CPlcEpos
     private int MainStep250(int step)
     {
         Message = "Vyska nad box";
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZHorna, true, true);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         return 260;
     } //Vyska nad box test  -> 260
@@ -414,10 +420,10 @@ public partial class CControlManipulator : CPlcEpos
         Log.Logger.ForContext("Name", Name)
             .Information(
                 $"Manipulator: Ulozene OK: {MatrixOK.ActualItem}/{MatrixOK.CountItem}, NOK: {MatrixNOK.ActualItem}/{MatrixNOK.CountItem}");
-        deltaRobot.MoveToPolar(0, 140);
-        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(-9, true, true);
+        deltaRobot.MoveToPolar(0, ParManipulator.PolarParkovacia);
+        MotorZ.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.ZHorna, true, true);
         jaws._motorJaws.Operation.ProfilePositionMode.ActivateProfilePositionMode();
-        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(5, true, true);
+        jaws._motorJaws.Operation.ProfilePositionMode.MoveToPositionGear(ParManipulator.CelusteOtvorene, true, true);
         deltaRobot.WaitForTargetReached(5000);
         MotorZ.Operation.MotionInfo.WaitForTargetReached(5000);
         jaws._motorJaws.Operation.MotionInfo.WaitForTargetReached(5000);

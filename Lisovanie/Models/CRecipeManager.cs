@@ -22,6 +22,16 @@ public class CRecipeManager
     public const string MigrationRecipeName = "KV4";
     public const string MigrationFormName = "Forma18";
 
+    /// <summary>Aktuálna verzia schémy receptu. Staršie sa pri načítaní povýšia.</summary>
+    private const int CurrentRecipeVersion = 2;
+
+    /// <summary>
+    /// Krok 130 lisu posielal konzolu natvrdo na -40, kým parameter ParKonzola.VyskaLisovacia
+    /// mal nepoužívanú hodnotu -30. Od verzie 2 krok číta parameter, takže mu treba nastaviť
+    /// skutočne používanú hodnotu - inak by sa zmenilo správanie stroja.
+    /// </summary>
+    private const double PouzivanaVyskaLisovacia = -40;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -122,6 +132,8 @@ public class CRecipeManager
             return false;
         }
 
+        if (UpgradeRecipe(recipe)) WriteJson(RecipePath(recipeName), recipe);
+
         Machine = machine;
         Form = form;
         Recipe = recipe;
@@ -210,6 +222,7 @@ public class CRecipeManager
         RuntimeToMachine();
         RuntimeToForm();
         RuntimeToRecipe();
+        UpgradeRecipe(Recipe);
 
         WriteJson(MachinePath, Machine);
         WriteJson(FormPath(MigrationFormName), Form);
@@ -220,6 +233,24 @@ public class CRecipeManager
 
         Log.Information(
             $"Migrácia dokončená: Machine.json, Forms/{MigrationFormName}.json, Recipes/{MigrationRecipeName}.json");
+        return true;
+    }
+
+    /// <summary>
+    /// Povýši starší recept na aktuálnu schému. Vracia true, ak sa niečo zmenilo
+    /// a súbor treba prepísať.
+    /// </summary>
+    private static bool UpgradeRecipe(CRecipe recipe)
+    {
+        if (recipe.SchemaVersion >= CurrentRecipeVersion) return false;
+
+        // Verzia 1 -> 2: krok 130 prestal používať natvrdo zadanú hodnotu.
+        recipe.Konzola.VyskaLisovacia = PouzivanaVyskaLisovacia;
+
+        recipe.SchemaVersion = CurrentRecipeVersion;
+        Log.Warning(
+            $"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}: " +
+            $"VyskaLisovacia nastavená na {PouzivanaVyskaLisovacia} (hodnota, ktorú krok 130 doteraz používal natvrdo).");
         return true;
     }
 
@@ -356,6 +387,40 @@ public class CRecipeManager
         scales.EnabledVaha1 = Recipe.Vahy.EnabledVaha1;
         scales.EnabledVaha2 = Recipe.Vahy.EnabledVaha2;
         scales.EnabledVaha3 = Recipe.Vahy.EnabledVaha3;
+
+        var man = Manipulator.ParManipulator;
+        man.PolarParkovacia = Recipe.Manipulator.PolarParkovacia;
+        man.PolarVychodiskova = Recipe.Manipulator.PolarVychodiskova;
+        man.PolarZasunuta = Recipe.Manipulator.PolarZasunuta;
+        man.PolarULisu = Recipe.Manipulator.PolarULisu;
+        man.ZHorna = Recipe.Manipulator.ZHorna;
+        man.ZNadVyrobkom = Recipe.Manipulator.ZNadVyrobkom;
+        man.ZVylozenie = Recipe.Manipulator.ZVylozenie;
+        man.CelusteOtvorene = Recipe.Manipulator.CelusteOtvorene;
+        man.CelusteVysyp = Recipe.Manipulator.CelusteVysyp;
+        man.CelusteUchopStred = Recipe.Manipulator.CelusteUchopStred;
+        man.CelusteUchopSila = Recipe.Manipulator.CelusteUchopSila;
+        man.CelusteUchopTolerancia = Recipe.Manipulator.CelusteUchopTolerancia;
+        man.CelusteUchopTimeout = Recipe.Manipulator.CelusteUchopTimeout;
+
+        // Odvodená hodnota - do receptu sa nezapisuje, slúži len ako kontext do logu.
+        man.VyrobokName = Recipe.Vyrobok.Name;
+
+        var lisovanie = Lis.ParametersLis.ParLisovanie;
+        lisovanie.StredVychodzia = Recipe.Lisovanie.StredVychodzia;
+        lisovanie.ProfilRychlyVelocity = Recipe.Lisovanie.ProfilRychlyVelocity;
+        lisovanie.ProfilRychlyAcc = Recipe.Lisovanie.ProfilRychlyAcc;
+        lisovanie.ProfilRychlyDcc = Recipe.Lisovanie.ProfilRychlyDcc;
+        lisovanie.ProfilPomalyVelocity = Recipe.Lisovanie.ProfilPomalyVelocity;
+        lisovanie.ProfilPomalyAcc = Recipe.Lisovanie.ProfilPomalyAcc;
+        lisovanie.ProfilPomalyDcc = Recipe.Lisovanie.ProfilPomalyDcc;
+        lisovanie.DobaDrzaniaMs = Recipe.Lisovanie.DobaDrzaniaMs;
+        lisovanie.KrokPritlakuHruby = Recipe.Lisovanie.KrokPritlakuHruby;
+        lisovanie.KrokPritlakuStredny = Recipe.Lisovanie.KrokPritlakuStredny;
+        lisovanie.KrokPritlakuJemny = Recipe.Lisovanie.KrokPritlakuJemny;
+        lisovanie.PrahStredny = Recipe.Lisovanie.PrahStredny;
+        lisovanie.PrahJemny = Recipe.Lisovanie.PrahJemny;
+        lisovanie.KrokUdrziavania = Recipe.Lisovanie.KrokUdrziavania;
     }
 
     private void RuntimeToRecipe()
@@ -405,6 +470,38 @@ public class CRecipeManager
         Recipe.Vahy.EnabledVaha1 = scales.EnabledVaha1;
         Recipe.Vahy.EnabledVaha2 = scales.EnabledVaha2;
         Recipe.Vahy.EnabledVaha3 = scales.EnabledVaha3;
+
+        // VyrobokName sa zámerne nekopíruje späť - je odvodený z Recipe.Vyrobok.Name.
+        var man = Manipulator.ParManipulator;
+        Recipe.Manipulator.PolarParkovacia = man.PolarParkovacia;
+        Recipe.Manipulator.PolarVychodiskova = man.PolarVychodiskova;
+        Recipe.Manipulator.PolarZasunuta = man.PolarZasunuta;
+        Recipe.Manipulator.PolarULisu = man.PolarULisu;
+        Recipe.Manipulator.ZHorna = man.ZHorna;
+        Recipe.Manipulator.ZNadVyrobkom = man.ZNadVyrobkom;
+        Recipe.Manipulator.ZVylozenie = man.ZVylozenie;
+        Recipe.Manipulator.CelusteOtvorene = man.CelusteOtvorene;
+        Recipe.Manipulator.CelusteVysyp = man.CelusteVysyp;
+        Recipe.Manipulator.CelusteUchopStred = man.CelusteUchopStred;
+        Recipe.Manipulator.CelusteUchopSila = man.CelusteUchopSila;
+        Recipe.Manipulator.CelusteUchopTolerancia = man.CelusteUchopTolerancia;
+        Recipe.Manipulator.CelusteUchopTimeout = man.CelusteUchopTimeout;
+
+        var lisovanie = Lis.ParametersLis.ParLisovanie;
+        Recipe.Lisovanie.StredVychodzia = lisovanie.StredVychodzia;
+        Recipe.Lisovanie.ProfilRychlyVelocity = lisovanie.ProfilRychlyVelocity;
+        Recipe.Lisovanie.ProfilRychlyAcc = lisovanie.ProfilRychlyAcc;
+        Recipe.Lisovanie.ProfilRychlyDcc = lisovanie.ProfilRychlyDcc;
+        Recipe.Lisovanie.ProfilPomalyVelocity = lisovanie.ProfilPomalyVelocity;
+        Recipe.Lisovanie.ProfilPomalyAcc = lisovanie.ProfilPomalyAcc;
+        Recipe.Lisovanie.ProfilPomalyDcc = lisovanie.ProfilPomalyDcc;
+        Recipe.Lisovanie.DobaDrzaniaMs = lisovanie.DobaDrzaniaMs;
+        Recipe.Lisovanie.KrokPritlakuHruby = lisovanie.KrokPritlakuHruby;
+        Recipe.Lisovanie.KrokPritlakuStredny = lisovanie.KrokPritlakuStredny;
+        Recipe.Lisovanie.KrokPritlakuJemny = lisovanie.KrokPritlakuJemny;
+        Recipe.Lisovanie.PrahStredny = lisovanie.PrahStredny;
+        Recipe.Lisovanie.PrahJemny = lisovanie.PrahJemny;
+        Recipe.Lisovanie.KrokUdrziavania = lisovanie.KrokUdrziavania;
     }
 
     // ==========================================
