@@ -104,6 +104,33 @@ public partial class CParLisovanie : ObservableObject
     [ObservableProperty] private double _krokUdrziavania = -0.01;
 }
 
+/// <summary>
+/// Priebeh lisovania na vzdialenosť. Cieľom je ParVyrobok.VyskaPozadovana,
+/// stropom ParVyrobok.SilaMax, výsledok sa klasifikuje pásmom VyskaMin..VyskaMax.
+/// </summary>
+public partial class CParLisovanieVzdialenost : ObservableObject
+{
+    [ObservableProperty] private double _krokPritlakuHruby = -0.5;
+    [ObservableProperty] private double _krokPritlakuStredny = -0.2;
+    [ObservableProperty] private double _krokPritlakuJemny = -0.02;
+
+    /// <summary>Odstup od cieľovej hrúbky [mm], pri ktorom sa prejde na stredný krok prítlaku.</summary>
+    [ObservableProperty] private double _prahStredny = 3.0;
+
+    /// <summary>Odstup od cieľovej hrúbky [mm], pri ktorom sa prejde na jemný krok prítlaku.</summary>
+    [ObservableProperty] private double _prahJemny = 1.0;
+
+    /// <summary>Ako dlho sa má držať dosiahnutá hrúbka [ms].</summary>
+    [ObservableProperty] private long _dobaDrzaniaMs = 2000;
+
+    /// <summary>
+    /// Pauza po každom prítlačnom kroku [ms]. Vzdialenosť sa obnovuje raz za 100 ms,
+    /// takže pri hodnote 10 pripadnú na jedno obnovenie ~3 kroky naslepo.
+    /// Hodnota 80 dá presne jeden krok na jedno obnovenie údaja.
+    /// </summary>
+    [ObservableProperty] private int _pauzaKrokuMs = 10;
+}
+
 public partial class CParametersLis : ObservableObject
 {
     [ObservableProperty] private CParLis _parLis = new();
@@ -111,6 +138,13 @@ public partial class CParametersLis : ObservableObject
     [ObservableProperty] private CParVyrobok _parVyrobok = new();
     [ObservableProperty] private CParVaha _parVaha = new();
     [ObservableProperty] private CParLisovanie _parLisovanie = new();
+    [ObservableProperty] private CParLisovanieVzdialenost _parLisovanieVzdialenost = new();
+
+    /// <summary>Metóda lisovania z receptu. Rozhoduje o vetvení v kroku 135.</summary>
+    [ObservableProperty] private EnMetodaLisovania _metoda = EnMetodaLisovania.Sila;
+
+    /// <summary>Zoznam metód pre ComboBox v okne nastavení.</summary>
+    public static EnMetodaLisovania[] MetodyLisovania { get; } = Enum.GetValues<EnMetodaLisovania>();
 
     [ObservableProperty] private int _canLine = 0;
     [ObservableProperty] private int _boardLine = 0;

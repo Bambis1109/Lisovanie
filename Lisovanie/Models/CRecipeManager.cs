@@ -23,7 +23,7 @@ public class CRecipeManager
     public const string MigrationFormName = "Forma18";
 
     /// <summary>Aktuálna verzia schémy receptu. Staršie sa pri načítaní povýšia.</summary>
-    private const int CurrentRecipeVersion = 3;
+    private const int CurrentRecipeVersion = 4;
 
     /// <summary>
     /// Pôvodné umiestnenie profilu dávky. Od verzie 3 je profil súčasťou receptu
@@ -270,6 +270,15 @@ public class CRecipeManager
             }
         }
 
+        // Verzia 3 -> 4: pribudla metóda lisovania a blok LisovanieVzdialenost.
+        // Migrovať niet čo - Metoda dostane default Sila, čiže doterajšie správanie.
+        if (recipe.SchemaVersion < 4)
+        {
+            Log.Warning(
+                $"Recept '{recipe.Name}': doplnená metóda lisovania ({recipe.Metoda}) " +
+                "a parametre lisovania na vzdialenosť.");
+        }
+
         recipe.SchemaVersion = CurrentRecipeVersion;
         Log.Warning($"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}.");
         return true;
@@ -449,6 +458,17 @@ public class CRecipeManager
         lisovanie.PrahStredny = Recipe.Lisovanie.PrahStredny;
         lisovanie.PrahJemny = Recipe.Lisovanie.PrahJemny;
         lisovanie.KrokUdrziavania = Recipe.Lisovanie.KrokUdrziavania;
+
+        Lis.ParametersLis.Metoda = Recipe.Metoda;
+
+        var vzdialenost = Lis.ParametersLis.ParLisovanieVzdialenost;
+        vzdialenost.KrokPritlakuHruby = Recipe.LisovanieVzdialenost.KrokPritlakuHruby;
+        vzdialenost.KrokPritlakuStredny = Recipe.LisovanieVzdialenost.KrokPritlakuStredny;
+        vzdialenost.KrokPritlakuJemny = Recipe.LisovanieVzdialenost.KrokPritlakuJemny;
+        vzdialenost.PrahStredny = Recipe.LisovanieVzdialenost.PrahStredny;
+        vzdialenost.PrahJemny = Recipe.LisovanieVzdialenost.PrahJemny;
+        vzdialenost.DobaDrzaniaMs = Recipe.LisovanieVzdialenost.DobaDrzaniaMs;
+        vzdialenost.PauzaKrokuMs = Recipe.LisovanieVzdialenost.PauzaKrokuMs;
     }
 
     private void RuntimeToRecipe()
@@ -531,6 +551,17 @@ public class CRecipeManager
         Recipe.Lisovanie.PrahStredny = lisovanie.PrahStredny;
         Recipe.Lisovanie.PrahJemny = lisovanie.PrahJemny;
         Recipe.Lisovanie.KrokUdrziavania = lisovanie.KrokUdrziavania;
+
+        Recipe.Metoda = Lis.ParametersLis.Metoda;
+
+        var vzdialenost = Lis.ParametersLis.ParLisovanieVzdialenost;
+        Recipe.LisovanieVzdialenost.KrokPritlakuHruby = vzdialenost.KrokPritlakuHruby;
+        Recipe.LisovanieVzdialenost.KrokPritlakuStredny = vzdialenost.KrokPritlakuStredny;
+        Recipe.LisovanieVzdialenost.KrokPritlakuJemny = vzdialenost.KrokPritlakuJemny;
+        Recipe.LisovanieVzdialenost.PrahStredny = vzdialenost.PrahStredny;
+        Recipe.LisovanieVzdialenost.PrahJemny = vzdialenost.PrahJemny;
+        Recipe.LisovanieVzdialenost.DobaDrzaniaMs = vzdialenost.DobaDrzaniaMs;
+        Recipe.LisovanieVzdialenost.PauzaKrokuMs = vzdialenost.PauzaKrokuMs;
     }
 
     // ==========================================

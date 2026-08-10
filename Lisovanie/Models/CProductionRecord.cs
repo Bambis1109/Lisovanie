@@ -31,6 +31,9 @@ public class CProductionRecord
     /// <summary>Stav výlisku (Ok / Nok / Unknow) – ukladaný ako int.</summary>
     public EnProduktLis Status { get; set; }
 
+    /// <summary>Metóda, ktorou bol kus vylisovaný (Sila / Vzdialenost) – ukladaná ako int.</summary>
+    public EnMetodaLisovania Metoda { get; set; }
+
     /// <summary>Lokálny čas pre zobrazenie v UI a exporte.</summary>
     public DateTime TimestampLocal => TimestampUtc.ToLocalTime();
 }

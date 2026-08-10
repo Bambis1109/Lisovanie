@@ -105,14 +105,27 @@ public partial class CControlLis : CPlcEpos
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
+            case 135: return MainStep135(step);
+
+            // --- Lisovanie na silu (kroky 140 - 190) ---
             case 140: return MainStep140(step);
             case 150: return MainStep150(step);
             case 160: return MainStep160(step);
             case 170: return MainStep170(step);
             case 180: return MainStep180(step);
             case 190: return MainStep190(step);
+
             case 200: return MainStep200(step);
             case 210: return MainStep210(step);
+
+            // --- Lisovanie na vzdialenosť (kroky 300 - 350) ---
+            case 300: return MainStep300(step);
+            case 310: return MainStep310(step);
+            case 320: return MainStep320(step);
+            case 330: return MainStep330(step);
+            case 340: return MainStep340(step);
+            case 350: return MainStep350(step);
+
             default: return base.RunStep(step);
         }
     }
@@ -255,8 +268,24 @@ public partial class CControlLis : CPlcEpos
         MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
         MotorStred.Operation.StateMachine.SetDisableState();
         _swZhutnovanie = Stopwatch.StartNew(); // meranie času zhutňovania až po dosiahnutie sily
+        return 135;
+    } //Konzola na poziciu lisovania a uvolnenie-> 135
+
+    /// <summary>
+    /// Rozcestník podľa metódy lisovania z receptu. Obe vetvy sú od tohto miesta
+    /// úplne oddelené a majú vlastné ukončovacie kroky.
+    /// </summary>
+    private int MainStep135(int step)
+    {
+        if (ParametersLis.Metoda == EnMetodaLisovania.Vzdialenost)
+        {
+            Message = "Lisovanie na vzdialenosť";
+            return 300;
+        }
+
+        Message = "Lisovanie na silu";
         return 140;
-    } //Konzola na poziciu lisovania a uvolnenie-> 140
+    } //Volba metody -> 140 (sila) alebo 300 (vzdialenost)
 
     private int MainStep140(int step)
     {
@@ -357,7 +386,8 @@ public partial class CControlLis : CPlcEpos
             Vzdialenost = ProduktLisActual.Vyska,
             CasZhutnovaniaMs = _swZhutnovanie?.ElapsedMilliseconds ?? 0,
             CasZotrvaniaMs = SW?.ElapsedMilliseconds ?? 0,
-            Status = ProduktLisActual.Status
+            Status = ProduktLisActual.Status,
+            Metoda = EnMetodaLisovania.Sila
         });
 
         switch (ProduktLisActual.Status)
@@ -416,6 +446,160 @@ public partial class CControlLis : CPlcEpos
         IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.Unknown);
         return 0;
     } // Presun do nasypacej polohy
+
+    // ==========================================
+    // METÓDY PRE LISOVANIE NA VZDIALENOSŤ (300 - 350)
+    // ==========================================
+
+    private int MainStep300(int step)
+    {
+        Message = "Meranie vzdialenosti a sily";
+
+        // Cieľ sa testuje ako prvý: kus, ktorý cieľovú hrúbku dosiahne práve na hranici
+        // sily, je ešte dobrý. SilaMax znamená Nok len vtedy, keď sa cieľ dosiahnuť nedá.
+        if (DistanceActual <= ParametersLis.ParVyrobok.VyskaPozadovana)
+        {
+            _swZhutnovanie?.Stop(); // dosiahnutá hrúbka -> koniec merania času zhutňovania
+            SW = new Stopwatch();
+            SW.Start();
+            return 320; // výdrž na dosiahnutej hrúbke
+        }
+
+        if (SilaActual > ParametersLis.ParVyrobok.SilaMax)
+        {
+            _swZhutnovanie?.Stop();
+            SW = new Stopwatch(); // nespustené - výdrž neprebehla, do záznamu ide 0
+            ProduktLisActual.Status = EnProduktLis.Nok;
+            Log.Logger.ForContext("Name", Name).Warning(
+                $"Lis: sila {SilaActual:F0} prekročila strop {ParametersLis.ParVyrobok.SilaMax:F0} " +
+                $"pri hrúbke {DistanceActual:F2} - predávkovaná dutina.");
+            return 340;
+        }
+
+        if (DistanceActual < ParametersLis.ParVyrobok.VyskaMin)
+        {
+            _swZhutnovanie?.Stop();
+            SW = new Stopwatch(); // nespustené - výdrž neprebehla, do záznamu ide 0
+            ProduktLisActual.Status = EnProduktLis.Nok;
+            Log.Logger.ForContext("Name", Name).Error(
+                $"Lis: hrúbka {DistanceActual:F2} klesla pod VyskaMin " +
+                $"{ParametersLis.ParVyrobok.VyskaMin:F2} - havarijná zarážka.");
+            return 340;
+        }
+
+        return 310;
+    }
+    //(Distance <= VyskaPozadovana) dosiahnutie cielovej hrubky -> 320
+    //(Sila > SilaMax) predavkovana dutina -> 340
+    //(Distance < VyskaMin) havarijna zarazka -> 340
+    //->310
+
+    private int MainStep310(int step)
+    {
+        Message = "Zatlač dolu podľa vzdialenosti";
+
+        var par = ParametersLis.ParLisovanieVzdialenost;
+
+        // Prah je zostávajúci odstup od cieľa - rovnaká sémantika ako pri silovej metóde,
+        // len meraná v milimetroch.
+        double odstup = DistanceActual - ParametersLis.ParVyrobok.VyskaPozadovana;
+
+        double pos = par.KrokPritlakuHruby;
+        if (odstup < par.PrahStredny) pos = par.KrokPritlakuStredny;
+        if (odstup < par.PrahJemny) pos = par.KrokPritlakuJemny;
+
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(pos, false, true);
+        Thread.Sleep(par.PauzaKrokuMs);
+        return 300;
+    } // Zatlaci dolu podla vzdialenosti a vrati sa na meranie -> 300
+
+    private int MainStep320(int step)
+    {
+        Message = "Výdrž na dosiahnutej hrúbke";
+
+        // Bez korekcie - MotorMaster je v ProfilePositionMode a navelenú polohu drží sám.
+        // Prášok počas výdrže relaxuje, sila klesá; výsledná hrúbka sa meria až v kroku 330.
+        if (SW.ElapsedMilliseconds > ParametersLis.ParLisovanieVzdialenost.DobaDrzaniaMs)
+        {
+            return 330;
+        }
+
+        return step;
+    } // Drzi hrubku po zadanu dobu -> 330
+
+    private int MainStep330(int step)
+    {
+        Message = "Vyhodnotenie výlisku";
+
+        double vyska = DistanceActual;
+        var vyrobok = ParametersLis.ParVyrobok;
+
+        if (vyska >= vyrobok.VyskaMin && vyska <= vyrobok.VyskaMax)
+        {
+            ProduktLisActual.Status = EnProduktLis.Ok;
+        }
+        else
+        {
+            ProduktLisActual.Status = EnProduktLis.Nok;
+            Log.Logger.ForContext("Name", Name).Warning(
+                $"Lis: hrúbka {vyska:F2} je mimo pásma " +
+                $"{vyrobok.VyskaMin:F2} - {vyrobok.VyskaMax:F2}.");
+        }
+
+        return 340;
+    } // Klasifikacia podla pasma VyskaMin..VyskaMax -> 340
+
+    private int MainStep340(int step)
+    {
+        Message = "Uvolnenie koniec lisovania";
+        ProduktLisActual.Sila = SilaActual;
+        ProduktLisActual.Vyska = DistanceActual;
+
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
+        Thread.Sleep(100);
+        MotorStred.Operation.StateMachine.SetEnableState();
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilPomalyVelocity,
+            ParametersLis.ParLisovanie.ProfilPomalyAcc,
+            ParametersLis.ParLisovanie.ProfilPomalyDcc);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+
+        return 350;
+    } // Koniec lisovania uvolnenie
+
+    private int MainStep350(int step)
+    {
+        Message = "Uvolnenie zony a nastavenie priznaku";
+
+        ProductionLogger?.Enqueue(new CProductionRecord
+        {
+            TimestampUtc = DateTime.UtcNow,
+            Hmotnost = _aktualnaHmotnost,
+            Sila = ProduktLisActual.Sila,
+            Vzdialenost = ProduktLisActual.Vyska,
+            CasZhutnovaniaMs = _swZhutnovanie?.ElapsedMilliseconds ?? 0,
+            CasZotrvaniaMs = SW?.ElapsedMilliseconds ?? 0,
+            Status = ProduktLisActual.Status,
+            Metoda = EnMetodaLisovania.Vzdialenost
+        });
+
+        switch (ProduktLisActual.Status)
+        {
+            case EnProduktLis.Ok:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullOk);
+                break;
+            case EnProduktLis.Nok:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullNok);
+                break;
+            default:
+                IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.OutputFullNok);
+                break;
+        }
+
+        return 200;
+    } // Uvolni zonu a nastavi priznak, pokracuje spolocnym krokom 200
     // Parametre lisu sú rozdelené do vrstiev Stroj / Forma / Výrobok, preto sa ukladajú
     // a načítavajú vždy všetky naraz cez CRecipeManager.
     [RelayCommand]

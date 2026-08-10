@@ -74,10 +74,13 @@ public class CProductionLogger : IDisposable
                     Vzdialenost      REAL    NOT NULL,
                     CasZhutnovaniaMs INTEGER NOT NULL,
                     CasZotrvaniaMs   INTEGER NOT NULL,
-                    Status           INTEGER NOT NULL
+                    Status           INTEGER NOT NULL,
+                    Metoda           INTEGER NOT NULL DEFAULT 0
                 );");
             conn.Execute("CREATE INDEX IF NOT EXISTS IX_ProductionRecord_Timestamp ON ProductionRecord(TimestampUtc);");
             conn.Execute("CREATE INDEX IF NOT EXISTS IX_ProductionRecord_Status ON ProductionRecord(Status);");
+
+            EnsureColumns(conn);
 
             _initialized = true;
             _writerTask = Task.Run(ProcessQueueAsync);
@@ -86,6 +89,22 @@ public class CProductionLogger : IDisposable
         catch (Exception ex)
         {
             Log.Error("Chyba pri inicializácii CProductionLogger: {Message}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Doplní stĺpce, ktoré pribudli až po vytvorení databázy - CREATE TABLE IF NOT EXISTS
+    /// na existujúcej tabuľke nič nepridá a INSERT by potom zlyhal.
+    /// </summary>
+    private static void EnsureColumns(SqliteConnection conn)
+    {
+        var existing = conn.Query<string>("SELECT name FROM pragma_table_info('ProductionRecord');")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!existing.Contains("Metoda"))
+        {
+            conn.Execute("ALTER TABLE ProductionRecord ADD COLUMN Metoda INTEGER NOT NULL DEFAULT 0;");
+            Log.Warning("CProductionLogger: do tabuľky ProductionRecord doplnený stĺpec Metoda.");
         }
     }
 
@@ -108,9 +127,9 @@ public class CProductionLogger : IDisposable
                     await conn.OpenAsync();
                     await conn.ExecuteAsync(@"
                         INSERT INTO ProductionRecord
-                            (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status)
+                            (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status, Metoda)
                         VALUES
-                            (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status);",
+                            (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status, @Metoda);",
                         new
                         {
                             TimestampUtc = record.TimestampUtc.ToString("O"),
@@ -119,7 +138,8 @@ public class CProductionLogger : IDisposable
                             record.Vzdialenost,
                             record.CasZhutnovaniaMs,
                             record.CasZotrvaniaMs,
-                            Status = (int)record.Status
+                            Status = (int)record.Status,
+                            Metoda = (int)record.Metoda
                         });
                 }
                 catch (Exception ex)
@@ -143,9 +163,9 @@ public class CProductionLogger : IDisposable
         await conn.OpenAsync();
         await conn.ExecuteAsync(@"
             INSERT INTO ProductionRecord
-                (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status)
+                (TimestampUtc, Hmotnost, Sila, Vzdialenost, CasZhutnovaniaMs, CasZotrvaniaMs, Status, Metoda)
             VALUES
-                (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status);",
+                (@TimestampUtc, @Hmotnost, @Sila, @Vzdialenost, @CasZhutnovaniaMs, @CasZotrvaniaMs, @Status, @Metoda);",
             new
             {
                 TimestampUtc = record.TimestampUtc.ToString("O"),
@@ -154,7 +174,8 @@ public class CProductionLogger : IDisposable
                 record.Vzdialenost,
                 record.CasZhutnovaniaMs,
                 record.CasZotrvaniaMs,
-                Status = (int)record.Status
+                Status = (int)record.Status,
+                Metoda = (int)record.Metoda
             });
     }
 

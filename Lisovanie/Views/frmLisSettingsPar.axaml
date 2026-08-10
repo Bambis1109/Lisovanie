@@ -119,6 +119,116 @@
                 </StackPanel>
             </TabItem>
 
+            <!-- Lisovanie Tab -->
+            <TabItem Header="Lisovanie">
+                <ScrollViewer>
+                    <StackPanel Spacing="5" Margin="10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Metóda lisovania:"/>
+                            <ComboBox ItemsSource="{x:Static models:CParametersLis.MetodyLisovania}"
+                                      SelectedItem="{Binding Metoda}"
+                                      Width="150" Height="30"/>
+                        </StackPanel>
+
+                        <Separator Height="1" Background="LightGray" Margin="0,10"/>
+                        <TextBlock Text="Silová metóda" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Stred východzia:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.StredVychodzia, StringFormat={}{0:F2}}" Click="BtnLisovanieStredVychodzia_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Doba držania [ms]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.DobaDrzaniaMs, StringFormat={}{0:F0}}" Click="BtnLisovanieDobaDrzania_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok hrubý:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.KrokPritlakuHruby, StringFormat={}{0:F3}}" Click="BtnLisovanieKrokHruby_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok stredný:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.KrokPritlakuStredny, StringFormat={}{0:F3}}" Click="BtnLisovanieKrokStredny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok jemný:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.KrokPritlakuJemny, StringFormat={}{0:F3}}" Click="BtnLisovanieKrokJemny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Prah stredný [N]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.PrahStredny, StringFormat={}{0:F0}}" Click="BtnLisovaniePrahStredny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Prah jemný [N]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.PrahJemny, StringFormat={}{0:F0}}" Click="BtnLisovaniePrahJemny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok udržiavania:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.KrokUdrziavania, StringFormat={}{0:F3}}" Click="BtnLisovanieKrokUdrziavania_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Profil rýchly (konzola)" FontWeight="Bold" Margin="0,10,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Rýchlosť:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilRychlyVelocity, StringFormat={}{0:F0}}" Click="BtnLisovanieRychlyVelocity_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Zrýchlenie:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilRychlyAcc, StringFormat={}{0:F0}}" Click="BtnLisovanieRychlyAcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Spomalenie:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilRychlyDcc, StringFormat={}{0:F0}}" Click="BtnLisovanieRychlyDcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Profil pomalý (konzola)" FontWeight="Bold" Margin="0,10,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Rýchlosť:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilPomalyVelocity, StringFormat={}{0:F0}}" Click="BtnLisovaniePomalyVelocity_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Zrýchlenie:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilPomalyAcc, StringFormat={}{0:F0}}" Click="BtnLisovaniePomalyAcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Spomalenie:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanie.ProfilPomalyDcc, StringFormat={}{0:F0}}" Click="BtnLisovaniePomalyDcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+
+                        <Separator Height="1" Background="LightGray" Margin="0,15,0,10"/>
+                        <TextBlock Text="Metóda na vzdialenosť" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Doba držania [ms]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.DobaDrzaniaMs, StringFormat={}{0:F0}}" Click="BtnVzdialenostDobaDrzania_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok hrubý:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.KrokPritlakuHruby, StringFormat={}{0:F3}}" Click="BtnVzdialenostKrokHruby_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok stredný:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.KrokPritlakuStredny, StringFormat={}{0:F3}}" Click="BtnVzdialenostKrokStredny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Krok jemný:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.KrokPritlakuJemny, StringFormat={}{0:F3}}" Click="BtnVzdialenostKrokJemny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Prah stredný [mm]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.PrahStredny, StringFormat={}{0:F2}}" Click="BtnVzdialenostPrahStredny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Prah jemný [mm]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.PrahJemny, StringFormat={}{0:F2}}" Click="BtnVzdialenostPrahJemny_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="label" Text="Pauza kroku [ms]:"/>
+                            <Button Classes="numpad" Content="{Binding ParLisovanieVzdialenost.PauzaKrokuMs, StringFormat={}{0:F0}}" Click="BtnVzdialenostPauzaKroku_OnClick" Width="150" HorizontalContentAlignment="Right"/>
+                        </StackPanel>
+                        <TextBlock Text="Vzdialenosť sa obnovuje raz za 100 ms. Pauza 10 ms znamená ~3 kroky naslepo, pauza 80 ms práve jeden krok na jedno obnovenie."
+                                   TextWrapping="Wrap" Foreground="Gray" FontSize="11" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Výrobok Tab -->
             <TabItem Header="Výrobok">
                 <StackPanel Spacing="5" Margin="10">

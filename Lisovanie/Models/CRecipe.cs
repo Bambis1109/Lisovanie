@@ -109,6 +109,34 @@ public class CRecipeLisovanie
     public double KrokUdrziavania { get; set; } = -0.01;
 }
 
+/// <summary>
+/// Priebeh lisovania na vzdialenosť. Cieľom je ParVyrobok.VyskaPozadovana,
+/// stropom ParVyrobok.SilaMax. Hodnoty sú zámerne oddelené od CRecipeLisovanie -
+/// prahy sú tu v milimetroch, tam v newtonoch.
+/// </summary>
+public class CRecipeLisovanieVzdialenost
+{
+    public double KrokPritlakuHruby { get; set; } = -0.5;
+    public double KrokPritlakuStredny { get; set; } = -0.2;
+    public double KrokPritlakuJemny { get; set; } = -0.02;
+
+    /// <summary>Odstup od cieľovej hrúbky [mm], pri ktorom sa prejde na stredný krok prítlaku.</summary>
+    public double PrahStredny { get; set; } = 3.0;
+
+    /// <summary>Odstup od cieľovej hrúbky [mm], pri ktorom sa prejde na jemný krok prítlaku.</summary>
+    public double PrahJemny { get; set; } = 1.0;
+
+    /// <summary>Ako dlho sa má držať dosiahnutá hrúbka [ms].</summary>
+    public long DobaDrzaniaMs { get; set; } = 2000;
+
+    /// <summary>
+    /// Pauza po každom prítlačnom kroku [ms]. Vzdialenosť sa obnovuje raz za 100 ms,
+    /// takže pri hodnote 10 pripadnú na jedno obnovenie ~3 kroky naslepo.
+    /// Hodnota 80 dá presne jeden krok na jedno obnovenie údaja - pomalšie, ale bez slepého posuvu.
+    /// </summary>
+    public int PauzaKrokuMs { get; set; } = 10;
+}
+
 /// <summary>Ktoré váhy sa v tomto recepte používajú.</summary>
 public class CRecipeVahy
 {
@@ -131,6 +159,10 @@ public class CRecipe
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public EnModeVyroby Mode { get; set; } = EnModeVyroby.Single;
 
+    /// <summary>Ktorou metódou sa tento výrobok lisuje - na silu alebo na vzdialenosť.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public EnMetodaLisovania Metoda { get; set; } = EnMetodaLisovania.Sila;
+
     /// <summary>Názov formy v Parameters/Forms, ktorej kalibráciu recept používa.</summary>
     public string Form { get; set; } = string.Empty;
 
@@ -143,4 +175,5 @@ public class CRecipe
     public CRecipeVahy Vahy { get; set; } = new();
     public CRecipeManipulator Manipulator { get; set; } = new();
     public CRecipeLisovanie Lisovanie { get; set; } = new();
+    public CRecipeLisovanieVzdialenost LisovanieVzdialenost { get; set; } = new();
 }

@@ -87,7 +87,7 @@ public partial class frmProduction : Window
 
             await writer.WriteLineAsync(string.Join(';',
                 "Cas", "Hmotnost[g]", "Sila", "Vzdialenost", "CasZhutnovania[ms]",
-                "CasZotrvania[ms]", "Status"));
+                "CasZotrvania[ms]", "Metoda", "Status"));
 
             foreach (var r in rows)
             {
@@ -98,6 +98,7 @@ public partial class frmProduction : Window
                     r.Vzdialenost.ToString("F3", Sk),
                     r.CasZhutnovaniaMs.ToString(Sk),
                     r.CasZotrvaniaMs.ToString(Sk),
+                    r.Metoda.ToString(),
                     r.Status.ToString()));
             }
 

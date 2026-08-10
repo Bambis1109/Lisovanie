@@ -54,6 +54,8 @@
                                     Binding="{Binding CasZhutnovaniaMs}"/>
                 <DataGridTextColumn Header="Zotrv.[ms]" Width="85"
                                     Binding="{Binding CasZotrvaniaMs}"/>
+                <DataGridTextColumn Header="Metóda" Width="100"
+                                    Binding="{Binding Metoda}"/>
                 <DataGridTextColumn Header="Status" Width="*"
                                     Binding="{Binding Status}"/>
             </DataGrid.Columns>

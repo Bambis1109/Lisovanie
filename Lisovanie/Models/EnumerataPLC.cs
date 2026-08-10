@@ -54,6 +54,17 @@ public enum EnModeVyroby
     Multi
 }
 
+/// <summary>
+/// Metóda lisovania daná receptom.
+/// Sila = lisuje sa na požadovanú silu, hrúbka je len dolná zarážka.
+/// Vzdialenost = lisuje sa na požadovanú hrúbku, sila je horný limit.
+/// </summary>
+public enum EnMetodaLisovania
+{
+    Sila,
+    Vzdialenost
+}
+
 public enum EnThreeState
 {
     EnTrue,

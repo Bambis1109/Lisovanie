@@ -64,7 +64,10 @@ public partial class ProductionViewModel : ViewModelBase
                 Vzdialenost      = 1 + _rnd.NextDouble() * 9,     // 1–10
                 CasZhutnovaniaMs = _rnd.Next(200, 2001),          // 200–2000 ms
                 CasZotrvaniaMs   = _rnd.Next(100, 1001),          // 100–1000 ms
-                Status           = _rnd.Next(2) == 0 ? EnProduktLis.Ok : EnProduktLis.Nok
+                Status           = _rnd.Next(2) == 0 ? EnProduktLis.Ok : EnProduktLis.Nok,
+                Metoda           = _rnd.Next(2) == 0
+                    ? EnMetodaLisovania.Sila
+                    : EnMetodaLisovania.Vzdialenost
             };
             await _logger.InsertAsync(record);
         }
