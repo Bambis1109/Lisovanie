@@ -15,6 +15,7 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="10">
             <Button Content="{Binding LoadFromDeviceButtonText}" IsVisible="{Binding ShowLoadFromDevice}" Command="{Binding LoadFromDeviceCommand}" IsEnabled="{Binding !IsBusy}" Padding="10,5"/>
             <Button Content="{Binding SendButtonText}" Command="{Binding SaveToDeviceCommand}" IsEnabled="{Binding !IsBusy}" Classes="accent" Padding="10,5"/>
+            <Button Content="{Binding SaveToRecipeButtonText}" IsVisible="{Binding ShowSaveToRecipe}" Command="{Binding SaveToRecipeCommand}" IsEnabled="{Binding !IsBusy}" Padding="10,5"/>
             <TextBlock Text="|" VerticalAlignment="Center" Foreground="DimGray" Margin="5,0"/>
             <Button Content="{Binding LoadFileButtonText}" Command="{Binding LoadFromFileCommand}" CommandParameter="{Binding $parent[Window]}" IsEnabled="{Binding !IsBusy}" Padding="10,5"/>
             <Button Content="{Binding SaveFileButtonText}" Command="{Binding SaveToFileCommand}" CommandParameter="{Binding $parent[Window]}" IsEnabled="{Binding !IsBusy}" Padding="10,5"/>

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
@@ -71,53 +70,47 @@ public partial class CControlScales : CPlcScale
     /// <summary>
     /// Spoločná sada parametrov riadenia dávky. V Single móde majú všetky váhy ten istý
     /// materiál, takže dostávajú identické nastavenie.
+    /// Hodnoty pochádzajú z receptu (sekcia Vaha) - napĺňa ich CRecipeManager.
     /// </summary>
     public DeviceParameters DavkaParameters { get; } = new();
 
-    private bool _davkaLoaded;
-
-    /// <summary>Cesta k súboru so spoločnými parametrami dávky.</summary>
-    public static string DavkaParametersPath =>
-        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Parameters", "ParametersScales.json");
-
     /// <summary>
-    /// Zabezpečí, že spoločné parametre dávky sú načítané. Ak súbor ešte neexistuje,
-    /// vyčíta hodnoty z prvej aktívnej váhy a súbor založí.
-    /// Volá sa lenivo (nie v konštruktore) - zariadenia vznikajú až v CMainProgram.Connect().
+    /// Zabezpečí, že sú k dispozícii parametre dávky. Ak ich recept ešte nemá,
+    /// vyčíta ich z prvej aktívnej váhy a rovno zapíše do receptu.
     /// </summary>
     public bool EnsureDavkaParameters()
     {
-        if (_davkaLoaded) return true;
-
-        if (File.Exists(DavkaParametersPath))
-        {
-            if (!CDavkaParametersIo.Load(DavkaParametersPath, DavkaParameters))
-            {
-                Log.Logger.ForContext("Name", Name)
-                    .Error($"Súbor s parametrami dávky sa nepodarilo načítať: {DavkaParametersPath}");
-                return false;
-            }
-
-            _davkaLoaded = true;
-            return true;
-        }
+        if (DavkaParameters.Rs_TargetWeightMg > 0) return true;
 
         var source = ActiveScales.FirstOrDefault();
         if (source == null)
         {
             Log.Logger.ForContext("Name", Name)
-                .Error($"Súbor {DavkaParametersPath} neexistuje a nie je dostupná žiadna aktívna váha, z ktorej by sa dal založiť.");
+                .Error("Recept nemá profil dávky a nie je dostupná žiadna aktívna váha, z ktorej by sa dal prevziať.");
             return false;
         }
 
         if (!ReadDavkaParametersFromScale(source)) return false;
 
-        CDavkaParametersIo.Save(DavkaParametersPath, DavkaParameters);
-        _davkaLoaded = true;
+        // Recept profil nemal - uložíme ho, aby bol pri ďalšom štarte k dispozícii.
+        SaveDavkaParametersToRecipe();
 
         Log.Logger.ForContext("Name", Name)
-            .Information($"Parametre dávky založené z váhy {source.Name} (ID: {source.NodeId}).");
+            .Information($"Profil dávky prevzatý z váhy {source.Name} (ID: {source.NodeId}) a zapísaný do receptu.");
         return true;
+    }
+
+    /// <summary>Zapíše aktuálne parametre dávky do receptu (sekcia Vaha).</summary>
+    public bool SaveDavkaParametersToRecipe()
+    {
+        var manager = Program.MainProgram?.RecipeManager;
+        if (manager == null)
+        {
+            Log.Logger.ForContext("Name", Name).Error("Profil dávky sa nemá kam uložiť - chýba správca receptov.");
+            return false;
+        }
+
+        return manager.SaveAll();
     }
 
     /// <summary>Vyčíta parametre riadenia dávky z danej váhy do spoločnej sady.</summary>

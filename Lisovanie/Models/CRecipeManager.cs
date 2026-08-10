@@ -23,7 +23,13 @@ public class CRecipeManager
     public const string MigrationFormName = "Forma18";
 
     /// <summary>Aktuálna verzia schémy receptu. Staršie sa pri načítaní povýšia.</summary>
-    private const int CurrentRecipeVersion = 2;
+    private const int CurrentRecipeVersion = 3;
+
+    /// <summary>
+    /// Pôvodné umiestnenie profilu dávky. Od verzie 3 je profil súčasťou receptu
+    /// (sekcia Vaha), tento súbor sa už nepoužíva - ostáva len ako zdroj pre migráciu.
+    /// </summary>
+    private static string LegacyDavkaPath => Path.Combine(ParametersDir, "ParametersScales.json");
 
     /// <summary>
     /// Krok 130 lisu posielal konzolu natvrdo na -40, kým parameter ParKonzola.VyskaLisovacia
@@ -245,12 +251,27 @@ public class CRecipeManager
         if (recipe.SchemaVersion >= CurrentRecipeVersion) return false;
 
         // Verzia 1 -> 2: krok 130 prestal používať natvrdo zadanú hodnotu.
-        recipe.Konzola.VyskaLisovacia = PouzivanaVyskaLisovacia;
+        if (recipe.SchemaVersion < 2)
+        {
+            recipe.Konzola.VyskaLisovacia = PouzivanaVyskaLisovacia;
+            Log.Warning(
+                $"Recept '{recipe.Name}': VyskaLisovacia nastavená na {PouzivanaVyskaLisovacia} " +
+                "(hodnota, ktorú krok 130 doteraz používal natvrdo).");
+        }
+
+        // Verzia 2 -> 3: profil dávky sa presťahoval z ParametersScales.json do receptu.
+        if (recipe.SchemaVersion < 3 && recipe.Vaha.Davka.Count == 0)
+        {
+            var legacy = new DeviceParameters();
+            if (CDavkaParametersIo.Load(LegacyDavkaPath, legacy))
+            {
+                recipe.Vaha.Davka = CDavkaParametersIo.ToDictionary(legacy);
+                Log.Warning($"Recept '{recipe.Name}': profil dávky prevzatý z {LegacyDavkaPath}.");
+            }
+        }
 
         recipe.SchemaVersion = CurrentRecipeVersion;
-        Log.Warning(
-            $"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}: " +
-            $"VyskaLisovacia nastavená na {PouzivanaVyskaLisovacia} (hodnota, ktorú krok 130 doteraz používal natvrdo).");
+        Log.Warning($"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}.");
         return true;
     }
 
@@ -368,6 +389,13 @@ public class CRecipeManager
         vaha.VahaMax = Recipe.Vaha.VahaMax;
         vaha.VahaMin = Recipe.Vaha.VahaMin;
 
+        // Prázdny slovník = recept profil nemá; vtedy sa DavkaParameters nechajú tak,
+        // ako sú, a Init si ich vyčíta z prvej aktívnej váhy.
+        if (Recipe.Vaha.Davka.Count > 0)
+        {
+            CDavkaParametersIo.FromDictionary(Recipe.Vaha.Davka, Scales.DavkaParameters);
+        }
+
         var delta = Manipulator.deltaRobot.ParametersDelta;
         delta.MatrixOkXfirst = Recipe.MatrixOk.Xfirst;
         delta.MatrixOkYfirst = Recipe.MatrixOk.Yfirst;
@@ -450,6 +478,7 @@ public class CRecipeManager
         Recipe.Vaha.VahaPozadovana = vaha.VahaPozadovana;
         Recipe.Vaha.VahaMax = vaha.VahaMax;
         Recipe.Vaha.VahaMin = vaha.VahaMin;
+        Recipe.Vaha.Davka = CDavkaParametersIo.ToDictionary(Scales.DavkaParameters);
 
         var delta = Manipulator.deltaRobot.ParametersDelta;
         Recipe.MatrixOk.Xfirst = delta.MatrixOkXfirst;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Lisovanie.Models;
@@ -32,12 +33,19 @@ public class CRecipeVyrobok
     public double SilaPozadovana { get; set; }
 }
 
-/// <summary>Kontrolné medze hmotnosti dávky.</summary>
+/// <summary>Kontrolné medze hmotnosti dávky a profil dávkovania pre váhy.</summary>
 public class CRecipeVaha
 {
     public double VahaPozadovana { get; set; }
     public double VahaMax { get; set; }
     public double VahaMin { get; set; }
+
+    /// <summary>
+    /// Parametre riadenia dávky (SDO 0x6006) posielané do všetkých aktívnych váh pri Inite.
+    /// Kľúče zodpovedajú menám property v DeviceParameters, takže formát je zhodný
+    /// s exportom z okna parametrov dávky. Prázdny slovník = profil ešte nebol nastavený.
+    /// </summary>
+    public Dictionary<string, int> Davka { get; set; } = new();
 }
 
 /// <summary>Vykladacia matica - rozteče závisia od priemeru výlisku.</summary>

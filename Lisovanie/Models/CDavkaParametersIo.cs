@@ -13,8 +13,8 @@ namespace Lisovanie.Models;
 /// <summary>
 /// Spoločná logika pre parametre riadenia dávky (SDO 0x6006): preklad property na SDO adresu
 /// a čítanie/zápis plochého JSON súboru.
-/// Formát súboru je zhodný s per-váha exportom, takže ScaleNode{id}_Davka.json
-/// a ParametersScales.json sú navzájom zameniteľné.
+/// Rovnaké mená kľúčov používa aj sekcia Vaha.Davka v recepte, takže export z okna
+/// jednej váhy aj export zo spoločného okna sú navzájom zameniteľné.
 /// </summary>
 public static class CDavkaParametersIo
 {
@@ -49,6 +49,32 @@ public static class CDavkaParametersIo
         index = Convert.ToUInt16(indexMatch.Groups[1].Value, 16);
         subIndex = Convert.ToByte(subMatch.Groups[1].Value, 16);
         return index != 0;
+    }
+
+    /// <summary>
+    /// Prevedie parametre riadenia dávky na slovník meno -> hodnota.
+    /// Kľúče sú zhodné s formátom súboru, takže recept aj export sú navzájom čitateľné.
+    /// </summary>
+    public static Dictionary<string, int> ToDictionary(DeviceParameters source)
+    {
+        var data = new Dictionary<string, int>();
+
+        foreach (var property in DavkaProperties)
+        {
+            data[property.Name] = (int)(property.GetValue(source) ?? 0);
+        }
+
+        return data;
+    }
+
+    /// <summary>Prenesie hodnoty zo slovníka do parametrov. Neznáme kľúče sa ignorujú.</summary>
+    public static void FromDictionary(IReadOnlyDictionary<string, int> data, DeviceParameters target)
+    {
+        foreach (var property in DavkaProperties)
+        {
+            if (!property.CanWrite) continue;
+            if (data.TryGetValue(property.Name, out int value)) property.SetValue(target, value);
+        }
     }
 
     /// <summary>Načíta parametre riadenia dávky zo súboru.</summary>

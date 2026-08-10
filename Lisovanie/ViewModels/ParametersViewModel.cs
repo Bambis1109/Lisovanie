@@ -59,6 +59,11 @@ public partial class ParametersViewModel : ViewModelBase
 
     public string SendButtonText => IsScalesMode ? "Odošli do váh" : "Save to Device";
 
+    /// <summary>Zápis profilu do receptu má zmysel len v režime všetkých váh.</summary>
+    public bool ShowSaveToRecipe => IsScalesMode;
+
+    public string SaveToRecipeButtonText => "Ulož do receptu";
+
     public string LoadFromDeviceButtonText => "Load from Device";
 
     public string LoadFileButtonText => IsScalesMode ? "Nahraj zo súboru" : "Load from File";
@@ -234,6 +239,26 @@ public partial class ParametersViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Zapíše profil dávky do receptu (sekcia Vaha). Init ho odtiaľ vždy pošle do váh.
+    /// </summary>
+    [RelayCommand]
+    private void SaveToRecipe()
+    {
+        if (IsBusy) return;
+
+        if (_scales == null)
+        {
+            Log.Error("Profil dávky sa dá uložiť do receptu len v režime všetkých váh.");
+            return;
+        }
+
+        if (_scales.SaveDavkaParametersToRecipe())
+        {
+            Log.Information("Profil dávky uložený do receptu.");
+        }
+    }
+
     [RelayCommand]
     private async Task LoadFromFile(Window window)
     {
@@ -289,7 +314,7 @@ public partial class ParametersViewModel : ViewModelBase
             {
                 Title = "Uložiť parametre do súboru",
                 SuggestedFileName = IsScalesMode
-                    ? Path.GetFileName(CControlScales.DavkaParametersPath)
+                    ? $"Davka_{Program.MainProgram?.RecipeManager.ActiveRecipeName}.json"
                     : $"ScaleNode{_device!.NodeId}{(_davkaOnly ? "_Davka" : "")}.json",
                 SuggestedStartLocation = await GetDefaultFolderAsync(topLevel),
                 DefaultExtension = "json",
@@ -312,7 +337,7 @@ public partial class ParametersViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// V režime všetkých váh otvára dialóg rovno v priečinku Parameters, kde leží ParametersScales.json.
+    /// V režime všetkých váh otvára dialóg rovno v priečinku Parameters.
     /// V režime jednej váhy ponechá výber na operačnom systéme (pôvodné správanie).
     /// </summary>
     private async Task<IStorageFolder?> GetDefaultFolderAsync(TopLevel topLevel)
@@ -321,9 +346,7 @@ public partial class ParametersViewModel : ViewModelBase
 
         try
         {
-            var directory = Path.GetDirectoryName(CControlScales.DavkaParametersPath);
-            if (string.IsNullOrEmpty(directory)) return null;
-
+            var directory = CRecipeManager.ParametersDir;
             Directory.CreateDirectory(directory);
             return await topLevel.StorageProvider.TryGetFolderFromPathAsync(directory);
         }
