@@ -3,10 +3,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:Lisovanie.Models"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
+        xmlns:vm="using:Lisovanie.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="700"
         x:Class="Lisovanie.Views.FrmManipulatorSettingsPar"
         x:DataType="models:CParameters"
-        Width="500" Height="600"
+        Width="500" Height="700"
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         ExtendClientAreaToDecorationsHint="False" WindowDecorations="Full" Background="#1E1E1E">
@@ -110,6 +111,40 @@
                         <Button Classes="numpad" Content="{Binding OffsetSystem}" Click="BtnOffsetSystem_OnClick" Width="150" HorizontalContentAlignment="Right"/>
                     </StackPanel>
                 </StackPanel>
+            </TabItem>
+
+            <!-- Manipulátor - dráhy z receptu -->
+            <TabItem Header="Manipulátor">
+                <Grid x:Name="ManipTabContent" x:DataType="vm:ManipulatorParametersViewModel"
+                      RowDefinitions="*, Auto" Margin="10">
+                    <ScrollViewer Grid.Row="0">
+                        <ItemsControl ItemsSource="{Binding Parameters}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ParameterItemViewModel">
+                                    <Grid ColumnDefinitions="*, 150" Margin="0,3">
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1"
+                                                Classes="numpad"
+                                                Content="{Binding Value}"
+                                                Click="BtnManipValue_OnClick"
+                                                GotFocus="ManipControl_GotFocus"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Panel popisu (Description) -->
+                    <Border Grid.Row="1" Background="#252526" BorderBrush="DimGray" BorderThickness="1"
+                            CornerRadius="3" Padding="10" Margin="0,10,0,0" MinHeight="90">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedParameter.DisplayName}" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <TextBlock Text="{Binding SelectedParameter.Description}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </TabItem>
         </TabControl>
     </DockPanel>

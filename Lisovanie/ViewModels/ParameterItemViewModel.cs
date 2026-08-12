@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Lisovanie.ViewModels;
@@ -21,12 +22,14 @@ public partial class ParameterItemViewModel : ObservableObject
         _category = category;
     }
 
-    public int Value
+    // Double pokrýva aj int properties (DeviceParameters) - typ sa pri zápise
+    // konvertuje späť na skutočný typ property.
+    public double Value
     {
-        get => (int)(_property.GetValue(_owner) ?? 0);
+        get => Convert.ToDouble(_property.GetValue(_owner) ?? 0);
         set
         {
-            _property.SetValue(_owner, value);
+            _property.SetValue(_owner, Convert.ChangeType(value, _property.PropertyType));
             OnPropertyChanged();
         }
     }

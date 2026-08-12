@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Lisovanie.Models;
+using Lisovanie.ViewModels;
 using System;
 using System.Threading.Tasks;
 
@@ -9,6 +10,7 @@ namespace Lisovanie.Views;
 public partial class FrmManipulatorSettingsPar : Window
 {
     private CControlManipulator? _controlManipulator;
+    private ManipulatorParametersViewModel? _manipVm;
 
     public FrmManipulatorSettingsPar()
     {
@@ -20,6 +22,9 @@ public partial class FrmManipulatorSettingsPar : Window
         InitializeComponent();
         _controlManipulator = controlManipulator;
         DataContext = controlManipulator.deltaRobot.ParametersDelta;
+
+        _manipVm = new ManipulatorParametersViewModel(controlManipulator.ParManipulator);
+        ManipTabContent.DataContext = _manipVm;
     }
 
     private void BtnClose_OnClick(object? sender, RoutedEventArgs e)
@@ -35,6 +40,8 @@ public partial class FrmManipulatorSettingsPar : Window
     private void BtnLoad_OnClick(object? sender, RoutedEventArgs e)
     {
         _controlManipulator?.LoadParameters();
+        // Reload receptu prepísal hodnoty v CParManipulator - VM sa to sám nedozvie.
+        _manipVm?.RefreshAll();
     }
 
     private async Task EditValueIntAsync(string title, int initialValue, Action<int> setter)
@@ -66,4 +73,27 @@ public partial class FrmManipulatorSettingsPar : Window
     // --- Delta ---
     private async void BtnOffsetArm_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParameters p) await EditValueIntAsync("OffsetArm", p.OffsetArm, v => p.OffsetArm = v); }
     private async void BtnOffsetSystem_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParameters p) await EditValueIntAsync("OffsetSystem", p.OffsetSystem, v => p.OffsetSystem = v); }
+
+    // --- Manipulátor (dráhy z receptu) ---
+    private void ManipControl_GotFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ParameterItemViewModel vm } && _manipVm != null)
+        {
+            _manipVm.SelectedParameter = vm;
+        }
+    }
+
+    private async void BtnManipValue_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ParameterItemViewModel vm }) return;
+
+        if (_manipVm != null) _manipVm.SelectedParameter = vm;
+
+        var numpad = new NumpadWindow(vm.DisplayName, vm.Value);
+        var result = await numpad.ShowDialog<bool>(this);
+        if (result)
+        {
+            vm.Value = numpad.ResultValue;
+        }
+    }
 }
