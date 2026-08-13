@@ -160,10 +160,12 @@ public partial class ParametersViewModel : ViewModelBase
                         try
                         {
                             uint val = source.LowLayer.Can.GetRegister(index, subindex);
-                            param.Value = (int)val;
+                            param.Value = (int)val; // setter zároveň označí hodnotu za známu
                         }
                         catch (Exception ex)
                         {
+                            // Hodnota ostáva zástupná nula - nesmie sa zapísať späť do zariadenia.
+                            param.IsValueKnown = false;
                             Log.Error($"Error loading parameter {param.DisplayName}: {ex.Message}");
                         }
                     }
@@ -199,6 +201,20 @@ public partial class ParametersViewModel : ViewModelBase
         {
             int errors = 0;
 
+            // Parametre, ktorých čítanie pri otvorení okna zlyhalo, držia len zástupnú nulu.
+            // Zapísať ich späť by znamenalo vynulovať register v zariadení (napr. kalibráciu).
+            var neznameHodnoty = Categories
+                .SelectMany(c => c.Parameters)
+                .Where(p => !p.IsValueKnown)
+                .ToList();
+
+            if (neznameHodnoty.Count > 0)
+            {
+                Log.Warning(
+                    $"Nezapisujem {neznameHodnoty.Count} parametrov s neznámou hodnotou (zlyhalo čítanie zo zariadenia): " +
+                    string.Join(", ", neznameHodnoty.Select(p => p.DisplayName)));
+            }
+
             await Task.Run(() =>
             {
                 foreach (var device in targets)
@@ -207,12 +223,14 @@ public partial class ParametersViewModel : ViewModelBase
                     {
                         foreach (var param in cat.Parameters)
                         {
+                            if (!param.IsValueKnown) continue;
+
                             var (index, subindex) = GetIndices(param);
                             if (index == 0) continue;
 
                             try
                             {
-                                device.LowLayer.Can.SetRegister(index, subindex, (uint)param.Value);
+                                device.LowLayer.Can.SetRegister(index, subindex, param.RegisterValue);
                             }
                             catch (Exception ex)
                             {
@@ -226,6 +244,10 @@ public partial class ParametersViewModel : ViewModelBase
 
             if (errors > 0)
                 Log.Error($"Odoslanie parametrov skončilo s chybami ({errors} hodnôt).");
+            else if (neznameHodnoty.Count > 0)
+                Log.Warning(
+                    $"Parametre odoslané do váh [{string.Join(",", targets.Select(d => d.NodeId))}], " +
+                    $"{neznameHodnoty.Count} preskočených. Otvorte okno znova alebo hodnoty zadajte ručne.");
             else
                 Log.Information($"Parametre úspešne odoslané do váh [{string.Join(",", targets.Select(d => d.NodeId))}].");
         }
