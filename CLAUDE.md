@@ -86,6 +86,7 @@ The UI log panel is backed by `ObservableCollectionSink` (Serilog sink) — capp
 2. Log exclusively with Serilog: `Log.Information`, `Log.Error`, `Log.Fatal`. Always add `.ForContext("Name", Name)` in PLC classes.
 3. Respond in Slovak, be technically precise and concise.
 4. When showing code changes, show only the changed methods — not entire files.
+5. **Always commit at the end of every completed task.** When the work is finished (and the build passes), stage the changed files and create a commit with a descriptive Slovak message — do not leave finished work uncommitted, and do not wait to be asked.
 
 ## CANopen / EPOS4 Rules (from `.gemini/prompts/sys_can.md`)
 

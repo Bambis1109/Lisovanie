@@ -72,6 +72,18 @@ public partial class Matrix : ObservableObject
     }
 
 
+    /// <summary>
+    /// Prepočíta pozície podľa rozloženia z receptu. Jediné miesto, kde sa
+    /// rozhoduje medzi voštinovým a pravouhlým vzorom.
+    /// </summary>
+    public void Recalcul(EnRozlozenieMatice rozlozenie)
+    {
+        if (rozlozenie == EnRozlozenieMatice.SQR)
+            RecalculSQR();
+        else
+            RecalculDIA();
+    }
+
     [RelayCommand]
     public void RecalculDIA()
     {
@@ -122,7 +134,7 @@ public partial class Matrix : ObservableObject
             }
         }
 
-        ;
+        CountItem = Items.Count;
     }
 
     [RelayCommand]

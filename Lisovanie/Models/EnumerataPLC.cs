@@ -65,6 +65,17 @@ public enum EnMetodaLisovania
     Vzdialenost
 }
 
+/// <summary>
+/// Rozloženie pozícií vo vykladacích maticiach. Platí pre OK aj NOK súčasne.
+/// DIA = striedavé (voštinové) riadky, nepárny riadok posunutý o polovicu rozteče.
+/// SQR = pravouhlá mriežka bez posunu riadkov.
+/// </summary>
+public enum EnRozlozenieMatice
+{
+    DIA,
+    SQR
+}
+
 public enum EnThreeState
 {
     EnTrue,

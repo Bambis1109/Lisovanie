@@ -23,7 +23,7 @@ public class CRecipeManager
     public const string MigrationFormName = "Forma18";
 
     /// <summary>Aktuálna verzia schémy receptu. Staršie sa pri načítaní povýšia.</summary>
-    private const int CurrentRecipeVersion = 4;
+    private const int CurrentRecipeVersion = 5;
 
     /// <summary>
     /// Pôvodné umiestnenie profilu dávky. Od verzie 3 je profil súčasťou receptu
@@ -279,6 +279,14 @@ public class CRecipeManager
                 "a parametre lisovania na vzdialenosť.");
         }
 
+        // Verzia 4 -> 5: pribudlo rozloženie vykladacích matíc.
+        // Migrovať niet čo - default DIA je vzor, ktorý bol dovtedy natvrdo v InitStep1.
+        if (recipe.SchemaVersion < 5)
+        {
+            Log.Warning(
+                $"Recept '{recipe.Name}': doplnené rozloženie vykladacích matíc ({recipe.RozlozenieMatice}).");
+        }
+
         recipe.SchemaVersion = CurrentRecipeVersion;
         Log.Warning($"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}.");
         return true;
@@ -406,6 +414,7 @@ public class CRecipeManager
         }
 
         var delta = Manipulator.deltaRobot.ParametersDelta;
+        delta.RozlozenieMatice = Recipe.RozlozenieMatice;
         delta.MatrixOkXfirst = Recipe.MatrixOk.Xfirst;
         delta.MatrixOkYfirst = Recipe.MatrixOk.Yfirst;
         delta.MatrixOkXdelta = Recipe.MatrixOk.Xdelta;
@@ -501,6 +510,7 @@ public class CRecipeManager
         Recipe.Vaha.Davka = CDavkaParametersIo.ToDictionary(Scales.DavkaParameters);
 
         var delta = Manipulator.deltaRobot.ParametersDelta;
+        Recipe.RozlozenieMatice = delta.RozlozenieMatice;
         Recipe.MatrixOk.Xfirst = delta.MatrixOkXfirst;
         Recipe.MatrixOk.Yfirst = delta.MatrixOkYfirst;
         Recipe.MatrixOk.Xdelta = delta.MatrixOkXdelta;

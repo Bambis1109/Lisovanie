@@ -41,6 +41,15 @@ public partial class CParameters : ObservableObject
     [ObservableProperty] private int _matrixNokYdelta = 19;
     [ObservableProperty] private int _matrixNokXnum = 3;
     [ObservableProperty] private int _matrixNokYnum = 2;
+
+    /// <summary>
+    /// Rozloženie oboch vykladacích matíc. Zámerne jedna hodnota pre OK aj NOK -
+    /// obe matice ukladajú ten istý výrobok, takže rozteč aj vzor sú spoločné.
+    /// </summary>
+    [ObservableProperty] private EnRozlozenieMatice _rozlozenieMatice = EnRozlozenieMatice.DIA;
+
+    /// <summary>Zoznam rozložení pre ComboBox v okne nastavení.</summary>
+    public static EnRozlozenieMatice[] RozlozeniaMatice { get; } = Enum.GetValues<EnRozlozenieMatice>();
 }
 
 /// <summary>

@@ -170,6 +170,10 @@ public class CRecipe
     public CRecipeKonzola Konzola { get; set; } = new();
     public CRecipeVyrobok Vyrobok { get; set; } = new();
     public CRecipeVaha Vaha { get; set; } = new();
+    /// <summary>Rozloženie vykladacích matíc - jedna hodnota pre OK aj NOK súčasne.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public EnRozlozenieMatice RozlozenieMatice { get; set; } = EnRozlozenieMatice.DIA;
+
     public CRecipeMatrix MatrixOk { get; set; } = new();
     public CRecipeMatrix MatrixNok { get; set; } = new();
     public CRecipeVahy Vahy { get; set; } = new();

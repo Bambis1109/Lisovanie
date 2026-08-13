@@ -38,6 +38,18 @@
             </StackPanel>
         </Grid>
 
+        <!-- Spoločné pre obe matice - preto nad záložkami, nie v nich -->
+        <StackPanel DockPanel.Dock="Top" Spacing="3" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Classes="label" Text="Rozloženie matíc:"/>
+                <ComboBox ItemsSource="{x:Static models:CParameters.RozlozeniaMatice}"
+                          SelectedItem="{Binding RozlozenieMatice}"
+                          Width="150" Height="40"/>
+            </StackPanel>
+            <TextBlock Text="DIA = striedavé riadky, SQR = pravouhlá mriežka. Platí pre OK aj NOK. Prejaví sa po novom Inite."
+                       TextWrapping="Wrap" FontSize="11" Foreground="#9E9E9E"/>
+        </StackPanel>
+
         <TabControl>
             <!-- Matica OK -->
             <TabItem Header="Matica OK">

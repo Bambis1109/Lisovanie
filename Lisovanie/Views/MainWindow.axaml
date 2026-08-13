@@ -30,7 +30,7 @@
             <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto, Auto, Auto">
 
                 <TextBlock Grid.Column="0"
-                           Text="LISOVANIE"
+                           Text="{Binding ActiveRecipeName}"
                            FontSize="22"
                            FontWeight="ExtraBold"
                            Foreground="#FFB300"

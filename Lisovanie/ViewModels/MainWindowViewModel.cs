@@ -21,6 +21,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public CControlManipulator? Manipulator => MainProgram.ZoznamPlc.Count > 0 ? MainProgram.ZoznamPlc[0] as CControlManipulator : null;
     public CControlLis? Lis => MainProgram.ZoznamPlc.Count > 1 ? MainProgram.ZoznamPlc[1] as CControlLis : null;
 
+    /// <summary>
+    /// Názov aktívneho receptu do hlavičky. Recept sa dá zmeniť len reštartom aplikácie,
+    /// takže hodnota sa počas behu okna nemení a stačí ju prečítať raz.
+    /// </summary>
+    public string ActiveRecipeName => MainProgram.RecipeManager.ActiveRecipeName;
+
     public CMutexZone ZonePress => IL.ZonePress;
 
     public IEnumerable<EnZoneOwner> ZoneOwners => Enum.GetValues<EnZoneOwner>();

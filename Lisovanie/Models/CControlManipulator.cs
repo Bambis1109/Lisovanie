@@ -97,10 +97,14 @@ public partial class CControlManipulator : CPlcEpos
         var par = deltaRobot.ParametersDelta;
         MatrixOK = new Matrix(par.MatrixOkXfirst, par.MatrixOkYfirst, par.MatrixOkXdelta, par.MatrixOkYdelta,
             par.MatrixOkXnum, par.MatrixOkYnum);
-        MatrixOK.RecalculDIA();
+        MatrixOK.Recalcul(par.RozlozenieMatice);
         MatrixNOK = new Matrix(par.MatrixNokXfirst, par.MatrixNokYfirst, par.MatrixNokXdelta, par.MatrixNokYdelta,
             par.MatrixNokXnum, par.MatrixNokYnum);
-        MatrixNOK.RecalculDIA();
+        MatrixNOK.Recalcul(par.RozlozenieMatice);
+
+        Log.Logger.ForContext("Name", Name)
+            .Information(
+                $"Vykladacie matice v rozlozeni {par.RozlozenieMatice}: OK {MatrixOK.CountItem}, NOK {MatrixNOK.CountItem} poloh.");
 
         return 10;
     } // Mastavenie vykladacich matric
