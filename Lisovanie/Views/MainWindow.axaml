@@ -148,35 +148,41 @@
                 BorderBrush="#FFB300"
                 BorderThickness="0,1,0,0"
                 Padding="8,6">
-            <Grid ColumnDefinitions="Auto, 8, *" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="Auto, 8, *, 8, Auto" VerticalAlignment="Center">
 
-                <!-- OK / NOK bloky (Manipulátor) -->
-                <Grid Grid.Column="0" ColumnDefinitions="65, 55" RowDefinitions="Auto, 2, Auto">
+                <!-- OK / NOK za aktuálny beh (počítadlá matíc manipulátora) -->
+                <StackPanel Grid.Column="0">
 
-                    <!-- OK riadok -->
-                    <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="8,6" CornerRadius="4,0,0,0">
-                        <TextBlock Text="OK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border Grid.Row="0" Grid.Column="1" Background="#1B5E20" Padding="6,6" CornerRadius="0,4,0,0">
-                        <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#A5D6A7"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <TextBlock Text="Aktuálny beh" Foreground="#888" FontSize="10" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,3"/>
 
-                    <!-- Oddeľovač -->
-                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#111" Height="2"/>
+                    <Grid ColumnDefinitions="65, 55" RowDefinitions="Auto, 2, Auto">
 
-                    <!-- NOK riadok -->
-                    <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="8,6" CornerRadius="0,0,0,4">
-                        <TextBlock Text="NOK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border Grid.Row="2" Grid.Column="1" Background="#7F0000" Padding="6,6" CornerRadius="0,0,4,0">
-                        <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#EF9A9A"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                        <!-- OK riadok -->
+                        <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="8,6" CornerRadius="4,0,0,0">
+                            <TextBlock Text="OK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1" Background="#1B5E20" Padding="6,6" CornerRadius="0,4,0,0">
+                            <TextBlock Text="{Binding Manipulator.MatrixOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#A5D6A7"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
 
-                </Grid>
+                        <!-- Oddeľovač -->
+                        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#111" Height="2"/>
+
+                        <!-- NOK riadok -->
+                        <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="8,6" CornerRadius="0,0,0,4">
+                            <TextBlock Text="NOK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="1" Background="#7F0000" Padding="6,6" CornerRadius="0,0,4,0">
+                            <TextBlock Text="{Binding Manipulator.MatrixNOK.ActualItem}" FontWeight="Bold" FontSize="16" Foreground="#EF9A9A"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                    </Grid>
+                </StackPanel>
 
                 <!-- Zvislý oddeľovač -->
                 <Border Grid.Column="1" Background="#444" Width="1" Margin="0,2"/>
@@ -236,6 +242,45 @@
                     </Border>
 
                 </Grid>
+
+                <!-- Zvislý oddeľovač -->
+                <Border Grid.Column="3" Background="#444" Width="1" Margin="0,2"/>
+
+                <!-- OK / NOK za dnešok - z výrobnej databázy, nezávisle od aktuálneho behu -->
+                <StackPanel Grid.Column="4">
+
+                    <TextBlock Text="{Binding DnesSpolu, StringFormat='Dnes spolu {0}'}"
+                               Foreground="#888" FontSize="10" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,3"/>
+
+                    <Grid ColumnDefinitions="65, 55" RowDefinitions="Auto, 2, Auto">
+
+                        <!-- OK riadok -->
+                        <Border Grid.Row="0" Grid.Column="0" Background="#2E7D32" Padding="8,6" CornerRadius="4,0,0,0">
+                            <TextBlock Text="OK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1" Background="#1B5E20" Padding="6,6" CornerRadius="0,4,0,0">
+                            <TextBlock Text="{Binding DnesOk}" FontWeight="Bold" FontSize="16" Foreground="#A5D6A7"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Oddeľovač -->
+                        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#111" Height="2"/>
+
+                        <!-- NOK riadok -->
+                        <Border Grid.Row="2" Grid.Column="0" Background="#C62828" Padding="8,6" CornerRadius="0,0,0,4">
+                            <TextBlock Text="NOK" FontWeight="ExtraBold" FontSize="16" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="1" Background="#7F0000" Padding="6,6" CornerRadius="0,0,4,0">
+                            <TextBlock Text="{Binding DnesNok}" FontWeight="Bold" FontSize="16" Foreground="#EF9A9A"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                    </Grid>
+                </StackPanel>
+
             </Grid>
         </Border>
 

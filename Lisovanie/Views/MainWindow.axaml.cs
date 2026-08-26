@@ -27,7 +27,17 @@ public partial class MainWindow : Window
                 if (args.NewItems != null && args.NewItems.Count > 0)
                     LogListBox.ScrollIntoView(args.NewItems[0]);
             };
+
+            vm.StartDnesRefresh();
         }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.StopDnesRefresh();
+
+        base.OnClosed(e);
     }
 
     private async void BtnMode_OnClick(object? sender, RoutedEventArgs e)

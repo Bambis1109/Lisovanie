@@ -24,6 +24,17 @@ public class CProductionFilter
 }
 
 /// <summary>
+/// Súhrn počtov výliskov za zvolené obdobie. Na rozdiel od počítadiel matíc
+/// v manipulátore, ktoré sa nulujú s každým novým behom, ide o údaj z databázy.
+/// </summary>
+public class CProductionCounts
+{
+    public int Ok { get; set; }
+    public int Nok { get; set; }
+    public int Spolu => Ok + Nok;
+}
+
+/// <summary>
 /// Trvalé ukladanie výrobných dát do SQLite. Zápis je neblokujúci cez Channel,
 /// aby sa PLC vlákno (AboveNormal) nikdy nezdržalo na I/O.
 /// </summary>
@@ -238,6 +249,35 @@ public class CProductionLogger : IDisposable
         await conn.OpenAsync();
         var rows = await conn.QueryAsync<CProductionRecord>(sql.ToString(), p);
         return rows.AsList();
+    }
+
+    /// <summary>
+    /// Počty OK a NOK výliskov za jeden lokálny deň. Jediný dotaz s podmieneným súčtom -
+    /// hlavná obrazovka ho volá periodicky, takže sa neoplatí ťahať celé riadky.
+    /// COALESCE je nutný: SUM nad prázdnym výberom vráti NULL, nie nulu.
+    /// </summary>
+    public async Task<CProductionCounts> GetCountsForDayAsync(DateTime dayLocal)
+    {
+        if (!_initialized) return new CProductionCounts();
+
+        var od = dayLocal.Date;
+        var koniec = od.AddDays(1).AddTicks(-1);
+
+        await using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        return await conn.QuerySingleAsync<CProductionCounts>(@"
+            SELECT
+                COALESCE(SUM(CASE WHEN Status = @ok  THEN 1 ELSE 0 END), 0) AS Ok,
+                COALESCE(SUM(CASE WHEN Status = @nok THEN 1 ELSE 0 END), 0) AS Nok
+            FROM ProductionRecord
+            WHERE TimestampUtc >= @od AND TimestampUtc <= @do;",
+            new
+            {
+                od = od.ToUniversalTime().ToString("O"),
+                @do = koniec.ToUniversalTime().ToString("O"),
+                ok = (int)EnProduktLis.Ok,
+                nok = (int)EnProduktLis.Nok
+            });
     }
 
     /// <summary>Ukončí príjem a počká na dopísanie frontu (volá sa pri shutdowne).</summary>

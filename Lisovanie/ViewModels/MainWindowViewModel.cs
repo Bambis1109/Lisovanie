@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lisovanie.Models;
@@ -33,9 +34,65 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IEnumerable<EnZoneStatus> ZoneStatuses => Enum.GetValues<EnZoneStatus>();
 
+    /// <summary>Počty výliskov za dnešný deň z databázy. Počítadlá matíc vedľa nich
+    /// ukazujú len aktuálny beh - nulujú sa pri každom vyprázdnení matice.</summary>
+    [ObservableProperty] private int _dnesOk;
+    [ObservableProperty] private int _dnesNok;
+    [ObservableProperty] private int _dnesSpolu;
+
+    private DispatcherTimer? _dnesTimer;
+    private bool _dnesRefreshBezi;
+
     public MainWindowViewModel(CMainProgram mainProgram)
     {
         MainProgram = mainProgram;
+    }
+
+    /// <summary>Spustí periodické čítanie dnešnej bilancie. Volá sa po otvorení okna.</summary>
+    public void StartDnesRefresh()
+    {
+        if (_dnesTimer is { IsEnabled: true }) return;
+
+        _dnesTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _dnesTimer.Tick += (_, _) => _ = RefreshDnesAsync();
+        _dnesTimer.Start();
+
+        // Prvé načítanie hneď, aby okno neukazovalo nuly prvých 5 sekúnd.
+        _ = RefreshDnesAsync();
+    }
+
+    public void StopDnesRefresh()
+    {
+        _dnesTimer?.Stop();
+        _dnesTimer = null;
+    }
+
+    /// <summary>
+    /// Prečíta dnešné počty z DB. Dátum sa berie pri každom tiku nanovo, takže
+    /// bilancia sa o polnoci vynuluje sama. Dotazy sa nesmú prekrývať - ide o I/O.
+    /// </summary>
+    private async Task RefreshDnesAsync()
+    {
+        if (_dnesRefreshBezi) return;
+        _dnesRefreshBezi = true;
+        try
+        {
+            var counts = await MainProgram.ProductionLogger.GetCountsForDayAsync(DateTime.Now);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                DnesOk = counts.Ok;
+                DnesNok = counts.Nok;
+                DnesSpolu = counts.Spolu;
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("MainWindow: dnešnú bilanciu sa nepodarilo načítať: {Message}", ex.Message);
+        }
+        finally
+        {
+            _dnesRefreshBezi = false;
+        }
     }
 
     [RelayCommand]
