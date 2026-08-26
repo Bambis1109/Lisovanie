@@ -61,20 +61,13 @@ public class CRecipeVaha
 
 /// <summary>
 /// Zrovnanie prvej vrstvy v multi-mix režime. Piest zíde na absolútnu polohu,
-/// aby sa kopec vzniknutý nasypom zrovnal do roviny pred nasypaním ďalších zmesí.
+/// aby sa kopec vzniknutý nasypom zrovnal do roviny pred nasypaním ďalších zmesí,
+/// a hneď sa vráti do nasypacej polohy. Pohyb ide prevádzkovým profilom piesta.
 /// </summary>
 public class CRecipeMultiMix
 {
     /// <summary>Absolútna poloha piesta pri zrovnávaní 1. vrstvy [mm].</summary>
-    public double VyskaPritlacenia { get; set; } = -120;
-
-    /// <summary>Bezpečnostný strop sily pri zrovnávaní [N]. Prekročenie označí výlisok ako Nok.</summary>
-    public double SilaMaxPritlacenia { get; set; } = 2000;
-
-    // Profil pohybu piesta pri zrovnávaní - zámerne pomalší než ProfilRychly.
-    public uint ProfilVelocity { get; set; } = 80;
-    public uint ProfilAcc { get; set; } = 2000;
-    public uint ProfilDcc { get; set; } = 2000;
+    public double VyskaPritlacenia { get; set; } = -140;
 }
 
 /// <summary>Vykladacia matica - rozteče závisia od priemeru výlisku.</summary>

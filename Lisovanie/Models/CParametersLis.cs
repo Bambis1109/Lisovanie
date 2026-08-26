@@ -134,19 +134,12 @@ public partial class CParLisovanieVzdialenost : ObservableObject
 /// <summary>
 /// Zrovnanie prvej vrstvy v multi-mix režime. Piest zíde na absolútnu polohu a zrovná
 /// kopec, ktorý vznikol nasypom, do roviny. Konzola sa počas plnenia nehýbe.
+/// Pohyb ide prevádzkovým profilom piesta, rovnako ako prísun v kroku 120.
 /// </summary>
 public partial class CParMultiMix : ObservableObject
 {
     /// <summary>Absolútna poloha piesta pri zrovnávaní 1. vrstvy [mm].</summary>
-    [ObservableProperty] private double _vyskaPritlacenia = -120;
-
-    /// <summary>Bezpečnostný strop sily pri zrovnávaní [N]. Prekročenie označí výlisok ako Nok.</summary>
-    [ObservableProperty] private double _silaMaxPritlacenia = 2000;
-
-    // Profil pohybu piesta pri zrovnávaní - zámerne pomalší než ProfilRychly.
-    [ObservableProperty] private uint _profilVelocity = 80;
-    [ObservableProperty] private uint _profilAcc = 2000;
-    [ObservableProperty] private uint _profilDcc = 2000;
+    [ObservableProperty] private double _vyskaPritlacenia = -140;
 }
 
 public partial class CParametersLis : ObservableObject

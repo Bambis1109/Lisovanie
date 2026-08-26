@@ -177,21 +177,12 @@ public partial class CControlLis : CPlcEpos
     private int InitStep30(int step)
     {
         Message = "Lis: Nulovanie polohy";
-        SetMasterTransportProfile();
+        // Profil piesta sa nastavuje raz a platí pre všetky pohyby vrátane prítlačných
+        // krokov (150, 310) a zrovnávania vrstvy v multi-mixe (420, 430).
+        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 5000, 5000);
         MotorMaster.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         return 40;
     } //Lis: Nulovanie polohy
-
-    /// <summary>
-    /// Prevádzkový profil piesta. Nastavuje sa raz pri Inite a platí pre všetky pohyby
-    /// aj pre prítlačné kroky (150, 310). Multi-mix ho na čas zrovnávania vrstvy prestaví,
-    /// preto ho musí týmto istým volaním vrátiť späť - inak by sa lisovanie správalo inak
-    /// než v režime Single.
-    /// </summary>
-    private void SetMasterTransportProfile()
-    {
-        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 5000, 5000);
-    }
 
     private int InitStep40(int step)
     {
@@ -641,7 +632,8 @@ public partial class CControlLis : CPlcEpos
     // MULTI-MIX: PLNENIE PO VRSTVÁCH (Kroky 400 - 460)
     //
     // Výlisok vzniká z troch zmesí. Po prvej vrstve piest zíde na absolútnu polohu
-    // a zrovná kopec vzniknutý nasypom do roviny, aby ďalšie zmesi sadli rovnomerne.
+    // a zrovná kopec vzniknutý nasypom do roviny, aby ďalšie zmesi sadli rovnomerne -
+    // je to len pohyb dole a späť, bez merania sily a bez zmeny profilu.
     // Konzola (motor Stred) sa počas celého plnenia nehýbe - ostáva v nasypacej polohe;
     // na lisovaciu polohu ju presunie až spoločný krok 130.
     //
@@ -692,23 +684,10 @@ public partial class CControlLis : CPlcEpos
     {
         Message = "Multi-mix: zrovnanie 1. vrstvy";
 
-        var par = ParametersLis.ParMultiMix;
-        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(
-            par.ProfilVelocity, par.ProfilAcc, par.ProfilDcc);
-        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(par.VyskaPritlacenia, true, true);
+        // Iba pohyb piesta prevádzkovým profilom - žiadna zmena rýchlosti ani kontrola sily.
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(
+            ParametersLis.ParMultiMix.VyskaPritlacenia, true, true);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
-
-        // Silu vieme skontrolovať až po dojazde - WaitForTargetReached blokuje.
-        // Toto je ochrana nástroja, nie hodnotenie kusu: zrovnávanie je polohové, takže
-        // pri predávkovanej dutine sila narastie bez toho, aby ju niečo obmedzilo.
-        // Preto porucha (motory sa odpoja), nie príznak Nok - ten by aj tak spoločný
-        // krok 330 (resp. 160) pri hodnotení výlisku prepísal.
-        if (SilaActual > par.SilaMaxPritlacenia)
-        {
-            throw new Exception(
-                $"Multi-mix: sila pri zrovnávaní 1. vrstvy {SilaActual:F0} N prekročila strop " +
-                $"{par.SilaMaxPritlacenia:F0} N - predávkovaná dutina alebo zle nastavená výška pritlačenia.");
-        }
 
         return 430;
     } //Zrovnanie 1. vrstvy -> 430
@@ -718,9 +697,6 @@ public partial class CControlLis : CPlcEpos
         Message = "Multi-mix: návrat do nasypacej polohy";
 
         // Vracia sa len piest; konzola ostáva tam, kde bola pri plnení.
-        // Profil sa vracia na prevádzkový, aby ďalšie kroky (120, 130, lisovanie)
-        // bežali presne ako v režime Single.
-        SetMasterTransportProfile();
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
         MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
 

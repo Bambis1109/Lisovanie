@@ -512,12 +512,7 @@ public class CRecipeManager
         vzdialenost.DobaDrzaniaMs = Recipe.LisovanieVzdialenost.DobaDrzaniaMs;
         vzdialenost.PauzaKrokuMs = Recipe.LisovanieVzdialenost.PauzaKrokuMs;
 
-        var multiMix = Lis.ParametersLis.ParMultiMix;
-        multiMix.VyskaPritlacenia = Recipe.MultiMix.VyskaPritlacenia;
-        multiMix.SilaMaxPritlacenia = Recipe.MultiMix.SilaMaxPritlacenia;
-        multiMix.ProfilVelocity = Recipe.MultiMix.ProfilVelocity;
-        multiMix.ProfilAcc = Recipe.MultiMix.ProfilAcc;
-        multiMix.ProfilDcc = Recipe.MultiMix.ProfilDcc;
+        Lis.ParametersLis.ParMultiMix.VyskaPritlacenia = Recipe.MultiMix.VyskaPritlacenia;
     }
 
     private void RuntimeToRecipe()
@@ -617,12 +612,7 @@ public class CRecipeManager
         Recipe.LisovanieVzdialenost.DobaDrzaniaMs = vzdialenost.DobaDrzaniaMs;
         Recipe.LisovanieVzdialenost.PauzaKrokuMs = vzdialenost.PauzaKrokuMs;
 
-        var multiMix = Lis.ParametersLis.ParMultiMix;
-        Recipe.MultiMix.VyskaPritlacenia = multiMix.VyskaPritlacenia;
-        Recipe.MultiMix.SilaMaxPritlacenia = multiMix.SilaMaxPritlacenia;
-        Recipe.MultiMix.ProfilVelocity = multiMix.ProfilVelocity;
-        Recipe.MultiMix.ProfilAcc = multiMix.ProfilAcc;
-        Recipe.MultiMix.ProfilDcc = multiMix.ProfilDcc;
+        Recipe.MultiMix.VyskaPritlacenia = Lis.ParametersLis.ParMultiMix.VyskaPritlacenia;
     }
 
     // ==========================================

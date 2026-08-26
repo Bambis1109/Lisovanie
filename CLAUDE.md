@@ -86,7 +86,9 @@ Sequencing is driven by **`IL.ZonePress.VrstvaRequest`** (1..3): the press names
 
 In Multi mode all three scales are forced active (`RecipeToRuntime` overrides `EnabledVaha1/2/3`, UI checkboxes disabled), and each doser has its **own** dosing profile (`CRecipe.Vaha.Davka1/2/3` → `CControlScales.GetDavkaProfile(i)`); Single mode keeps the one shared `Davka` broadcast to all.
 
-`MotorMaster`'s position profile is set once in `InitStep30` (`SetMasterTransportProfile()`) and the pressing loops depend on it — multi-mix step 420 changes it for the compaction move, so step 430 **must** restore it via the same helper.
+`MotorMaster`'s position profile is set **once** in `InitStep30` (`1600/5000/5000`) and never changed again — the pressing loops (150, 310) and the multi-mix compaction (420, 430) all run on it. Do not set a different profile on `MotorMaster` inside a step without restoring it.
+
+Compaction of the first layer (step 420) is deliberately *just* a move down to `ParMultiMix.VyskaPritlacenia` and back — no force check, no profile change. Its only parameter is that one absolute position.
 
 ### UI
 

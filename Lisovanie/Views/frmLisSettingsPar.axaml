@@ -243,23 +243,7 @@
                             <TextBlock Classes="label" Text="Výška pritlačenia:"/>
                             <Button Classes="numpad" Content="{Binding ParMultiMix.VyskaPritlacenia, StringFormat={}{0:F2}}" Click="BtnMultiMixVyskaPritlacenia_OnClick" Width="150" HorizontalContentAlignment="Right"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Classes="label" Text="Sila max [N]:"/>
-                            <Button Classes="numpad" Content="{Binding ParMultiMix.SilaMaxPritlacenia, StringFormat={}{0:F0}}" Click="BtnMultiMixSilaMax_OnClick" Width="150" HorizontalContentAlignment="Right"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Classes="label" Text="Rýchlosť:"/>
-                            <Button Classes="numpad" Content="{Binding ParMultiMix.ProfilVelocity, StringFormat={}{0:F0}}" Click="BtnMultiMixProfilVelocity_OnClick" Width="150" HorizontalContentAlignment="Right"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Classes="label" Text="Zrýchlenie:"/>
-                            <Button Classes="numpad" Content="{Binding ParMultiMix.ProfilAcc, StringFormat={}{0:F0}}" Click="BtnMultiMixProfilAcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Classes="label" Text="Spomalenie:"/>
-                            <Button Classes="numpad" Content="{Binding ParMultiMix.ProfilDcc, StringFormat={}{0:F0}}" Click="BtnMultiMixProfilDcc_OnClick" Width="150" HorizontalContentAlignment="Right"/>
-                        </StackPanel>
-                        <TextBlock Text="Uplatní sa len pri režime Multi. Piest zíde na túto absolútnu polohu, aby zrovnal 1. vrstvu do roviny; konzola sa počas plnenia nehýbe."
+                        <TextBlock Text="Uplatní sa len pri režime Multi. Po prvej dávke zíde piest na túto absolútnu polohu, zrovná vrstvu do roviny a hneď sa vráti do nasypacej polohy. Konzola sa počas plnenia nehýbe."
                                    TextWrapping="Wrap" Foreground="Gray" FontSize="11" Margin="0,5,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
