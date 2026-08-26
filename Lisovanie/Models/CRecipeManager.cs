@@ -23,7 +23,7 @@ public class CRecipeManager
     public const string MigrationFormName = "Forma18";
 
     /// <summary>Aktuálna verzia schémy receptu. Staršie sa pri načítaní povýšia.</summary>
-    private const int CurrentRecipeVersion = 5;
+    private const int CurrentRecipeVersion = 6;
 
     /// <summary>
     /// Pôvodné umiestnenie profilu dávky. Od verzie 3 je profil súčasťou receptu
@@ -287,6 +287,18 @@ public class CRecipeManager
                 $"Recept '{recipe.Name}': doplnené rozloženie vykladacích matíc ({recipe.RozlozenieMatice}).");
         }
 
+        // Verzia 5 -> 6: profil dávky sa rozdelil na tri nezávislé (multi-mix).
+        // Doterajší spoločný profil sa skopíruje do všetkých troch, takže recept
+        // v režime Single sa správa presne ako doteraz.
+        if (recipe.SchemaVersion < 6)
+        {
+            if (recipe.Vaha.Davka1.Count == 0) recipe.Vaha.Davka1 = new(recipe.Vaha.Davka);
+            if (recipe.Vaha.Davka2.Count == 0) recipe.Vaha.Davka2 = new(recipe.Vaha.Davka);
+            if (recipe.Vaha.Davka3.Count == 0) recipe.Vaha.Davka3 = new(recipe.Vaha.Davka);
+            Log.Warning(
+                $"Recept '{recipe.Name}': profil dávky rozdelený na tri nezávislé (multi-mix).");
+        }
+
         recipe.SchemaVersion = CurrentRecipeVersion;
         Log.Warning($"Recept '{recipe.Name}' povýšený na verziu {CurrentRecipeVersion}.");
         return true;
@@ -413,6 +425,15 @@ public class CRecipeManager
             CDavkaParametersIo.FromDictionary(Recipe.Vaha.Davka, Scales.DavkaParameters);
         }
 
+        // Profily jednotlivých dávkovačov pre multi-mix. Rovnaké pravidlo:
+        // prázdny slovník = Init si profil vyčíta z tej istej váhy.
+        if (Recipe.Vaha.Davka1.Count > 0)
+            CDavkaParametersIo.FromDictionary(Recipe.Vaha.Davka1, Scales.GetDavkaProfile(1));
+        if (Recipe.Vaha.Davka2.Count > 0)
+            CDavkaParametersIo.FromDictionary(Recipe.Vaha.Davka2, Scales.GetDavkaProfile(2));
+        if (Recipe.Vaha.Davka3.Count > 0)
+            CDavkaParametersIo.FromDictionary(Recipe.Vaha.Davka3, Scales.GetDavkaProfile(3));
+
         var delta = Manipulator.deltaRobot.ParametersDelta;
         delta.RozlozenieMatice = Recipe.RozlozenieMatice;
         delta.MatrixOkXfirst = Recipe.MatrixOk.Xfirst;
@@ -433,6 +454,17 @@ public class CRecipeManager
         scales.EnabledVaha1 = Recipe.Vahy.EnabledVaha1;
         scales.EnabledVaha2 = Recipe.Vahy.EnabledVaha2;
         scales.EnabledVaha3 = Recipe.Vahy.EnabledVaha3;
+        scales.Mode = Recipe.Mode;
+
+        // V multi-mix režime sa vrstvy sypú zo všetkých troch dávkovačov - vypnutá váha
+        // by znamenala chýbajúcu zmes. Príznaky z receptu sa preto ignorujú, aj keby ich
+        // niekto ručne prepísal v JSON súbore.
+        if (Recipe.Mode == EnModeVyroby.Multi)
+        {
+            scales.EnabledVaha1 = true;
+            scales.EnabledVaha2 = true;
+            scales.EnabledVaha3 = true;
+        }
 
         var man = Manipulator.ParManipulator;
         man.PolarParkovacia = Recipe.Manipulator.PolarParkovacia;
@@ -469,6 +501,7 @@ public class CRecipeManager
         lisovanie.KrokUdrziavania = Recipe.Lisovanie.KrokUdrziavania;
 
         Lis.ParametersLis.Metoda = Recipe.Metoda;
+        Lis.ParametersLis.Mode = Recipe.Mode;
 
         var vzdialenost = Lis.ParametersLis.ParLisovanieVzdialenost;
         vzdialenost.KrokPritlakuHruby = Recipe.LisovanieVzdialenost.KrokPritlakuHruby;
@@ -478,6 +511,13 @@ public class CRecipeManager
         vzdialenost.PrahJemny = Recipe.LisovanieVzdialenost.PrahJemny;
         vzdialenost.DobaDrzaniaMs = Recipe.LisovanieVzdialenost.DobaDrzaniaMs;
         vzdialenost.PauzaKrokuMs = Recipe.LisovanieVzdialenost.PauzaKrokuMs;
+
+        var multiMix = Lis.ParametersLis.ParMultiMix;
+        multiMix.VyskaPritlacenia = Recipe.MultiMix.VyskaPritlacenia;
+        multiMix.SilaMaxPritlacenia = Recipe.MultiMix.SilaMaxPritlacenia;
+        multiMix.ProfilVelocity = Recipe.MultiMix.ProfilVelocity;
+        multiMix.ProfilAcc = Recipe.MultiMix.ProfilAcc;
+        multiMix.ProfilDcc = Recipe.MultiMix.ProfilDcc;
     }
 
     private void RuntimeToRecipe()
@@ -508,6 +548,9 @@ public class CRecipeManager
         Recipe.Vaha.VahaMax = vaha.VahaMax;
         Recipe.Vaha.VahaMin = vaha.VahaMin;
         Recipe.Vaha.Davka = CDavkaParametersIo.ToDictionary(Scales.DavkaParameters);
+        Recipe.Vaha.Davka1 = CDavkaParametersIo.ToDictionary(Scales.GetDavkaProfile(1));
+        Recipe.Vaha.Davka2 = CDavkaParametersIo.ToDictionary(Scales.GetDavkaProfile(2));
+        Recipe.Vaha.Davka3 = CDavkaParametersIo.ToDictionary(Scales.GetDavkaProfile(3));
 
         var delta = Manipulator.deltaRobot.ParametersDelta;
         Recipe.RozlozenieMatice = delta.RozlozenieMatice;
@@ -563,6 +606,7 @@ public class CRecipeManager
         Recipe.Lisovanie.KrokUdrziavania = lisovanie.KrokUdrziavania;
 
         Recipe.Metoda = Lis.ParametersLis.Metoda;
+        Recipe.Mode = Lis.ParametersLis.Mode;
 
         var vzdialenost = Lis.ParametersLis.ParLisovanieVzdialenost;
         Recipe.LisovanieVzdialenost.KrokPritlakuHruby = vzdialenost.KrokPritlakuHruby;
@@ -572,6 +616,13 @@ public class CRecipeManager
         Recipe.LisovanieVzdialenost.PrahJemny = vzdialenost.PrahJemny;
         Recipe.LisovanieVzdialenost.DobaDrzaniaMs = vzdialenost.DobaDrzaniaMs;
         Recipe.LisovanieVzdialenost.PauzaKrokuMs = vzdialenost.PauzaKrokuMs;
+
+        var multiMix = Lis.ParametersLis.ParMultiMix;
+        Recipe.MultiMix.VyskaPritlacenia = multiMix.VyskaPritlacenia;
+        Recipe.MultiMix.SilaMaxPritlacenia = multiMix.SilaMaxPritlacenia;
+        Recipe.MultiMix.ProfilVelocity = multiMix.ProfilVelocity;
+        Recipe.MultiMix.ProfilAcc = multiMix.ProfilAcc;
+        Recipe.MultiMix.ProfilDcc = multiMix.ProfilDcc;
     }
 
     // ==========================================

@@ -101,6 +101,7 @@ public partial class CControlLis : CPlcEpos
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
+            case 102: return MainStep102(step);
             case 105: return MainStep105(step);
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
@@ -125,6 +126,15 @@ public partial class CControlLis : CPlcEpos
             case 330: return MainStep330(step);
             case 340: return MainStep340(step);
             case 350: return MainStep350(step);
+
+            // --- Multi-mix: plnenie po vrstvách (kroky 400 - 460) ---
+            case 400: return MainStep400(step);
+            case 410: return MainStep410(step);
+            case 420: return MainStep420(step);
+            case 430: return MainStep430(step);
+            case 440: return MainStep440(step);
+            case 450: return MainStep450(step);
+            case 460: return MainStep460(step);
 
             default: return base.RunStep(step);
         }
@@ -167,10 +177,21 @@ public partial class CControlLis : CPlcEpos
     private int InitStep30(int step)
     {
         Message = "Lis: Nulovanie polohy";
-        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 5000, 5000);
+        SetMasterTransportProfile();
         MotorMaster.Operation.ProfilePositionMode.ActivateProfilePositionMode();
         return 40;
     } //Lis: Nulovanie polohy
+
+    /// <summary>
+    /// Prevádzkový profil piesta. Nastavuje sa raz pri Inite a platí pre všetky pohyby
+    /// aj pre prítlačné kroky (150, 310). Multi-mix ho na čas zrovnávania vrstvy prestaví,
+    /// preto ho musí týmto istým volaním vrátiť späť - inak by sa lisovanie správalo inak
+    /// než v režime Single.
+    /// </summary>
+    private void SetMasterTransportProfile()
+    {
+        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(1600, 5000, 5000);
+    }
 
     private int InitStep40(int step)
     {
@@ -206,11 +227,26 @@ public partial class CControlLis : CPlcEpos
         // Lis čaká, kým mu manipulator neuvolni zonu
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown))
         {
-            return 105;
+            return 102;
         }
 
         return step;
     } //Čakám na Init manipulatora
+
+    /// <summary>
+    /// Rozcestník podľa režimu výroby z receptu. Obe vetvy sú od tohto miesta oddelené;
+    /// multi-mix sa vráti do spoločného reťazca až v kroku 120 (priblíženie lisu).
+    /// </summary>
+    private int MainStep102(int step)
+    {
+        if (ParametersLis.Mode == EnModeVyroby.Multi)
+        {
+            Message = "Multi-mix: plnenie po vrstvách";
+            return 400;
+        }
+
+        return 105;
+    } //Volba rezimu -> 105 (single) alebo 400 (multi-mix)
 
     private int MainStep105(int step)
     {
@@ -420,7 +456,7 @@ public partial class CControlLis : CPlcEpos
         // caka pokial manipulator nastavi EnZoneStatus.OutputEmpty
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.OutputEmpty))
         {
-            return 105;
+            return 102; // cez rozcestnik, aby dalsi cyklus rozhodol podla rezimu vyroby
         }
         // caka pokial manipulator nastavi EnZoneStatus.StackFull plny zasobnik
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.StackFull))
@@ -430,7 +466,7 @@ public partial class CControlLis : CPlcEpos
         }
         
         return step;
-    } // Caka na odobratie vyrobku a navrat na zaciatok ->105 alebo ak je zasobnik plny tak zaparkovat a koniec
+    } // Caka na odobratie vyrobku a navrat na zaciatok ->102 alebo ak je zasobnik plny tak zaparkovat a koniec
     private int MainStep210(int step)
     {
         Message = "Presun do cistiacej  polohy";
@@ -600,6 +636,148 @@ public partial class CControlLis : CPlcEpos
 
         return 200;
     } // Uvolni zonu a nastavi priznak, pokracuje spolocnym krokom 200
+
+    // ==========================================
+    // MULTI-MIX: PLNENIE PO VRSTVÁCH (Kroky 400 - 460)
+    //
+    // Výlisok vzniká z troch zmesí. Po prvej vrstve piest zíde na absolútnu polohu
+    // a zrovná kopec vzniknutý nasypom do roviny, aby ďalšie zmesi sadli rovnomerne.
+    // Konzola (motor Stred) sa počas celého plnenia nehýbe - ostáva v nasypacej polohe;
+    // na lisovaciu polohu ju presunie až spoločný krok 130.
+    //
+    // Ktorý dávkovač má sypať, hovorí váham IL.ZonePress.VrstvaRequest.
+    // ==========================================
+
+    private int MainStep400(int step)
+    {
+        Message = "Multi-mix: nasypacia poloha (vrstva 1)";
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilRychlyVelocity,
+            ParametersLis.ParLisovanie.ProfilRychlyAcc,
+            ParametersLis.ParLisovanie.ProfilRychlyDcc);
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaNasypacia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty, 1);
+        return 410;
+    } //Presun do nasypacej polohy a vyziadanie 1. zmesi -> 410
+
+    private int MainStep410(int step)
+    {
+        Message = "Multi-mix: čakám na 1. zmes";
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
+        {
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
+        {
+            IL.ZonePress.Status = EnZoneStatus.OutputProced;
+
+            // Prvá vrstva zakladá súčet hmotností - ďalšie sa už pripočítavajú.
+            _aktualnaHmotnost = IL.ZonePress.PayloadHmotnost;
+            ProduktLisLast.Copy(ProduktLisActual);
+            ProduktLisActual.Clear();
+            return 420;
+        }
+
+        return step;
+    } //Cakanie na 1. zmes -> 420
+
+    private int MainStep420(int step)
+    {
+        Message = "Multi-mix: zrovnanie 1. vrstvy";
+
+        var par = ParametersLis.ParMultiMix;
+        MotorMaster.Operation.ProfilePositionMode.SetPositionProfile(
+            par.ProfilVelocity, par.ProfilAcc, par.ProfilDcc);
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(par.VyskaPritlacenia, true, true);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+
+        // Silu vieme skontrolovať až po dojazde - WaitForTargetReached blokuje.
+        // Toto je ochrana nástroja, nie hodnotenie kusu: zrovnávanie je polohové, takže
+        // pri predávkovanej dutine sila narastie bez toho, aby ju niečo obmedzilo.
+        // Preto porucha (motory sa odpoja), nie príznak Nok - ten by aj tak spoločný
+        // krok 330 (resp. 160) pri hodnotení výlisku prepísal.
+        if (SilaActual > par.SilaMaxPritlacenia)
+        {
+            throw new Exception(
+                $"Multi-mix: sila pri zrovnávaní 1. vrstvy {SilaActual:F0} N prekročila strop " +
+                $"{par.SilaMaxPritlacenia:F0} N - predávkovaná dutina alebo zle nastavená výška pritlačenia.");
+        }
+
+        return 430;
+    } //Zrovnanie 1. vrstvy -> 430
+
+    private int MainStep430(int step)
+    {
+        Message = "Multi-mix: návrat do nasypacej polohy";
+
+        // Vracia sa len piest; konzola ostáva tam, kde bola pri plnení.
+        // Profil sa vracia na prevádzkový, aby ďalšie kroky (120, 130, lisovanie)
+        // bežali presne ako v režime Single.
+        SetMasterTransportProfile();
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty, 2);
+        return 440;
+    } //Navrat do nasypacej polohy a vyziadanie 2. zmesi -> 440
+
+    private int MainStep440(int step)
+    {
+        Message = "Multi-mix: čakám na 2. zmes";
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
+        {
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
+        {
+            IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            _aktualnaHmotnost += IL.ZonePress.PayloadHmotnost;
+            return 450;
+        }
+
+        return step;
+    } //Cakanie na 2. zmes -> 450
+
+    private int MainStep450(int step)
+    {
+        Message = "Multi-mix: uvoľnenie pre 3. zmes";
+
+        // Bez pohybu - piest aj konzola sú už v nasypacej polohe.
+        IL.ZonePress.Release(EnZoneOwner.Press, EnZoneStatus.InputEmpty, 3);
+        return 460;
+    } //Vyziadanie 3. zmesi -> 460
+
+    private int MainStep460(int step)
+    {
+        Message = "Multi-mix: čakám na 3. zmes";
+        if (RequestToEnd) // ak je poziadavka na parkovanie parkujem
+        {
+            Log.Logger.ForContext("Name", Name).Information("Lis: Parkujem.");
+            return 0;
+        }
+
+        if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.InputFull))
+        {
+            IL.ZonePress.Status = EnZoneStatus.OutputProced;
+            _aktualnaHmotnost += IL.ZonePress.PayloadHmotnost;
+
+            Log.Logger.ForContext("Name", Name).Information(
+                $"Multi-mix: dutina naplnená tromi vrstvami, spolu {_aktualnaHmotnost:F3} g.");
+            return 120; // Dutina je plná, pokracuje spolocnym retazcom lisovania
+        }
+
+        return step;
+    } //Cakanie na 3. zmes -> 120
+
     // Parametre lisu sú rozdelené do vrstiev Stroj / Forma / Výrobok, preto sa ukladajú
     // a načítavajú vždy všetky naraz cez CRecipeManager.
     [RelayCommand]

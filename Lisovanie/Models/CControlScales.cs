@@ -19,6 +19,16 @@ public partial class CControlScales : CPlcScale
 
     public CParametersScale ParametersScale { get; set; } = new();
 
+    /// <summary>
+    /// Multi-mix režim: každá vrstva je iná zmes, takže každý dávkovač má vlastný profil
+    /// a poradie dávkovania určuje Lis cez IL.ZonePress.VrstvaRequest.
+    /// Recept je počas behu nemenný, takže hodnota sa po štarte už nemení.
+    /// </summary>
+    public bool IsMultiMix => ParametersScale.Mode == EnModeVyroby.Multi;
+
+    /// <summary>Vrstva, ktorú práve obsluhuje multi-mix vetva (1..3).</summary>
+    private int _vrstvaAktualna;
+
     public CControlScales(string name) : base(name)
     {
         // Parametre načíta CRecipeManager.Apply() po výbere receptu pri štarte.
@@ -31,7 +41,7 @@ public partial class CControlScales : CPlcScale
     // HELPERY PRE AKTÍVNE VÁHY (dátovo riadená logika)
     // ==========================================
 
-    private CDeviceScale? GetScale(int index) => index switch
+    public CDeviceScale? GetScale(int index) => index switch
     {
         1 => Scale1,
         2 => Scale2,
@@ -75,10 +85,31 @@ public partial class CControlScales : CPlcScale
     public DeviceParameters DavkaParameters { get; } = new();
 
     /// <summary>
+    /// Profily dávky jednotlivých dávkovačov pre multi-mix režim. Každá vrstva je iná zmes
+    /// s vlastnou cieľovou hmotnosťou aj dynamikou dávkovania, preto sa nezdieľajú.
+    /// V Single režime sa nepoužívajú.
+    /// </summary>
+    private readonly DeviceParameters[] _davkaVahy = { new(), new(), new() };
+
+    /// <summary>Profil dávky konkrétneho dávkovača (1..3).</summary>
+    public DeviceParameters GetDavkaProfile(int index) => _davkaVahy[index - 1];
+
+    /// <summary>Profil, ktorý sa má odoslať do danej váhy - podľa režimu výroby.</summary>
+    private DeviceParameters DavkaProfileFor(int index) =>
+        IsMultiMix ? GetDavkaProfile(index) : DavkaParameters;
+
+    /// <summary>
     /// Zabezpečí, že sú k dispozícii parametre dávky. Ak ich recept ešte nemá,
-    /// vyčíta ich z prvej aktívnej váhy a rovno zapíše do receptu.
+    /// vyčíta ich z váhy a rovno zapíše do receptu.
+    /// V Single režime ide o jeden spoločný profil prevzatý z prvej aktívnej váhy,
+    /// v Multi režime o tri profily, každý z tej váhy, do ktorej patrí.
     /// </summary>
     public bool EnsureDavkaParameters()
+    {
+        return IsMultiMix ? EnsureDavkaParametersMulti() : EnsureDavkaParametersSingle();
+    }
+
+    private bool EnsureDavkaParametersSingle()
     {
         if (DavkaParameters.Rs_TargetWeightMg > 0) return true;
 
@@ -90,13 +121,36 @@ public partial class CControlScales : CPlcScale
             return false;
         }
 
-        if (!ReadDavkaParametersFromScale(source)) return false;
+        if (!ReadDavkaParametersFromScale(source, DavkaParameters)) return false;
 
         // Recept profil nemal - uložíme ho, aby bol pri ďalšom štarte k dispozícii.
         SaveDavkaParametersToRecipe();
 
         Log.Logger.ForContext("Name", Name)
             .Information($"Profil dávky prevzatý z váhy {source.Name} (ID: {source.NodeId}) a zapísaný do receptu.");
+        return true;
+    }
+
+    private bool EnsureDavkaParametersMulti()
+    {
+        bool prevzate = false;
+
+        foreach (var i in ActiveIndices)
+        {
+            var profil = GetDavkaProfile(i);
+            if (profil.Rs_TargetWeightMg > 0) continue;
+
+            var scale = GetScale(i)!;
+            if (!ReadDavkaParametersFromScale(scale, profil)) return false;
+
+            prevzate = true;
+            Log.Logger.ForContext("Name", Name)
+                .Information($"Profil dávky dávkovača {i} prevzatý z váhy {scale.Name} (ID: {scale.NodeId}).");
+        }
+
+        // Uložíme až po prevzatí všetkých chýbajúcich profilov - SaveAll zapisuje celý recept.
+        if (prevzate) SaveDavkaParametersToRecipe();
+
         return true;
     }
 
@@ -113,8 +167,8 @@ public partial class CControlScales : CPlcScale
         return manager.SaveAll();
     }
 
-    /// <summary>Vyčíta parametre riadenia dávky z danej váhy do spoločnej sady.</summary>
-    private bool ReadDavkaParametersFromScale(CDeviceScale scale)
+    /// <summary>Vyčíta parametre riadenia dávky z danej váhy do zadaného profilu.</summary>
+    private bool ReadDavkaParametersFromScale(CDeviceScale scale, DeviceParameters target)
     {
         int errors = 0;
 
@@ -125,7 +179,7 @@ public partial class CControlScales : CPlcScale
             try
             {
                 uint value = scale.LowLayer.Can.GetRegister(index, subIndex);
-                property.SetValue(DavkaParameters, (int)value);
+                property.SetValue(target, (int)value);
             }
             catch (Exception ex)
             {
@@ -139,13 +193,14 @@ public partial class CControlScales : CPlcScale
     }
 
     /// <summary>
-    /// Odošle spoločné parametre dávky do všetkých aktívnych váh.
+    /// Odošle parametre dávky do všetkých aktívnych váh. V Single režime dostanú všetky
+    /// ten istý spoločný profil, v Multi režime každá váha svoj vlastný.
     /// Vracia počet neúspešných zápisov (0 = všetko v poriadku).
     /// </summary>
     public int SendDavkaParametersToScales()
     {
-        var scales = ActiveScales.ToList();
-        if (scales.Count == 0)
+        var indices = ActiveIndices.ToList();
+        if (indices.Count == 0)
         {
             Log.Logger.ForContext("Name", Name)
                 .Warning("Žiadna aktívna váha - parametre dávky sa neodosielajú.");
@@ -154,15 +209,18 @@ public partial class CControlScales : CPlcScale
 
         int errors = 0;
 
-        foreach (var scale in scales)
+        foreach (var i in indices)
         {
+            var scale = GetScale(i)!;
+            var profil = DavkaProfileFor(i);
+
             foreach (var property in CDavkaParametersIo.DavkaProperties)
             {
                 if (!CDavkaParametersIo.TryGetSdoAddress(property, out ushort index, out byte subIndex)) continue;
 
                 try
                 {
-                    uint value = (uint)(int)(property.GetValue(DavkaParameters) ?? 0);
+                    uint value = (uint)(int)(property.GetValue(profil) ?? 0);
                     scale.LowLayer.Can.SetRegister(index, subIndex, value);
                 }
                 catch (Exception ex)
@@ -176,8 +234,9 @@ public partial class CControlScales : CPlcScale
 
         if (errors == 0)
         {
+            string popis = IsMultiMix ? "vlastné profily" : "spoločný profil";
             Log.Logger.ForContext("Name", Name)
-                .Information($"Parametre dávky odoslané do váh [{string.Join(",", scales.Select(s => s.NodeId))}].");
+                .Information($"Parametre dávky ({popis}) odoslané do váh [{string.Join(",", indices.Select(i => GetScale(i)!.NodeId))}].");
         }
 
         return errors;
@@ -202,6 +261,7 @@ public partial class CControlScales : CPlcScale
             case 100: return MainStep100(step);
             case 101: return MainStep101(step);
             case 102: return MainStep102(step);
+            case 105: return MainStep105(step);
             case 110: return MainStep110(step);
             case 120: return MainStep120(step);
             case 130: return MainStep130(step);
@@ -217,6 +277,16 @@ public partial class CControlScales : CPlcScale
             case 350: return MainStep350(step);
             case 360: return MainStep360(step);
             case 370: return MainStep370(step);
+
+            // ==========================================
+            // MULTI-MIX VETVA (Kroky 400+)
+            // ==========================================
+            case 400: return MainStep400(step);
+            case 410: return MainStep410(step);
+            case 420: return MainStep420(step);
+            case 430: return MainStep430(step);
+            case 440: return MainStep440(step);
+            case 450: return MainStep450(step);
 
             default: return base.RunStep(step);
         }
@@ -322,7 +392,21 @@ public partial class CControlScales : CPlcScale
 
     private int MainStep101(int step) => StartScaleStep(2, 102); //Start Vaha 2 ->102
 
-    private int MainStep102(int step) => StartScaleStep(3, 110); //Start Vaha 3 ->110
+    private int MainStep102(int step) => StartScaleStep(3, 105); //Start Vaha 3 ->105
+
+    /// <summary>
+    /// Rozcestník podľa režimu výroby. Obe vetvy sú od tohto miesta úplne oddelené.
+    /// </summary>
+    private int MainStep105(int step)
+    {
+        if (IsMultiMix)
+        {
+            Message = "Multi-mix: dávkovanie po vrstvách";
+            return 400;
+        }
+
+        return 110;
+    } //Volba rezimu -> 110 (single) alebo 400 (multi-mix)
 
     private int MainStep110(int step)
     {
@@ -554,6 +638,140 @@ public partial class CControlScales : CPlcScale
 
         return 0; // Návrat do idle slučky
     }
+
+    // ==========================================
+    // MULTI-MIX VETVA (Kroky 400+)
+    //
+    // Na rozdiel od Single vetvy sa tu váha nevyberá round-robinom - Lis určí cez
+    // IL.ZonePress.VrstvaRequest, ktorý dávkovač má naplniť nasledujúcu vrstvu.
+    // Vetva preto nemá vlastný sekvenčný stav a _lastUsedScale sa jej netýka.
+    // ==========================================
+
+    private int MainStep400(int step)
+    {
+        Message = "Multi-mix: čakanie na uvoľnenie zóny";
+        if (RequestToEnd)
+        {
+            return 0;
+        }
+
+        if (!IL.ZonePress.TryLock(EnZoneOwner.Scale, EnZoneStatus.InputEmpty))
+        {
+            return step; // Zóna ešte nie je voľná, čakáme (10ms sleep)
+        }
+
+        _vrstvaAktualna = IL.ZonePress.VrstvaRequest;
+
+        if (_vrstvaAktualna is < 1 or > 3)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: Lis vyžiadal neplatný dávkovač ({_vrstvaAktualna}) - program zastavený.");
+            return 0;
+        }
+
+        if (GetScale(_vrstvaAktualna) == null)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: dávkovač {_vrstvaAktualna} nie je pripojený na zbernici - program zastavený.");
+            return 0;
+        }
+
+        return 410;
+    } //Cakanie na zonu -> 410
+
+    private int MainStep410(int step)
+    {
+        Message = $"Multi-mix: čakám na dávku dávkovača {_vrstvaAktualna}";
+        if (RequestToEnd)
+        {
+            return 0;
+        }
+
+        var scale = GetScale(_vrstvaAktualna)!;
+
+        if (scale.IsNoMaterial())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: dávkovač {_vrstvaAktualna} nemá materiál  status:[{scale.GetStatus()}]");
+            return 0;
+        }
+
+        if (scale.IsError())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: chyba dávkovača {_vrstvaAktualna}  status:[{scale.GetStatus()}]");
+            return 0;
+        }
+
+        if (scale.IsFull())
+        {
+            return 420; // Dávka je pripravená vo vykladacej miske
+        }
+
+        return step;
+    } //Cakanie na pripravenu davku -> 420
+
+    private int MainStep420(int step)
+    {
+        Message = $"Multi-mix: vysypanie dávkovača {_vrstvaAktualna}";
+        GetScale(_vrstvaAktualna)!.Operation.Master.SendCommand(EMasterCommand.Next);
+        return 430;
+    } //Povel na vysypanie -> 430
+
+    private int MainStep430(int step)
+    {
+        Message = $"Multi-mix: čakám na začiatok vysypania ({_vrstvaAktualna})";
+        var scale = GetScale(_vrstvaAktualna)!;
+
+        if (scale.IsOcupied())
+        {
+            return 440;
+        }
+
+        if (scale.IsError())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: chyba dávkovača {_vrstvaAktualna}  status:[{scale.GetStatus()}]");
+            return 0;
+        }
+
+        return step;
+    } //Cakanie na zaciatok vysypania -> 440
+
+    private int MainStep440(int step)
+    {
+        Message = $"Multi-mix: čakám na koniec vysypania ({_vrstvaAktualna})";
+        var scale = GetScale(_vrstvaAktualna)!;
+
+        if (scale.IsFree())
+        {
+            return 450;
+        }
+
+        if (scale.IsError())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Multi-mix: chyba dávkovača {_vrstvaAktualna}  status:[{scale.GetStatus()}]");
+            return 0;
+        }
+
+        return step;
+    } //Cakanie na koniec vysypania -> 450
+
+    private int MainStep450(int step)
+    {
+        Message = $"Multi-mix: uvoľnenie zóny pre Lis (vrstva {_vrstvaAktualna})";
+
+        // Hmotnosť tejto vrstvy [g] - Lis si ich postupne spočíta.
+        var scale = GetScale(_vrstvaAktualna)!;
+        double hmotnost = ((CDataScale)scale.Data).WeightFinal / 10000000.0;
+
+        Log.Logger.ForContext("Name", Name)
+            .Information($"Multi-mix: vrstva {_vrstvaAktualna} nasypaná, hmotnosť {hmotnost:F3} g.");
+
+        IL.ZonePress.Release(EnZoneOwner.Scale, EnZoneStatus.InputFull, hmotnost);
+        return 400; // Návrat na čakanie na ďalšiu vrstvu
+    } //Uvolnenie zony pre Lis -> 400
 
     // NodeID váh patria do vrstvy stroja, ich zapnutie do vrstvy výrobku - ukladá sa
     // preto vždy celá sada cez CRecipeManager.

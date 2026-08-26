@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The system dotnet SDK is .NET 9 — use the Rider-bundled .NET 10 SDK for all builds:
 
 ```powershell
-$dotnet = "C:\Program Files\JetBrains\JetBrains Rider 2026.1.0.1\lib\ReSharperHost\windows-x64\dotnet\dotnet.exe"
+$dotnet = "C:\Program Files\JetBrains\JetBrains Rider 2026.1.1\lib\ReSharperHost\windows-x64\dotnet\dotnet.exe"
 & $dotnet build Lisovanie\Lisovanie.csproj
 ```
 
@@ -39,7 +39,7 @@ Main sequence:  step 100 → 110 → ... → 0      (parks)
 Three concrete controllers:
 - **`CControlManipulator`** (`CPlc → CPlcEpos`) — 4 EPOS4 motors, coaxial delta robot, jaw gripper, matrix-based stacking
 - **`CControlLis`** (`CPlc → CPlcEpos`) — 3 EPOS4 motors, hydraulic press with force control; result stored in `CProduktLis` (Sila, Vyska, EnProduktLis status)
-- **`CControlScales`** (`CPlc → CPlcScale`) — 2 CANopen scales, dual-scale material dispensing
+- **`CControlScales`** (`CPlc → CPlcScale`) — 3 CANopen scales (dávkovače), material dispensing
 
 **`CMainProgram`** creates and coordinates all three controllers. It owns two CAN buses: `DeviceManagerCO` (motors) and `DeviceManagerScale` (scales). The `Connect()` method wires up devices and assigns NodeIDs from loaded parameters before `ConnectAsync()` is called on each PLC.
 
@@ -65,6 +65,28 @@ Three concrete controllers:
 | Manipulator | `ParametersDelta.json` | `CParameters` |
 | Lis | `ParametersLis.json` | `CParametersLis` |
 | Scales | `ParametersScale.json` | `CParametersScale` |
+
+Those flat files are **legacy** — they are only read once by `CRecipeManager.MigrateIfNeeded()`. The live mechanism is the three-layer recipe system (`CRecipeManager`): `Parameters/Machine.json` (stroj) → `Parameters/Forms/*.json` (forma, kalibrácia) → `Parameters/Recipes/*.json` (výrobok). `Apply()` maps all three into the running PLC objects by hand-written assignment; `SaveAll()` writes all three back at once. Recipe schema changes need `CurrentRecipeVersion` bumped plus a clause in `UpgradeRecipe`.
+
+### Režimy výroby (`EnModeVyroby`) a metódy lisovania (`EnMetodaLisovania`)
+
+Two **independent** axes on the recipe:
+
+- **`Mode`** — `Single` (tableta z jednej zmesi) or `Multi` (multi-mix, trojvrstvová tableta).
+- **`Metoda`** — `Sila` or `Vzdialenost`. Applies to the final press in **both** modes.
+
+Multi-mix has its **own step chains**, deliberately separate so Single mode stays untouched:
+
+| | Rozcestník | Multi vetva | Návrat do spoločnej vetvy |
+|---|---|---|---|
+| `CControlLis` | 100 → **102** → 105 \| 400 | 400…460 | 460 → **120** (ďalej 130 → 135 → 140\|300) |
+| `CControlScales` | 102 → **105** → 110 \| 400 | 400…450 | slučka 450 → 400 |
+
+Sequencing is driven by **`IL.ZonePress.VrstvaRequest`** (1..3): the press names the doser when it releases the zone as `InputEmpty`; the scales branch obeys it and has no round-robin state of its own. One dose = one `InputEmpty → InputFull` handoff, so a multi-mix cycle does three. The press **accumulates** `PayloadHmotnost` across them into `_aktualnaHmotnost`.
+
+In Multi mode all three scales are forced active (`RecipeToRuntime` overrides `EnabledVaha1/2/3`, UI checkboxes disabled), and each doser has its **own** dosing profile (`CRecipe.Vaha.Davka1/2/3` → `CControlScales.GetDavkaProfile(i)`); Single mode keeps the one shared `Davka` broadcast to all.
+
+`MotorMaster`'s position profile is set once in `InitStep30` (`SetMasterTransportProfile()`) and the pressing loops depend on it — multi-mix step 420 changes it for the compaction move, so step 430 **must** restore it via the same helper.
 
 ### UI
 

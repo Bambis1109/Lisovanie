@@ -7,7 +7,7 @@
         x:Class="Lisovanie.Views.frmScaleParametersSettings"
         x:DataType="models:CControlScales"
         Title="Nastavenia váh"
-        Width="420" Height="330"
+        Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         Topmost="True"
         CanResize="False"
@@ -40,6 +40,7 @@
                 <TextBlock Classes="label" Text="Node ID Váha 1:"/>
                 <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha1}"/>
                 <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsEnabled="{Binding !IsMultiMix}"
                           IsChecked="{Binding ParametersScale.EnabledVaha1}"/>
             </StackPanel>
 
@@ -47,6 +48,7 @@
                 <TextBlock Classes="label" Text="Node ID Váha 2:"/>
                 <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha2}"/>
                 <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsEnabled="{Binding !IsMultiMix}"
                           IsChecked="{Binding ParametersScale.EnabledVaha2}"/>
             </StackPanel>
 
@@ -54,11 +56,17 @@
                 <TextBlock Classes="label" Text="Node ID Váha 3:"/>
                 <NumericUpDown Value="{Binding ParametersScale.NodeIdVaha3}"/>
                 <CheckBox Content="Aktívna" Foreground="#CCCCCC"
+                          IsEnabled="{Binding !IsMultiMix}"
                           IsChecked="{Binding ParametersScale.EnabledVaha3}"/>
             </StackPanel>
 
             <TextBlock Text="Zmeny sa prejavia po opätovnom pripojení (Connect)."
                        Foreground="#888888" FontSize="11" HorizontalAlignment="Center"/>
+
+            <TextBlock Text="Recept je v režime multi-mix - každá vrstva je iná zmes, preto musia byť aktívne všetky tri váhy."
+                       IsVisible="{Binding IsMultiMix}"
+                       TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="#FFB300" FontSize="11"/>
 
             <Separator Height="1" Background="#444"/>
 

@@ -26,6 +26,9 @@ public partial class ParametersViewModel : ViewModelBase
     private readonly CControlScales? _scales;
     private readonly bool _davkaOnly;
 
+    /// <summary>Index dávkovača (1..3) v multi-mix režime; 0 = spoločný profil pre všetky váhy.</summary>
+    private readonly int _doserIndex;
+
     [ObservableProperty] private ObservableCollection<CategoryViewModel> _categories = new();
     [ObservableProperty] private ParameterItemViewModel? _selectedParameter;
     [ObservableProperty] private bool _isBusy;
@@ -50,14 +53,36 @@ public partial class ParametersViewModel : ViewModelBase
         BuildUI();
     }
 
+    /// <summary>
+    /// Režim jedného dávkovača (multi-mix) - profil patrí konkrétnej váhe a len do nej sa zapisuje.
+    /// Uloženie ide stále cez recept, aby sa všetky tri profily zapísali naraz.
+    /// </summary>
+    public ParametersViewModel(DeviceParameters parameters, CControlScales scales, int doserIndex)
+    {
+        _parameters = parameters;
+        _scales = scales;
+        _doserIndex = doserIndex;
+        _davkaOnly = true;
+        BuildUI();
+    }
+
     /// <summary>V režime všetkých váh niet jedného zdroja, z ktorého by sa dalo pri otvorení čítať.</summary>
     public bool IsScalesMode => _scales != null;
 
+    /// <summary>Režim jedného dávkovača - zdroj aj cieľ je práve jedna váha.</summary>
+    public bool IsDoserMode => _scales != null && _doserIndex > 0;
+
+    /// <summary>
+    /// Automaticky čítať zo zariadenia sa smie len tam, kde profil nepochádza z receptu.
+    /// V režime dávkovača by to prepísalo hodnoty receptu hodnotami z váhy.
+    /// </summary>
     public bool AutoLoadOnOpen => !IsScalesMode;
 
-    public bool ShowLoadFromDevice => !IsScalesMode;
+    public bool ShowLoadFromDevice => !IsScalesMode || IsDoserMode;
 
-    public string SendButtonText => IsScalesMode ? "Odošli do váh" : "Save to Device";
+    public string SendButtonText => IsDoserMode
+        ? $"Odošli do váhy {_doserIndex}"
+        : IsScalesMode ? "Odošli do váh" : "Save to Device";
 
     /// <summary>Zápis profilu do receptu má zmysel len v režime všetkých váh.</summary>
     public bool ShowSaveToRecipe => IsScalesMode;
@@ -82,11 +107,28 @@ public partial class ParametersViewModel : ViewModelBase
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(IsInScope);
 
-    /// <summary>Zariadenia, do ktorých sa zapisuje. V režime všetkých váh sú to aktívne váhy.</summary>
-    private List<CDeviceScale> TargetDevices =>
-        _device != null
-            ? new List<CDeviceScale> { _device }
-            : _scales?.ActiveScales.ToList() ?? new List<CDeviceScale>();
+    /// <summary>Váha, ktorej profil toto okno spravuje v režime dávkovača.</summary>
+    private CDeviceScale? DoserDevice => IsDoserMode ? _scales!.GetScale(_doserIndex) : null;
+
+    /// <summary>
+    /// Zariadenia, do ktorých sa zapisuje. V režime všetkých váh sú to aktívne váhy,
+    /// v režime dávkovača práve tá jedna, ktorej profil sa edituje.
+    /// </summary>
+    private List<CDeviceScale> TargetDevices
+    {
+        get
+        {
+            if (_device != null) return new List<CDeviceScale> { _device };
+
+            if (IsDoserMode)
+            {
+                var doser = DoserDevice;
+                return doser != null ? new List<CDeviceScale> { doser } : new List<CDeviceScale>();
+            }
+
+            return _scales?.ActiveScales.ToList() ?? new List<CDeviceScale>();
+        }
+    }
 
     private void BuildUI()
     {
@@ -136,8 +178,8 @@ public partial class ParametersViewModel : ViewModelBase
     {
         if (IsBusy) return;
 
-        // V režime všetkých váh je zdrojom prvá aktívna váha.
-        var source = _device ?? _scales?.ActiveScales.FirstOrDefault();
+        // V režime dávkovača je zdrojom jeho vlastná váha, v režime všetkých váh prvá aktívna.
+        var source = _device ?? DoserDevice ?? _scales?.ActiveScales.FirstOrDefault();
         if (source == null)
         {
             Log.Error("Nie je dostupná žiadna aktívna váha, z ktorej by sa dali načítať parametre.");
@@ -336,7 +378,9 @@ public partial class ParametersViewModel : ViewModelBase
             {
                 Title = "Uložiť parametre do súboru",
                 SuggestedFileName = IsScalesMode
-                    ? $"Davka_{Program.MainProgram?.RecipeManager.ActiveRecipeName}.json"
+                    ? IsDoserMode
+                        ? $"Davka_{Program.MainProgram?.RecipeManager.ActiveRecipeName}_D{_doserIndex}.json"
+                        : $"Davka_{Program.MainProgram?.RecipeManager.ActiveRecipeName}.json"
                     : $"ScaleNode{_device!.NodeId}{(_davkaOnly ? "_Davka" : "")}.json",
                 SuggestedStartLocation = await GetDefaultFolderAsync(topLevel),
                 DefaultExtension = "json",

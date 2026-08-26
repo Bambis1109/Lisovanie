@@ -131,6 +131,24 @@ public partial class CParLisovanieVzdialenost : ObservableObject
     [ObservableProperty] private int _pauzaKrokuMs = 10;
 }
 
+/// <summary>
+/// Zrovnanie prvej vrstvy v multi-mix režime. Piest zíde na absolútnu polohu a zrovná
+/// kopec, ktorý vznikol nasypom, do roviny. Konzola sa počas plnenia nehýbe.
+/// </summary>
+public partial class CParMultiMix : ObservableObject
+{
+    /// <summary>Absolútna poloha piesta pri zrovnávaní 1. vrstvy [mm].</summary>
+    [ObservableProperty] private double _vyskaPritlacenia = -120;
+
+    /// <summary>Bezpečnostný strop sily pri zrovnávaní [N]. Prekročenie označí výlisok ako Nok.</summary>
+    [ObservableProperty] private double _silaMaxPritlacenia = 2000;
+
+    // Profil pohybu piesta pri zrovnávaní - zámerne pomalší než ProfilRychly.
+    [ObservableProperty] private uint _profilVelocity = 80;
+    [ObservableProperty] private uint _profilAcc = 2000;
+    [ObservableProperty] private uint _profilDcc = 2000;
+}
+
 public partial class CParametersLis : ObservableObject
 {
     [ObservableProperty] private CParLis _parLis = new();
@@ -139,12 +157,19 @@ public partial class CParametersLis : ObservableObject
     [ObservableProperty] private CParVaha _parVaha = new();
     [ObservableProperty] private CParLisovanie _parLisovanie = new();
     [ObservableProperty] private CParLisovanieVzdialenost _parLisovanieVzdialenost = new();
+    [ObservableProperty] private CParMultiMix _parMultiMix = new();
 
     /// <summary>Metóda lisovania z receptu. Rozhoduje o vetvení v kroku 135.</summary>
     [ObservableProperty] private EnMetodaLisovania _metoda = EnMetodaLisovania.Sila;
 
+    /// <summary>Režim výroby z receptu. Rozhoduje o vetvení v kroku 102.</summary>
+    [ObservableProperty] private EnModeVyroby _mode = EnModeVyroby.Single;
+
     /// <summary>Zoznam metód pre ComboBox v okne nastavení.</summary>
     public static EnMetodaLisovania[] MetodyLisovania { get; } = Enum.GetValues<EnMetodaLisovania>();
+
+    /// <summary>Zoznam režimov výroby pre ComboBox v okne nastavení.</summary>
+    public static EnModeVyroby[] ModyVyroby { get; } = Enum.GetValues<EnModeVyroby>();
 
     [ObservableProperty] private int _canLine = 0;
     [ObservableProperty] private int _boardLine = 0;

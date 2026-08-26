@@ -44,8 +44,37 @@ public class CRecipeVaha
     /// Parametre riadenia dávky (SDO 0x6006) posielané do všetkých aktívnych váh pri Inite.
     /// Kľúče zodpovedajú menám property v DeviceParameters, takže formát je zhodný
     /// s exportom z okna parametrov dávky. Prázdny slovník = profil ešte nebol nastavený.
+    ///
+    /// Platí len v režime Single, kde majú všetky váhy ten istý materiál.
     /// </summary>
     public Dictionary<string, int> Davka { get; set; } = new();
+
+    /// <summary>
+    /// Profily dávky pre jednotlivé dávkovače v režime Multi. Každá vrstva je iná zmes,
+    /// takže každý dávkovač potrebuje vlastnú cieľovú hmotnosť aj vlastnú dynamiku dávkovania.
+    /// V režime Single sa nepoužívajú.
+    /// </summary>
+    public Dictionary<string, int> Davka1 { get; set; } = new();
+    public Dictionary<string, int> Davka2 { get; set; } = new();
+    public Dictionary<string, int> Davka3 { get; set; } = new();
+}
+
+/// <summary>
+/// Zrovnanie prvej vrstvy v multi-mix režime. Piest zíde na absolútnu polohu,
+/// aby sa kopec vzniknutý nasypom zrovnal do roviny pred nasypaním ďalších zmesí.
+/// </summary>
+public class CRecipeMultiMix
+{
+    /// <summary>Absolútna poloha piesta pri zrovnávaní 1. vrstvy [mm].</summary>
+    public double VyskaPritlacenia { get; set; } = -120;
+
+    /// <summary>Bezpečnostný strop sily pri zrovnávaní [N]. Prekročenie označí výlisok ako Nok.</summary>
+    public double SilaMaxPritlacenia { get; set; } = 2000;
+
+    // Profil pohybu piesta pri zrovnávaní - zámerne pomalší než ProfilRychly.
+    public uint ProfilVelocity { get; set; } = 80;
+    public uint ProfilAcc { get; set; } = 2000;
+    public uint ProfilDcc { get; set; } = 2000;
 }
 
 /// <summary>Vykladacia matica - rozteče závisia od priemeru výlisku.</summary>
@@ -180,4 +209,7 @@ public class CRecipe
     public CRecipeManipulator Manipulator { get; set; } = new();
     public CRecipeLisovanie Lisovanie { get; set; } = new();
     public CRecipeLisovanieVzdialenost LisovanieVzdialenost { get; set; } = new();
+
+    /// <summary>Zrovnanie 1. vrstvy. Uplatní sa len pri Mode = Multi.</summary>
+    public CRecipeMultiMix MultiMix { get; set; } = new();
 }

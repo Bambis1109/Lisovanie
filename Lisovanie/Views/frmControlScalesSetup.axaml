@@ -14,14 +14,31 @@
 
     <Grid RowDefinitions="Auto, Auto">
         <uc:UcScalesSetup Grid.Row="0" Name="UcSetup" />
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" Spacing="10">
+        <!-- WrapPanel, lebo v multi-mix režime pribudnú tri tlačidlá dávkovačov
+             a na úzkom portrait paneli by riadok pretiekol. -->
+        <WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15" ItemSpacing="10" LineSpacing="10">
             <Button Content="Load" Command="{Binding LoadParametersCommand}"
                     Padding="20,10" Background="#2E7D32" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
             <Button Content="Save" Command="{Binding SaveParametersCommand}"
                     Padding="20,10" Background="#1565C0" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
+            <!-- Single: jeden spoločný profil pre všetky váhy -->
             <Button Content="Parameters" Click="BtnParameters_OnClick"
+                    IsVisible="{Binding !IsMultiMix}"
+                    Padding="20,10" Background="#00695C" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <!-- Multi-mix: každý dávkovač má vlastný profil -->
+            <Button Content="Dávka 1" Click="BtnDavka1_OnClick"
+                    IsVisible="{Binding IsMultiMix}"
+                    Padding="20,10" Background="#00695C" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Dávka 2" Click="BtnDavka2_OnClick"
+                    IsVisible="{Binding IsMultiMix}"
+                    Padding="20,10" Background="#00695C" Foreground="White"
+                    FontWeight="Bold" CornerRadius="5"/>
+            <Button Content="Dávka 3" Click="BtnDavka3_OnClick"
+                    IsVisible="{Binding IsMultiMix}"
                     Padding="20,10" Background="#00695C" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
             <Button Content="Settings" Click="BtnSettings_OnClick"
@@ -30,6 +47,6 @@
             <Button Content="Zavrieť" Click="BtnClose_OnClick"
                     Padding="20,10" Background="#B22222" Foreground="White"
                     FontWeight="Bold" CornerRadius="5"/>
-        </StackPanel>
+        </WrapPanel>
     </Grid>
 </Window>

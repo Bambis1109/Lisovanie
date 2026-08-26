@@ -108,6 +108,13 @@ public partial class FrmLisSettingsPar : Window
     private async void BtnVzdialenostPrahJemny_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueAsync("Prah jemný [mm]", p.ParLisovanieVzdialenost.PrahJemny, v => p.ParLisovanieVzdialenost.PrahJemny = v); }
     private async void BtnVzdialenostPauzaKroku_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueIntAsync("Pauza kroku [ms]", p.ParLisovanieVzdialenost.PauzaKrokuMs, v => p.ParLisovanieVzdialenost.PauzaKrokuMs = v); }
 
+    // --- MULTI-MIX ---
+    private async void BtnMultiMixVyskaPritlacenia_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueAsync("Výška pritlačenia", p.ParMultiMix.VyskaPritlacenia, v => p.ParMultiMix.VyskaPritlacenia = v); }
+    private async void BtnMultiMixSilaMax_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueAsync("Sila max pri zrovnávaní [N]", p.ParMultiMix.SilaMaxPritlacenia, v => p.ParMultiMix.SilaMaxPritlacenia = v); }
+    private async void BtnMultiMixProfilVelocity_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueIntAsync("Zrovnávanie - rýchlosť", (int)p.ParMultiMix.ProfilVelocity, v => p.ParMultiMix.ProfilVelocity = (uint)v); }
+    private async void BtnMultiMixProfilAcc_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueIntAsync("Zrovnávanie - zrýchlenie", (int)p.ParMultiMix.ProfilAcc, v => p.ParMultiMix.ProfilAcc = (uint)v); }
+    private async void BtnMultiMixProfilDcc_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueIntAsync("Zrovnávanie - spomalenie", (int)p.ParMultiMix.ProfilDcc, v => p.ParMultiMix.ProfilDcc = (uint)v); }
+
     // --- VYROBOK ---
     private async void BtnVyrobokVyskaMax_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueAsync("Výška Max", p.ParVyrobok.VyskaMax, v => p.ParVyrobok.VyskaMax = v); }
     private async void BtnVyrobokVyskaMin_OnClick(object? sender, RoutedEventArgs e) { if (DataContext is CParametersLis p) await EditValueAsync("Výška Min", p.ParVyrobok.VyskaMin, v => p.ParVyrobok.VyskaMin = v); }

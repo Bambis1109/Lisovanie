@@ -25,6 +25,14 @@ public partial class CMutexZone : ObservableObject
     /// </summary>
     public double PayloadHmotnost { get; private set; }
 
+    /// <summary>
+    /// Ktorý dávkovač (1..3) má naplniť nasledujúcu vrstvu. Nastavuje ho Lis pri uvoľnení
+    /// zóny do stavu InputEmpty, číta ho vetva váh v multi-mix režime.
+    /// Hodnota 0 = Single režim, výber váhy si rieši CControlScales sám (round-robin).
+    /// </summary>
+    [ObservableProperty]
+    private int _vrstvaRequest;
+
     public CMutexZone(string name)
     {
         Name = name;
@@ -67,6 +75,16 @@ public partial class CMutexZone : ObservableObject
         {
             PayloadHmotnost = payloadHmotnost;
         }
+        return Release(requester, newStatus);
+    }
+
+    /// <summary>
+    /// Uvoľní zónu a zároveň určí, ktorý dávkovač má naplniť nasledujúcu vrstvu.
+    /// Používa ju Lis v multi-mix režime.
+    /// </summary>
+    public bool Release(EnZoneOwner requester, EnZoneStatus newStatus, int vrstvaRequest)
+    {
+        VrstvaRequest = vrstvaRequest;
         return Release(requester, newStatus);
     }
 
