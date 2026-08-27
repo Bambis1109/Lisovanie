@@ -251,7 +251,17 @@
 
                     <TextBlock Text="{Binding DnesSpolu, StringFormat='Dnes spolu {0}'}"
                                Foreground="#888" FontSize="10" FontWeight="Bold"
-                               HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                               HorizontalAlignment="Center" Margin="0,0,0,2"/>
+
+                    <!-- Živé hodiny - sekundy majú o polovicu menšie písmo než zvyšok -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
+                        <TextBlock Text="{Binding HodinyBezSekund}"
+                                   Foreground="#BDBDBD" FontSize="13" FontFamily="Consolas"
+                                   VerticalAlignment="Bottom"/>
+                        <TextBlock Text="{Binding Sekundy}"
+                                   Foreground="#BDBDBD" FontSize="6.5" FontFamily="Consolas"
+                                   VerticalAlignment="Bottom"/>
+                    </StackPanel>
 
                     <Grid ColumnDefinitions="65, 55" RowDefinitions="Auto, 2, Auto">
 

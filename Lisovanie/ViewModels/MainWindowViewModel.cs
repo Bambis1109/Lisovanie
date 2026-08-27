@@ -40,7 +40,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private int _dnesNok;
     [ObservableProperty] private int _dnesSpolu;
 
+    /// <summary>Dnešný dátum a čas bez sekúnd a sekundy zvlášť - v XAML majú sekundy
+    /// polovičnú veľkosť písma, preto sú to dve samostatné bindovateľné property.</summary>
+    [ObservableProperty] private string _hodinyBezSekund = string.Empty;
+    [ObservableProperty] private string _sekundy = string.Empty;
+
     private DispatcherTimer? _dnesTimer;
+    private DispatcherTimer? _hodinyTimer;
     private bool _dnesRefreshBezi;
 
     public MainWindowViewModel(CMainProgram mainProgram)
@@ -59,12 +65,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // Prvé načítanie hneď, aby okno neukazovalo nuly prvých 5 sekúnd.
         _ = RefreshDnesAsync();
+
+        // Hodiny bežia zvlášť, raz za sekundu - na rozdiel od bilancie nejde o I/O,
+        // takže sa netreba obmedzovať na 5-sekundový interval databázového refreshu.
+        _hodinyTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _hodinyTimer.Tick += (_, _) => AktualizujHodiny();
+        _hodinyTimer.Start();
+        AktualizujHodiny();
     }
 
     public void StopDnesRefresh()
     {
         _dnesTimer?.Stop();
         _dnesTimer = null;
+
+        _hodinyTimer?.Stop();
+        _hodinyTimer = null;
+    }
+
+    private void AktualizujHodiny()
+    {
+        var teraz = DateTime.Now;
+        HodinyBezSekund = teraz.ToString("dd.MM.yyyy HH:mm:");
+        Sekundy = teraz.ToString("ss");
     }
 
     /// <summary>
