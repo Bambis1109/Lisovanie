@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using EposCmd.Net;
@@ -28,6 +29,23 @@ public partial class CControlScales : CPlcScale
 
     /// <summary>Vrstva, ktorú práve obsluhuje multi-mix vetva (1..3).</summary>
     private int _vrstvaAktualna;
+
+    /// <summary>
+    /// Váha, ktorú práve rozbieha štartovacia sekvencia (kroky 100 - 102).
+    /// Váhy sa spúšťajú postupne, lebo súbežne dávkujúce dávkovače sa vzájomne rušia.
+    /// </summary>
+    private int _startIndex;
+
+    /// <summary>Meranie času plnenia zásobníkov jednej váhy pri štarte.</summary>
+    private readonly Stopwatch _swStartDavkovanie = new();
+
+    /// <summary>
+    /// Poistka proti zaseknutiu štartu na chybnom dávkovači - nie riadiaca hodnota.
+    /// Profil dávky má vlastné timeouty (Rs_TimeoutBulkMs + Rs_TimeoutFineMs, spolu až ~35 s)
+    /// a pri štarte sa plnia dva zásobníky, takže 2 minúty sú bezpečne nad najhorším prípadom.
+    /// Bez tejto poistky by šlo o nekonečné čakanie na potvrdenie zo zariadenia.
+    /// </summary>
+    private const int StartDavkovanieTimeoutMs = 120_000;
 
     public CControlScales(string name) : base(name)
     {
@@ -356,21 +374,45 @@ public partial class CControlScales : CPlcScale
     // METÓDY PRE MAIN PROGRAM
     // ==========================================
 
-    // Spoločný štart produkcie pre jednu váhu; vypnutá váha sa preskočí
-    private int StartScaleStep(int index, int nextStep)
+    // ------------------------------------------------------------------
+    // POSTUPNÝ ŠTART VÁH (kroky 100 - 102)
+    //
+    // Povel Produkcia rozbehne na váhe plnenie oboch zásobníkov (vážiaca miska aj
+    // výložník). Ak ho dostanú všetky váhy naraz, dávkovače bežia súbežne a vzájomne sa
+    // rušia. Preto sa váhy rozbiehajú po jednej - ďalšia dostane povel až keď predošlá
+    // hlási cez TPDO4 naplnené oba zásobníky (IsFullyCharged).
+    //
+    // V ustálenom behu problém nenastáva: Lis si pýta dávky s odstupmi a váha po povele
+    // Next dobíja len jednu, takže sa dávkovania nikdy neprekryjú.
+    // ------------------------------------------------------------------
+
+    /// <summary>Posunie štart na ďalšiu aktívnu váhu; 0 = všetky sú už rozbehnuté.</summary>
+    private int NextStartIndex() => ActiveIndices.FirstOrDefault(i => i > _startIndex);
+
+    private int MainStep100(int step)
     {
-        Message = $"Start Vaha {index}";
-        var scale = GetScale(index);
-        if (!IsScaleEnabled(index) || scale == null)
+        Message = "Štart váh - postupné rozbiehanie";
+
+        _startIndex = ActiveIndices.FirstOrDefault();
+        if (_startIndex == 0)
         {
-            Log.Logger.ForContext("Name", Name).Information($"Váha {index} je vypnutá - preskakujem.");
-            return nextStep;
+            Log.Logger.ForContext("Name", Name).Error("Žiadna aktívna váha - program zastavený.");
+            return 0;
         }
+
+        return 101;
+    } //Reset indexu na prvu aktivnu vahu -> 101
+
+    private int MainStep101(int step)
+    {
+        Message = $"Start Vaha {_startIndex}";
+
+        var scale = GetScale(_startIndex)!;
 
         if (!scale.IsReady()) //kontrola ci je ready
         {
             Log.Logger.ForContext("Name", Name)
-                .Error($"Váha {index} nie je Ready  status:[{((CDataScale)scale.Data).StatusMainProc}]");
+                .Error($"Váha {_startIndex} nie je Ready  status:[{((CDataScale)scale.Data).StatusMainProc}]");
             return 0;
         }
 
@@ -379,20 +421,70 @@ public partial class CControlScales : CPlcScale
         if (!scale.WaitForProcStatus(EProcStatus.Busy, 2000))
         {
             Log.Logger.ForContext("Name", Name)
-                .Error($"Váha {index} nie je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
+                .Error($"Váha {_startIndex} nie je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
             return 0;
         }
 
         Log.Logger.ForContext("Name", Name)
-            .Information($"Váha {index} je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
-        return nextStep;
+            .Information($"Váha {_startIndex} je Busy  status:[{((CDataScale)scale.Data).StatusMainProc}]");
+
+        _swStartDavkovanie.Restart();
+        return 102;
+    } //Povel Produkcia vahe _startIndex -> 102
+
+    private int MainStep102(int step)
+    {
+        Message = $"Váha {_startIndex}: dávkujem oba zásobníky";
+
+        if (RequestToEnd)
+        {
+            return 0;
+        }
+
+        var scale = GetScale(_startIndex)!;
+
+        if (scale.IsError() || scale.IsDoserError())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Váha {_startIndex} hlási chybu pri plnení zásobníkov  status:[{scale.GetStatus()}]");
+            return 0;
+        }
+
+        // Váha bez materiálu štart nezastavuje - reťazec je spoločný pre oba režimy.
+        // V Single ju krok 140 preskočí, v Multi ju zachytí krok 410 s hlásením o vrstve.
+        if (scale.IsNoMaterial())
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Warning($"Váha {_startIndex} nemá materiál - pokračujem ďalšou.");
+            return AdvanceStart();
+        }
+
+        if (scale.IsFullyCharged())
+        {
+            Log.Logger.ForContext("Name", Name).Information(
+                $"Váha {_startIndex} má nadávkované oba zásobníky ({_swStartDavkovanie.Elapsed.TotalSeconds:F1} s).");
+            return AdvanceStart();
+        }
+
+        if (_swStartDavkovanie.ElapsedMilliseconds > StartDavkovanieTimeoutMs)
+        {
+            Log.Logger.ForContext("Name", Name).Warning(
+                $"Váha {_startIndex} nenaplnila oba zásobníky do {StartDavkovanieTimeoutMs} ms " +
+                $"(doser:[{(scale.IsDoserFull() ? "Full" : "-")}] výložník:[{(scale.IsVyloznikFull() ? "Full" : "-")}]) " +
+                "- pokračujem ďalšou.");
+            return AdvanceStart();
+        }
+
+        return step;
+    } //Cakanie na naplnenie oboch zasobnikov -> 101 (dalsia vaha) alebo 105 (hotovo)
+
+    /// <summary>Prepne štart na ďalšiu váhu, alebo pustí program do rozcestníka 105.</summary>
+    private int AdvanceStart()
+    {
+        _swStartDavkovanie.Reset();
+        _startIndex = NextStartIndex();
+        return _startIndex == 0 ? 105 : 101;
     }
-
-    private int MainStep100(int step) => StartScaleStep(1, 101); //Start Vaha 1 ->101
-
-    private int MainStep101(int step) => StartScaleStep(2, 102); //Start Vaha 2 ->102
-
-    private int MainStep102(int step) => StartScaleStep(3, 105); //Start Vaha 3 ->105
 
     /// <summary>
     /// Rozcestník podľa režimu výroby. Obe vetvy sú od tohto miesta úplne oddelené.

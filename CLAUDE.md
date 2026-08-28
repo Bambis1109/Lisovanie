@@ -80,9 +80,11 @@ Multi-mix has its **own step chains**, deliberately separate so Single mode stay
 | | Rozcestník | Multi vetva | Návrat do spoločnej vetvy |
 |---|---|---|---|
 | `CControlLis` | 100 → **102** → 105 \| 400 | 400…460 | 460 → **120** (ďalej 130 → 135 → 140\|300) |
-| `CControlScales` | 102 → **105** → 110 \| 400 | 400…450 | slučka 450 → 400 |
+| `CControlScales` | 100 → 101 ⇄ 102 → **105** → 110 \| 400 | 400…450 | slučka 450 → 400 |
 
 Sequencing is driven by **`IL.ZonePress.VrstvaRequest`** (1..3): the press names the doser when it releases the zone as `InputEmpty`; the scales branch obeys it and has no round-robin state of its own. One dose = one `InputEmpty → InputFull` handoff, so a multi-mix cycle does three. The press **accumulates** `PayloadHmotnost` across them into `_aktualnaHmotnost`.
+
+The scale start (100 → 101 ⇄ 102, both modes) is **serialized**: `Produkcia` fills *both* buffers (weighing pan + výložník) at once, so starting all three scales together makes the dosers interfere with each other. Step 102 waits on TPDO4 (`IsFullyCharged()` = `StatusDoserMat` **and** `StatusVyloznikMat` both `Full`) before step 101 starts the next scale — `StatusMainMat`/`IsFull()` only reports the výložník and would release the next scale too early. The wait is non-blocking (returns `step`) with a 2-minute failsafe; a scale reporting `NoMaterial` is skipped, not fatal. Steady-state dosing is untouched — the cycle spaces the doses out on its own.
 
 In Multi mode all three scales are forced active (`RecipeToRuntime` overrides `EnabledVaha1/2/3`, UI checkboxes disabled), and each doser has its **own** dosing profile (`CRecipe.Vaha.Davka1/2/3` → `CControlScales.GetDavkaProfile(i)`); Single mode keeps the one shared `Davka` broadcast to all.
 

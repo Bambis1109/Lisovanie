@@ -167,10 +167,39 @@ namespace EposCmd.Net
         {
             return ScaleData.StatusMainZone == EZoneStatus.Occupied;
         }
-        
+
         public bool IsFree ()
         {
             return ScaleData.StatusMainZone == EZoneStatus.Free;
+        }
+
+        // --- Stavy jednotlivých zásobníkov (TPDO4) ---
+        // IsFull() nad hlavným procesom signalizuje len naplnený výložník. Váha však drží
+        // dve dávky - vo vážiacej miske (doser) a vo výložníku - a počas plnenia misky
+        // ešte stále dávkuje. Na rozlíšenie slúžia tieto helpery.
+
+        public bool IsDoserFull()
+        {
+            return ScaleData.StatusDoserMat == EMatStatus.Full;
+        }
+
+        public bool IsVyloznikFull()
+        {
+            return ScaleData.StatusVyloznikMat == EMatStatus.Full;
+        }
+
+        public bool IsDoserError()
+        {
+            return ScaleData.StatusDoserProc == EProcStatus.Error;
+        }
+
+        /// <summary>
+        /// Oba zásobníky (vážiaca miska aj výložník) sú nadávkované - váha už nedávkuje
+        /// a nemôže rušiť ostatné váhy.
+        /// </summary>
+        public bool IsFullyCharged()
+        {
+            return IsDoserFull() && IsVyloznikFull();
         }
         
         public void WaitForInitAttained(uint timeoutMs)
