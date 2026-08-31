@@ -125,6 +125,7 @@ public partial class CControlLis : CPlcEpos
             case 320: return MainStep320(step);
             case 330: return MainStep330(step);
             case 340: return MainStep340(step);
+            case 345: return MainStep345(step);
             case 350: return MainStep350(step);
 
             // --- Multi-mix: plnenie po vrstvách (kroky 400 - 460) ---
@@ -578,24 +579,34 @@ public partial class CControlLis : CPlcEpos
 
     private int MainStep340(int step)
     {
-        Message = "Uvolnenie koniec lisovania";
+        Message = "Nadvihnutie konzoly";
         ProduktLisActual.Sila = SilaActual;
         ProduktLisActual.Vyska = DistanceActual;
 
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParLis.VyskaNasypacia, true, true);
-        Thread.Sleep(100);
+        Thread.Sleep(500);
         MotorStred.Operation.StateMachine.SetEnableState();
         MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
             ParametersLis.ParLisovanie.ProfilPomalyVelocity,
             ParametersLis.ParLisovanie.ProfilPomalyAcc,
             ParametersLis.ParLisovanie.ProfilPomalyDcc);
-        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(-1, false,
             true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
 
-        return 350;
+        return 345;
     } // Koniec lisovania uvolnenie
 
+    private int MainStep345(int step)
+    {
+        Message = "Vylisovanie konzolou";
+  
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(ParametersLis.ParKonzola.VyskaOdoberacia, true,
+            true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(10000);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(5000);
+        return 350;
+    } // Koniec lisovania uvolnenie
     private int MainStep350(int step)
     {
         Message = "Uvolnenie zony a nastavenie priznaku";
