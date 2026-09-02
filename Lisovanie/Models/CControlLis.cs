@@ -101,6 +101,8 @@ public partial class CControlLis : CPlcEpos
             // MAIN SEKVENCIA (Kroky 100+)
             // ==========================================
             case 100: return MainStep100(step);
+            case 101: return MainStep101(step);
+            case 103: return MainStep103(step);
             case 102: return MainStep102(step);
             case 105: return MainStep105(step);
             case 110: return MainStep110(step);
@@ -219,11 +221,64 @@ public partial class CControlLis : CPlcEpos
         // Lis čaká, kým mu manipulator neuvolni zonu
         if (IL.ZonePress.TryLock(EnZoneOwner.Press, EnZoneStatus.Unknown))
         {
-            return 102;
+            return 101;
         }
 
         return step;
-    } //Čakám na Init manipulatora
+    } //Čakám na Init manipulatora -> 101 (kontrola priechodnosti)
+
+    // ------------------------------------------------------------------
+    // KONTROLA PRIECHODNOSTI LISOVACEJ SÚPRAVY (kroky 101 - 103)
+    //
+    // Vyosená súprava sa dnes prejaví až v prevádzkovom kroku 120, teda až keď je dutina
+    // plná prášku. Preto sa raz po štarte spraví ten istý pohyb naprázdno.
+    //
+    // Po Inite stojí konzola dole na ParLisovanie.StredVychodzia, pod úrovňou spodného
+    // piesta, a horný piest je na hornom doraze. Piest preto zíde ako prvý a konzola sa
+    // naň nasunie zdola - koncový stav (Master VyskaPriblizenie, Stred VyskaNasypacia) je
+    // zhodný s prevádzkovým stavom po kroku 120, len sa k nemu prišlo opačným poradím.
+    //
+    // Kroky sú pred rozcestníkom 102, takže platia pre Single aj Multi režim. Prevádzkový
+    // cyklus sa vracia 200 -> 102, čiže test prebehne práve raz na jedno stlačenie Štart.
+    // Zóna počas testu ostáva zamknutá pre Press - váhy dostanú InputEmpty až v kroku
+    // 105/400, takže sa nikdy nesype do dutiny, cez ktorú piest neprešiel.
+    //
+    // Kolíziu netreba vyhodnocovať zvlášť: WaitForTargetReached hlási Fault, Following
+    // Error aj timeout ako CDeviceException, ktorú ProgramLoop premení na StatusPlc.Error
+    // a vypne motory.
+    // ------------------------------------------------------------------
+
+    private int MainStep101(int step)
+    {
+        Message = "Kontrola priechodnosti: piest na priblíženie";
+        Log.Logger.ForContext("Name", Name).Information(
+            "Lis: kontrola priechodnosti lisovacej súpravy (bez náplne).");
+
+        // Profil piesta sa nemení - platí ten z InitStep30, rovnako ako v kroku 120.
+        MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(
+            ParametersLis.ParLis.VyskaPriblizenie, true, true);
+        MotorMaster.Operation.MotionInfo.WaitForTargetReached(10000);
+        return 103;
+    } //Piest na vysku priblizenia, konzola este dole -> 103
+
+    private int MainStep103(int step)
+    {
+        Message = "Kontrola priechodnosti: vnorenie piesta do konzoly";
+
+        // Vlastný test: dutina konzoly sa nasunie na stojaci piest. Pri vyosení tu vzniká
+        // kolízia a EPOS4 ju nahlási skôr, než sa do dutiny dostane materiál.
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilRychlyVelocity,
+            ParametersLis.ParLisovanie.ProfilRychlyAcc,
+            ParametersLis.ParLisovanie.ProfilRychlyDcc);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(
+            ParametersLis.ParKonzola.VyskaNasypacia, true, true);
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
+
+        Log.Logger.ForContext("Name", Name).Information(
+            "Lis: kontrola priechodnosti OK - piest sa vnoril do dutiny konzoly.");
+        return 102;
+    } //Konzola hore na nasypaciu = vnorenie piesta do dutiny -> 102 (rozcestnik rezimu)
 
     /// <summary>
     /// Rozcestník podľa režimu výroby z receptu. Obe vetvy sú od tohto miesta oddelené;
