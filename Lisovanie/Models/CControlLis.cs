@@ -42,7 +42,7 @@ public partial class CControlLis : CPlcEpos
     // --- Obmedzenie výkonu konzoly počas kontroly priechodnosti (kroky 101 - 103) ---
 
     /// <summary>Podiel pôvodného prúdového limitu konzoly počas kontroly priechodnosti.</summary>
-    private const double PriechodnostPodielVykonu = 0.10;
+    private const double PriechodnostPodielVykonu = 0.05;
 
     private uint _stredNominalCurrent;
     private uint _stredOutputCurrentLimit;
@@ -253,10 +253,10 @@ public partial class CControlLis : CPlcEpos
     // Zóna počas testu ostáva zamknutá pre Press - váhy dostanú InputEmpty až v kroku
     // 105/400, takže sa nikdy nesype do dutiny, cez ktorú piest neprešiel.
     //
-    // Na čas testu sa konzole stiahne menovitý (kontinuálny) aj výstupný (krátkodobý)
-    // prúdový limit na desatinu. Prúd je úmerný momentu, takže vyosená súprava motor zastaví
-    // skôr, než stihne poškodiť nástroj. Limity sa vracajú v kroku 103 a pre istotu aj pri
-    // každom ukončení slučky.
+    // Konzola ide počas testu pomalým profilom a s menovitým (kontinuálnym) aj výstupným
+    // (krátkodobým) prúdovým limitom stiahnutým na dvadsatinu. Prúd je úmerný momentu, takže
+    // vyosená súprava motor zastaví skôr, než stihne poškodiť nástroj. Limity aj rýchly profil
+    // sa vracajú na konci kroku 103, limity pre istotu aj pri každom ukončení slučky.
     //
     // Kolíziu netreba vyhodnocovať zvlášť: WaitForTargetReached hlási Fault, Following
     // Error aj timeout ako CDeviceException, ktorú ProgramLoop premení na StatusPlc.Error
@@ -285,14 +285,21 @@ public partial class CControlLis : CPlcEpos
         // Vlastný test: dutina konzoly sa nasunie na stojaci piest. Pri vyosení tu vzniká
         // kolízia a EPOS4 ju nahlási skôr, než sa do dutiny dostane materiál.
         MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
+            ParametersLis.ParLisovanie.ProfilPomalyVelocity,
+            ParametersLis.ParLisovanie.ProfilPomalyAcc,
+            ParametersLis.ParLisovanie.ProfilPomalyDcc);
+        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(
+            ParametersLis.ParKonzola.VyskaNasypacia, true, true);
+        // Pomalý profil je oproti rýchlemu niekoľkonásobne pomalší, timeout musí byť dlhší.
+        MotorStred.Operation.MotionInfo.WaitForTargetReached(20000);
+
+        ObnovVykonKonzoly();
+
+        // Konzola sa vracia do prevádzkového (rýchleho) profilu - kroky 105 aj 400 s ním rátajú.
+        MotorStred.Operation.ProfilePositionMode.SetPositionProfile(
             ParametersLis.ParLisovanie.ProfilRychlyVelocity,
             ParametersLis.ParLisovanie.ProfilRychlyAcc,
             ParametersLis.ParLisovanie.ProfilRychlyDcc);
-        MotorStred.Operation.ProfilePositionMode.MoveToPositionGear(
-            ParametersLis.ParKonzola.VyskaNasypacia, true, true);
-        MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
-
-        ObnovVykonKonzoly();
 
         Log.Logger.ForContext("Name", Name).Information(
             "Lis: kontrola priechodnosti OK - piest sa vnoril do dutiny konzoly.");
