@@ -21,7 +21,7 @@ namespace EposCmd.Net
             Data = new CDataEpos4(nodeId, Name, gear, pulse);
 
             
-            Configuration = new Configuration(keyHandle, nodeId);
+            Configuration = new Configuration(keyHandle, nodeId, EposData);
             Initialization = new Initialization(keyHandle, nodeId);
             LowLayer = new LowLayer(keyHandle, nodeId, EposData);
             Operation = new Operation(keyHandle, nodeId, EposData);

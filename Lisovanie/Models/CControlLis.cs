@@ -39,6 +39,16 @@ public partial class CControlLis : CPlcEpos
     /// <summary>Hmotnosť aktuálnej dávky [g] prevzatá zo zóny pri InputFull.</summary>
     private double _aktualnaHmotnost;
 
+    // --- Obmedzenie výkonu konzoly počas kontroly priechodnosti (kroky 101 - 103) ---
+
+    /// <summary>Podiel pôvodného prúdového limitu konzoly počas kontroly priechodnosti.</summary>
+    private const double PriechodnostPodielVykonu = 0.10;
+
+    private uint _stredNominalCurrent;
+    private uint _stredOutputCurrentLimit;
+    private bool _stredCurrentLimitsCached;
+    private bool _vykonKonzolyZnizeny;
+
     /// <summary>Logger výrobných dát (priradí ho CMainProgram). Null = neukladá sa.</summary>
     public CProductionLogger? ProductionLogger { get; set; }
 
@@ -243,6 +253,11 @@ public partial class CControlLis : CPlcEpos
     // Zóna počas testu ostáva zamknutá pre Press - váhy dostanú InputEmpty až v kroku
     // 105/400, takže sa nikdy nesype do dutiny, cez ktorú piest neprešiel.
     //
+    // Na čas testu sa konzole stiahne menovitý (kontinuálny) aj výstupný (krátkodobý)
+    // prúdový limit na desatinu. Prúd je úmerný momentu, takže vyosená súprava motor zastaví
+    // skôr, než stihne poškodiť nástroj. Limity sa vracajú v kroku 103 a pre istotu aj pri
+    // každom ukončení slučky.
+    //
     // Kolíziu netreba vyhodnocovať zvlášť: WaitForTargetReached hlási Fault, Following
     // Error aj timeout ako CDeviceException, ktorú ProgramLoop premení na StatusPlc.Error
     // a vypne motory.
@@ -253,6 +268,8 @@ public partial class CControlLis : CPlcEpos
         Message = "Kontrola priechodnosti: piest na priblíženie";
         Log.Logger.ForContext("Name", Name).Information(
             "Lis: kontrola priechodnosti lisovacej súpravy (bez náplne).");
+
+        ZnizVykonKonzoly();
 
         // Profil piesta sa nemení - platí ten z InitStep30, rovnako ako v kroku 120.
         MotorMaster.Operation.ProfilePositionMode.MoveToPositionGear(
@@ -275,10 +292,89 @@ public partial class CControlLis : CPlcEpos
             ParametersLis.ParKonzola.VyskaNasypacia, true, true);
         MotorStred.Operation.MotionInfo.WaitForTargetReached(5000);
 
+        ObnovVykonKonzoly();
+
         Log.Logger.ForContext("Name", Name).Information(
             "Lis: kontrola priechodnosti OK - piest sa vnoril do dutiny konzoly.");
         return 102;
     } //Konzola hore na nasypaciu = vnorenie piesta do dutiny -> 102 (rozcestnik rezimu)
+
+    /// <summary>
+    /// Stiahne menovitý (kontinuálny) aj výstupný (krátkodobý) prúdový limit konzoly na
+    /// <see cref="PriechodnostPodielVykonu"/> pôvodnej hodnoty.
+    ///
+    /// Pôvodné hodnoty sa z meniča čítajú len raz za beh aplikácie: po chybe sa vyžaduje nový
+    /// Init a opakované čítanie by si zapamätalo už znížené hodnoty ako pôvodné.
+    /// </summary>
+    private void ZnizVykonKonzoly()
+    {
+        var motor = MotorStred.Configuration.Advanced.Motor;
+
+        if (!_stredCurrentLimitsCached)
+        {
+            _stredNominalCurrent = motor.GetNominalCurrent();
+            _stredOutputCurrentLimit = motor.GetOutputCurrentLimit();
+            _stredCurrentLimitsCached = true;
+            Log.Logger.ForContext("Name", Name).Information(
+                $"Lis: pôvodné prúdové limity konzoly - kontinuálny {_stredNominalCurrent} mA, " +
+                $"krátkodobý {_stredOutputCurrentLimit} mA.");
+        }
+
+        var nominal = (uint)Math.Round(_stredNominalCurrent * PriechodnostPodielVykonu);
+        var peak = (uint)Math.Round(_stredOutputCurrentLimit * PriechodnostPodielVykonu);
+
+        // EPOS4 neprijme krátkodobý limit nižší ako menovitý, preto sa pri znižovaní zapisuje
+        // najprv menovitý a až potom krátkodobý (pri obnove je poradie opačné).
+        motor.SetNominalCurrent(nominal);
+        motor.SetOutputCurrentLimit(peak);
+        _vykonKonzolyZnizeny = true;
+
+        Log.Logger.ForContext("Name", Name).Information(
+            $"Lis: výkon konzoly znížený na {PriechodnostPodielVykonu * 100:0} % ({nominal} mA / {peak} mA).");
+    }
+
+    /// <summary>
+    /// Vráti prúdové limity konzoly na pôvodné hodnoty. Volá sa po kontrole priechodnosti aj pri
+    /// každom ukončení slučky, aby znížený výkon nikdy neprešiel do prevádzky.
+    /// </summary>
+    private void ObnovVykonKonzoly()
+    {
+        if (!_vykonKonzolyZnizeny) return;
+
+        var motor = MotorStred.Configuration.Advanced.Motor;
+        motor.SetOutputCurrentLimit(_stredOutputCurrentLimit);
+        motor.SetNominalCurrent(_stredNominalCurrent);
+        _vykonKonzolyZnizeny = false;
+
+        Log.Logger.ForContext("Name", Name).Information(
+            $"Lis: výkon konzoly obnovený ({_stredNominalCurrent} mA / {_stredOutputCurrentLimit} mA).");
+    }
+
+    /// <summary>Obnova limitov v ukončovacej vetve - výpadok zbernice tu už nesmie nič zhodiť.</summary>
+    private void ObnovVykonKonzolyBezVynimky()
+    {
+        try
+        {
+            ObnovVykonKonzoly();
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.ForContext("Name", Name)
+                .Error($"Lis: obnovenie výkonu konzoly zlyhalo: {ex.Message}");
+        }
+    }
+
+    public override void FinishOKHandle()
+    {
+        base.FinishOKHandle();
+        ObnovVykonKonzolyBezVynimky();
+    }
+
+    public override void FinishNOKHandle()
+    {
+        base.FinishNOKHandle();
+        ObnovVykonKonzolyBezVynimky();
+    }
 
     /// <summary>
     /// Rozcestník podľa režimu výroby z receptu. Obe vetvy sú od tohto miesta oddelené;

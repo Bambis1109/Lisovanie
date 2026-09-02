@@ -40,23 +40,28 @@
                         Data.Gear = gear;
                     }
 
-                    public Configuration(ushort keyHandle, byte nodeId)
+                    public Configuration(ushort keyHandle, byte nodeId, CDataEpos4 data)
                     {
                         KeyHandle = keyHandle;
                         NodeId = nodeId;
-
+                        BaseData = data;
+                        Advanced = new ConfigurationAdvanced(keyHandle, nodeId, data);
                     }
+
+                    /// <summary>Rozsirena konfiguracia menica (motor, I/O, safety).</summary>
+                    public ConfigurationAdvanced Advanced { get; }
 
 
 
                     public class ConfigurationAdvanced : CEpos4CommandGroupCO
                     {
-                        public ConfigurationAdvanced(ushort keyHandle, byte nodeId)
+                        public ConfigurationAdvanced(ushort keyHandle, byte nodeId, CDataEpos4 data)
                         {
                             KeyHandle = keyHandle;
                             NodeId = nodeId;
-                            InputOutput = new InputOutput(keyHandle, nodeId);
-                            Motor = new Motor(keyHandle, nodeId);
+                            BaseData = data;
+                            InputOutput = new InputOutput(keyHandle, nodeId, data);
+                            Motor = new Motor(keyHandle, nodeId, data);
                             Safety = new Safety(keyHandle, nodeId);
                         }
 
@@ -68,10 +73,11 @@
 
                     public class InputOutput : CEpos4CommandGroupCO
                     {
-                        public InputOutput(ushort keyHandle, byte nodeId)
+                        public InputOutput(ushort keyHandle, byte nodeId, CDataEpos4 data)
                         {
                             KeyHandle = keyHandle;
                             NodeId = nodeId;
+                            BaseData = data;
                         }
 
                         public void AnalogInputConfiguration(ushort analogInputNb,
@@ -120,10 +126,11 @@
 
                     public class Motor : CEpos4CommandGroupCO
                     {
-                        public Motor(ushort keyHandle, byte nodeId)
+                        public Motor(ushort keyHandle, byte nodeId, CDataEpos4 data)
                         {
                             KeyHandle = keyHandle;
                             NodeId = nodeId;
+                            BaseData = data;
                         }
 
                         public void SetNominalCurrent(UInt32 nominalCurent)
